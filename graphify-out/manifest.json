@@ -1,0 +1,68 @@
+{
+  ".planning/config.json": {
+    "mtime": 1792441515.8392549,
+    "seen": 1792445506.8498313,
+    "ast_hash": "44fe75730bb78b90e8dd901e4f112d29",
+    "semantic_hash": "44fe75730bb78b90e8dd901e4f112d29"
+  },
+  ".planning/PROJECT.md": {
+    "mtime": 1792443893.1581392,
+    "seen": 1792445506.8498375,
+    "ast_hash": "2287283b02c40ccac471552f40ab0b60",
+    "semantic_hash": "2287283b02c40ccac471552f40ab0b60"
+  },
+  ".planning/REQUIREMENTS.md": {
+    "mtime": 1792444802.162366,
+    "seen": 1792445506.8498404,
+    "ast_hash": "c8638f95fa92d0136ff7f8b6b0fbf097",
+    "semantic_hash": "c8638f95fa92d0136ff7f8b6b0fbf097"
+  },
+  ".planning/ROADMAP.md": {
+    "mtime": 1792444774.9062357,
+    "seen": 1792445506.849842,
+    "ast_hash": "4dbea17cc4e5db7b0a04f8c412c6577f",
+    "semantic_hash": "4dbea17cc4e5db7b0a04f8c412c6577f"
+  },
+  ".planning/STATE.md": {
+    "mtime": 1792444820.062777,
+    "seen": 1792445506.8498437,
+    "ast_hash": "e11c3c788b582acaa1751206fb610245",
+    "semantic_hash": "e11c3c788b582acaa1751206fb610245"
+  },
+  ".planning/research/ARCHITECTURE.md": {
+    "mtime": 1792442999.236073,
+    "seen": 1792445506.8498452,
+    "ast_hash": "af4c40f9fa09abc2dc259ad70a3e11fd",
+    "semantic_hash": "af4c40f9fa09abc2dc259ad70a3e11fd"
+  },
+  ".planning/research/FEATURES.md": {
+    "mtime": 1792442538.0045078,
+    "seen": 1792445506.8498468,
+    "ast_hash": "aaab3bb75cf4e30bd82b2c4a0e69c32d",
+    "semantic_hash": "aaab3bb75cf4e30bd82b2c4a0e69c32d"
+  },
+  ".planning/research/PITFALLS.md": {
+    "mtime": 1792442618.519237,
+    "seen": 1792445506.8498478,
+    "ast_hash": "796652d8de7cfb4ebabe660eb080a754",
+    "semantic_hash": "796652d8de7cfb4ebabe660eb080a754"
+  },
+  ".planning/research/STACK.md": {
+    "mtime": 1792442398.286205,
+    "seen": 1792445506.849849,
+    "ast_hash": "967526749625adbd5078f377d4c49af5",
+    "semantic_hash": "967526749625adbd5078f377d4c49af5"
+  },
+  ".planning/research/SUMMARY.md": {
+    "mtime": 1792443704.390847,
+    "seen": 1792445506.8498504,
+    "ast_hash": "c1378033390762910062f7ce2414b9cd",
+    "semantic_hash": "c1378033390762910062f7ce2414b9cd"
+  },
+  "AGENTS.md": {
+    "mtime": 1792445105.7390141,
+    "seen": 1792445506.8498516,
+    "ast_hash": "770b85879587565427718a4f5e4458ab",
+    "semantic_hash": "770b85879587565427718a4f5e4458ab"
+  }
+}
