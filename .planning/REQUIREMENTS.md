@@ -244,14 +244,179 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| _(populated by roadmap creation)_ | | |
+| ING-01 | Phase 2 | Pending |
+| ING-02 | Phase 2 | Pending |
+| ING-03 | Phase 2 | Pending |
+| ING-04 | Phase 2 | Pending |
+| ING-05 | Phase 6 | Pending |
+| ING-06 | Phase 2 | Pending |
+| ING-07 | Phase 2 | Pending |
+| ING-08 | Phase 2 | Pending |
+| ING-09 | Phase 2 | Pending |
+| ING-10 | Phase 2 | Pending |
+| CUR-01 | Phase 3 | Pending |
+| CUR-02 | Phase 3 | Pending |
+| CUR-03 | Phase 3 | Pending |
+| CUR-04 | Phase 3 | Pending |
+| CUR-05 | Phase 3 | Pending |
+| CUR-06 | Phase 3 | Pending |
+| CUR-07 | Phase 3 | Pending |
+| CUR-08 | Phase 5 | Pending |
+| CUR-09 | Phase 5 | Pending |
+| CUR-10 | Phase 3 | Pending |
+| CUR-11 | Phase 3 | Pending |
+| CUR-12 | Phase 3 | Pending |
+| CUR-13 | Phase 3 | Pending |
+| CUR-14 | Phase 3 | Pending |
+| CUR-15 | Phase 3 | Pending |
+| CON-01 | Phase 2 | Pending |
+| CON-02 | Phase 2 | Pending |
+| CON-03 | Phase 2 | Pending |
+| CON-04 | Phase 2 | Pending |
+| CON-05 | Phase 2 | Pending |
+| CON-06 | Phase 5 | Pending |
+| CON-07 | Phase 5 | Pending |
+| CON-08 | Phase 5 | Pending |
+| CON-09 | Phase 6 | Pending |
+| CON-10 | Phase 5 | Pending |
+| CON-11 | Phase 6 | Pending |
+| CON-12 | Phase 6 | Pending |
+| CON-13 | Phase 6 | Pending |
+| CON-14 | Phase 6 | Pending |
+| CON-15 | Phase 3 | Pending |
+| PUB-01 | Phase 5 | Pending |
+| PUB-02 | Phase 5 | Pending |
+| PUB-03 | Phase 5 | Pending |
+| PUB-04 | Phase 5 | Pending |
+| PUB-05 | Phase 5 | Pending |
+| PUB-06 | Phase 5 | Pending |
+| PUB-07 | Phase 5 | Pending |
+| PUB-08 | Phase 5 | Pending |
+| PUB-09 | Phase 5 | Pending |
+| PUB-10 | Phase 5 | Pending |
+| PUB-11 | Phase 5 | Pending |
+| PUB-12 | Phase 5 | Pending |
+| PUB-13 | Phase 5 | Pending |
+| PUB-14 | Phase 5 | Pending |
+| PUB-15 | Phase 5 | Pending |
+| PUB-16 | Phase 5 | Pending |
+| PUB-17 | Phase 5 | Pending |
+| PUB-18 | Phase 5 | Pending |
+| MED-01 | Phase 5 | Pending |
+| MED-02 | Phase 5 | Pending |
+| MED-03 | Phase 5 | Pending |
+| MED-04 | Phase 5 | Pending |
+| MED-05 | Phase 5 | Pending |
+| MED-06 | Phase 5 | Pending |
+| MED-07 | Phase 5 | Pending |
+| MED-08 | Phase 1 | Pending |
+| MED-09 | Phase 5 | Pending |
+| SEO-01 | Phase 6 | Pending |
+| SEO-02 | Phase 6 | Pending |
+| SEO-03 | Phase 6 | Pending |
+| SEO-04 | Phase 6 | Pending |
+| SEO-05 | Phase 6 | Pending |
+| SEO-06 | Phase 6 | Pending |
+| SEO-07 | Phase 6 | Pending |
+| SEO-08 | Phase 6 | Pending |
+| SEO-09 | Phase 6 | Pending |
+| SEO-10 | Phase 6 | Pending |
+| SEO-11 | Phase 6 | Pending |
+| SEO-12 | Phase 6 | Pending |
+| SEO-13 | Phase 6 | Pending |
+| SEO-14 | Phase 6 | Pending |
+| SEO-15 | Phase 6 | Pending |
+| SEO-16 | Phase 6 | Pending |
+| SEO-17 | Phase 6 | Pending |
+| SEO-18 | Phase 6 | Pending |
+| TRS-01 | Phase 6 | Pending |
+| TRS-02 | Phase 6 | Pending |
+| TRS-03 | Phase 6 | Pending |
+| TRS-04 | Phase 6 | Pending |
+| TRS-05 | Phase 6 | Pending |
+| TRS-06 | Phase 6 | Pending |
+| TRS-07 | Phase 6 | Pending |
+| TRS-08 | Phase 6 | Pending |
+| TRS-09 | Phase 6 | Pending |
+| TRS-10 | Phase 6 | Pending |
+| DSN-01 | Phase 4 | Pending |
+| DSN-02 | Phase 4 | Pending |
+| DSN-03 | Phase 4 | Pending |
+| DSN-04 | Phase 4 | Pending |
+| DSN-05 | Phase 4 | Pending |
+| DSN-06 | Phase 4 | Pending |
+| DSN-07 | Phase 4 | Pending |
+| DSN-08 | Phase 4 | Pending |
+| DSN-09 | Phase 4 | Pending |
+| DSN-10 | Phase 4 | Pending |
+| DSN-11 | Phase 4 | Pending |
+| DSN-12 | Phase 4 | Pending |
+| DSN-13 | Phase 4 | Pending |
+| OPS-01 | Phase 1 | Pending |
+| OPS-02 | Phase 7 | Pending |
+| OPS-03 | Phase 7 | Pending |
+| OPS-04 | Phase 1 | Pending |
+| OPS-05 | Phase 7 | Pending |
+| OPS-06 | Phase 7 | Pending |
+| OPS-07 | Phase 7 | Pending |
+| OPS-08 | Phase 7 | Pending |
+| OPS-09 | Phase 5 | Pending |
+| OPS-10 | Phase 5 | Pending |
+| OPS-11 | Phase 5 | Pending |
+| OPS-12 | Phase 5 | Pending |
+| OPS-13 | Phase 5 | Pending |
+| OPS-14 | Phase 1 | Pending |
+| OPS-15 | Phase 7 | Pending |
+| OPS-16 | Phase 7 | Pending |
+| OPS-17 | Phase 7 | Pending |
+| OPS-18 | Phase 7 | Pending |
+| OPS-19 | Phase 7 | Pending |
+| OPS-20 | Phase 7 | Pending |
+| OPS-21 | Phase 7 | Pending |
+| OPS-22 | Phase 7 | Pending |
+| OPS-23 | Phase 7 | Pending |
+| GRO-01 | Phase 7 | Pending |
+| GRO-02 | Phase 7 | Pending |
+| GRO-03 | Phase 7 | Pending |
+| GRO-04 | Phase 7 | Pending |
+| GRO-05 | Phase 7 | Pending |
+| GRO-06 | Phase 7 | Pending |
+| GRO-07 | Phase 7 | Pending |
+| GRO-08 | Phase 7 | Pending |
+| GRO-09 | Phase 7 | Pending |
+| GRO-10 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: _(populated by roadmap creation)_
-- Mapped to phases: _(populated by roadmap creation)_
-- Unmapped: _(populated by roadmap creation)_
+- v1 requirements: **141**
+- Mapped to phases: **141** (100%)
+- Unmapped: **0**
+- Duplicated across phases: **0**
+
+**Per-phase counts:** Phase 1 = 4 · Phase 2 = 14 · Phase 3 = 14 · Phase 4 = 13 · Phase 5 = 37 · Phase 6 = 35 · Phase 7 = 24 → **141**
+
+---
+
+## Cross-References
+
+Requirements whose *work* is split across phases. The **Traceability** table above is authoritative: each requirement has exactly one phase, the one where it is verified. This table records the other phases that touch the same work, so a planner working in one phase knows what a neighbouring phase already assumed.
+
+| Requirement | Verified in | Also touches | Note |
+|-------------|-------------|--------------|------|
+| ING-02 | Phase 2 | Phase 1 | The "Worker parses nothing" rule is *decided* in the Phase 1 delivery-model ADR; it is *verified* in Phase 2 by the deployed bundle and byte-identical normalization. |
+| ING-05 | Phase 6 | Phase 2 | The registry and the per-feed verification date land in Phase 2; the published `/sources` page lands with the Phase 6 trust layer. |
+| CON-01 to CON-05 | Phase 2 | Phase 1 | The excerpt budget is written as a coded contract in Phase 1; the normaliser implementation and the unit test land in Phase 2. |
+| CON-09 | Phase 6 | Phase 1, Phase 5 | The canonical policy is recorded in the Phase 1 ADR and emitted by the Phase 5 story renderer; Phase 6 centralizes it in `pageMeta()` and asserts it. |
+| CON-10 | Phase 5 | Phase 1 | The attribution-link policy (`rel="noopener"`, never `nofollow`/`sponsored`) is decided in the Phase 1 ADR and rendered by the Phase 5 story page. |
+| CON-07 | Phase 5 | Phase 7 | The at-least-4-of-6 value-element gate ships with the Phase 5 story renderer; Phase 7 extends it into the consolidated build-assertion suite (OPS-05/06/07). |
+| CUR-08, CUR-09 | Phase 5 | Phase 3 | The trending score and the Editor's Picks selection rule are Phase 3; the front-page modules that display them are Phase 5. |
+| MED-08 | Phase 1 | Phase 5 | The R2 lifecycle rule is configured in Phase 1 (PROJECT.md requires it in the first phase); the `media/` prefix it scopes is populated from Phase 5. |
+| OPS-12 | Phase 5 | Phase 1 | The tier split is decided in the Phase 1 delivery-model ADR; the deployed static-tier contents are verified in Phase 5. |
+| OPS-13 | Phase 5 | Phase 1 | The snapshot contract is designed in Phase 1; the build that reads only the snapshot lands in Phase 5. |
+| PUB-12 | Phase 5 | Phase 1 | The one-hostname / locale-path rule is decided in the Phase 1 ADR; the deployed routing table is verified in Phase 5. |
+| GRO-09 | Phase 7 | Phase 1 | Domain *acquisition* starts as a Phase 1 parallel workstream; the 301-redirect migration and sitemap/hreflang re-verification land in Phase 7. |
+| GRO-10 | Phase 6 | Phase 1 | The domain-name and homepage-title language rule is implemented in the Phase 6 metadata layer; the name itself is chosen when the domain is acquired in Phase 1. |
 
 ---
 
 *Requirements defined: 2026-10-20*
-*Last updated: 2026-10-20 after initial definition*
+*Last updated: 2026-10-20 after roadmap creation — traceability populated (141/141 mapped, 0 unmapped)*
