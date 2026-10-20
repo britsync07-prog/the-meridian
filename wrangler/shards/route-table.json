@@ -1,0 +1,21 @@
+{
+  "zone_name": "PLACEHOLDER_NO_DOMAIN_YET",
+  "shards": [
+    { "shard": "01", "project": "meridian-static-uk", "prefix": "/uk/", "route": "/uk/*" },
+    { "shard": "02", "project": "meridian-static-us", "prefix": "/us/", "route": "/us/*" },
+    { "shard": "03", "project": "meridian-static-au", "prefix": "/au/", "route": "/au/*" },
+    { "shard": "04", "project": "meridian-static-ca", "prefix": "/ca/", "route": "/ca/*" },
+    { "shard": "05", "project": "meridian-static-ie", "prefix": "/ie/", "route": "/ie/*" },
+    { "shard": "06", "project": "meridian-static-nz", "prefix": "/nz/", "route": "/nz/*" },
+    { "shard": "07", "project": "meridian-static-in", "prefix": "/in/", "route": "/in/*" },
+    { "shard": "08", "project": "meridian-static-in-hi", "prefix": "/in-hi/", "route": "/in-hi/*" }
+  ],
+  "global_surfaces": [
+    "index.html",
+    "robots.txt",
+    "favicon.ico",
+    "_astro/",
+    "sitemap-index.xml",
+    "feed.xml"
+  ]
+}

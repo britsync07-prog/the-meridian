@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "meridian-static-ca",
+  "compatibility_date": "2026-10-20",
+  "workers_dev": true,
+  "assets": {
+    "directory": "../../apps/site/dist/shards/shard-04",
+    "not_found_handling": "none",
+    "html_handling": "force-trailing-slash"
+  },
+  "routes": [
+    { "pattern": "PLACEHOLDER_NO_DOMAIN_YET/ca/*", "zone_name": "PLACEHOLDER_NO_DOMAIN_YET" }
+  ]
+}
