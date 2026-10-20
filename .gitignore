@@ -57,3 +57,6 @@ apps/site/.astro/
 # Local environment overrides
 *.local
 
+# The scan's self-proving fixture (planted and removed by the test run)
+scripts/__planted_ceiling.ts
+
