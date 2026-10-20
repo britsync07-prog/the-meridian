@@ -109,7 +109,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 - [ ] **SEO-10**: hreflang is emitted only between the India English and India Hindi editions, as bidirectional self-including sets with `x-default` pointing at the global front page
 - [ ] **SEO-11**: An India English story with no genuine Hindi counterpart declares no `hi-IN` alternate
 - [ ] **SEO-12**: Every page declares a correct `lang` attribute, including `en-IN` and `hi-IN`
-- [ ] **SEO-13**: All editions share one site name, set once in configuration and matching the `<news:name>` value exactly
+- [x] **SEO-13**: All editions share one site name, set once in configuration and matching the `<news:name>` value exactly
 - [ ] **SEO-14**: Story pages meet the Google News article requirements: a visible date and time between the headline and the body, an `<h1>` matching the `<title>`, anchor text matching the title, a headline of 2 to 22 words and no more than 110 characters, and images of at least 60 by 90 pixels
 - [ ] **SEO-15**: Publisher Center is configured with the publication name, favicon, headquarters, contact, and URL verification
 - [ ] **SEO-16**: The News Showcase panel is configured for the publication
@@ -142,7 +142,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 - [ ] **DSN-09**: Motion respects the user's reduced-motion preference
 - [ ] **DSN-10**: The layout is usable at 360 pixels wide and the multi-column grid collapses to one column at 640 pixels
 - [ ] **DSN-11**: Every page uses semantic landmarks and a single unbroken `h1` to `h3` heading hierarchy, and story times use the `time` element
-- [ ] **DSN-12**: The static build sets `compressHTML: true` so whitespace between inline elements in headlines and bylines is preserved
+- [x] **DSN-12**: The static build sets `compressHTML: true` so whitespace between inline elements in headlines and bylines is preserved
 - [ ] **DSN-13**: Pages meet the Core Web Vitals targets of LCP under 2.5 seconds, INP under 200 milliseconds, and CLS under 0.1
 
 ### Platform and Operations
@@ -323,7 +323,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEO-10 | Phase 6 | Pending |
 | SEO-11 | Phase 6 | Pending |
 | SEO-12 | Phase 6 | Pending |
-| SEO-13 | Phase 6 | Pending |
+| SEO-13 | Phase 6 | Complete |
 | SEO-14 | Phase 6 | Pending |
 | SEO-15 | Phase 6 | Pending |
 | SEO-16 | Phase 6 | Pending |
@@ -350,7 +350,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DSN-09 | Phase 4 | Pending |
 | DSN-10 | Phase 4 | Pending |
 | DSN-11 | Phase 4 | Pending |
-| DSN-12 | Phase 4 | Pending |
+| DSN-12 | Phase 4 | Complete |
 | DSN-13 | Phase 4 | Pending |
 | OPS-01 | Phase 1 | Pending |
 | OPS-02 | Phase 7 | Pending |

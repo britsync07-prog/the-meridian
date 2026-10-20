@@ -70,7 +70,7 @@ Seven spikes are concrete work items, not research topics. Each has an owner pha
 
 Plans:
 **Wave 1**
-- [ ] 01-01-PLAN.md — Repo scaffold, shared contract layer and the Astro 7 shell configuration
+- [x] 01-01-PLAN.md — Repo scaffold, shared contract layer and the Astro 7 shell configuration
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — D1 schema, seed and the single repository module, with the database id held as configuration
