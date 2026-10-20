@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-10-20T15:41:21.015Z"
-last_activity: 2026-10-20 -- 01-01 complete (repo scaffold, shared contract, Astro shell)
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-10-20T17:16:30.912Z"
+last_activity: 2026-10-20 -- 01-02 complete (D1 schema, seed, single repository module, D1 topology ADR)
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 6
-  completed_plans: 1
-  percent: 17
+  completed_plans: 2
+  percent: 33
 ---
 
 # Project State
@@ -22,17 +22,17 @@ See: `.planning/PROJECT.md` (updated 2026-10-20, after research synthesis — 25
 Architecture of record: `.planning/research/SUMMARY.md` (authoritative) and `.planning/research/ARCHITECTURE.md`
 
 **Core value:** Cross-outlet curation that turns many publishers' raw feeds into one genuinely useful daily paper per country, published with the speed, freshness, and discoverability that earns sustained organic search traffic.
-**Current focus:** Phase 01 — Foundation, Free-Tier Contract & Architecture Decisions (plan 01-01 of 01-06 complete)
+**Current focus:** Phase 01 — Foundation, Free-Tier Contract & Architecture Decisions (plans 01-01 and 01-02 of 01-06 complete)
 **Success target:** 1,000+ daily visitors and 10,000+ indexed pages within six months of launch.
 
 ## Current Position
 
 Phase: 01 (foundation-free-tier-contract-architecture-decisions) — EXECUTING
-Plan: 2 of 6
-Status: Executing Phase 01 — plan 01-01 complete
-Last activity: 2026-10-20 -- 01-01 complete (repo scaffold, shared contract, Astro shell)
+Plan: 3 of 6
+Status: Executing Phase 01 — plans 01-01 and 01-02 complete
+Last activity: 2026-10-20 -- 01-02 complete (D1 schema, seed, single repository module, D1 topology ADR)
 
-Progress: [██░░░░░░░░] 17%
+Progress: [███░░░░░░░] 33%
 
 ## Phase Sequence
 
@@ -51,10 +51,11 @@ Progress: [██░░░░░░░░] 17%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P01 | 21min | 3 tasks | 18 files |
+| Phase 01 P02 | 73min | 3 tasks | 12 files |
 
-- Total plans completed: 1 · Average duration: 21min · Total execution time: 21min
-- By phase: Phase 01 — 1 plan, 21min
-- Recent trend: — (last 5 plans: 01-01, 21min)
+- Total plans completed: 2 · Average duration: 47min · Total execution time: 94min
+- By phase: Phase 01 — 2 plans, 94min
+- Recent trend: — (last 5 plans: 01-02, 73min; 01-01, 21min)
 
 *Updated after each plan completion*
 
@@ -77,7 +78,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - **D-14:** the domain migration uses **301 redirects, never canonicals**, with the redirect map generated from the same source as the sitemap.
 - **D-16 / D-17 / D-18:** an expired image renders a **silent typographic panel** carrying the headline's opening words — no error, no caption. Both mechanisms apply: serve-time resolution **and** a periodic sweep. The serve-time check costs one extra R2 Class B read per image view, and that cost is accepted.
 - **D-20:** the repo is **one `package.json`, one lockfile, no workspace protocol**. `shared/` is a directory, not a package.
-- **D1:** one database (`meridian.db`) behind a single repository module, database id as a config value. No edition sharding.
+- **D1:** one database (`meridian`) behind a single repository module, database id as a config value. No edition sharding. **Recorded in `docs/adr/0002-d1-no-shard.md` (Phase 1, plan 01-02), which overrides `research/PITFALLS.md`'s "shard from day one".** The schema is 19 tables and 32 named indexes; `usage_log` and `corrections` were added on top of the research DDL's 17, and `story_sources` carries `headline` and `url` so the outlet list survives the 30-day prune of the raw mention rows.
 - **Canonical model:** self-referential canonicals only, never cross-domain. One canonical story page per cluster at `/story/{slug}/`, edition-agnostic. Publisher URLs are normal followed links with `rel="noopener"`.
 - **hreflang:** only between India English and India Hindi. All seven editions use locale path prefixes on **one hostname** — never subdomains.
 - **Excerpt budget:** ≤50 words / ≤320 chars / ≤2 sentences / ≤30% of source visible text; quoted verbatim or omitted, never paraphrased; sources under 160 words publish no excerpt. **Coded as a contract in Phase 1** (`shared/contract/excerpt-budget.ts`); the normaliser and its full unit test land in Phase 2.
@@ -85,6 +86,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 01]: The GitHub repository is britsync07-prog/the-meridian - public, under a personal account, named for the locked site name (D-02, D-03, D-12).
 - [Phase 01]: The shared contract is a plain directory imported by RELATIVE path only. The @shared/* TypeScript alias exists for tsc and the editor, never for a bundler - edge alias resolution is the least predictable part of the Workers build.
 - [Phase 01]: DSN-12 is proven, not merely configured: the built HTML keeps the space between two inline elements, and a second Astro build ran in 1.7s against 10.6s, proving build.concurrency 1 and experimental.incrementalBuild are both in force.
+- [Phase 01]: D1 topology: ONE database named 'meridian', no edition sharding. The repository module (OPS-14) makes a future sharding a routing change, not a rewrite. Recorded in docs/adr/0002-d1-no-shard.md. — ~70 MB/year against a 500 MB per-database cap; sharding would destroy cross-country flagging, the one-story-many-editions model and Most Covered.
+- [Phase 01]: The D1 schema carries 19 tables and 32 named indexes (the research DDL has 17 and 31). usage_log and corrections were added because the architecture and OPS-23 require them; story_sources gained headline and url because the raw mention rows are pruned after 30 days. — Phase 1 owns the schema, and a table added later is a migration.
 
 ### Research Spikes (all seven assigned)
 
@@ -107,7 +110,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ### Pending Todos
 
-- **Phase 01, remaining 5 plans** (01-02 → 01-06). Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; the D1 schema, the free-tier ceiling registry, the R2 lifecycle rules and the eight-project shard, the excerpt budget and the five spikes are still outstanding.
+- **Phase 01, remaining 4 plans** (01-03 → 01-06). Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; plan 01-02 delivered the D1 schema, the seed, the single repository module and the D1 topology ADR. The free-tier ceiling registry, the R2 lifecycle rules and the eight-project shard, the excerpt budget and the five spikes are still outstanding.
 - **`shared/` is the contract for every later phase.** `shared/types.ts` holds the story schema, `shared/config/site.ts` the publication name, `shared/config/editions.ts` the eight editions and sections. Neither may be redefined downstream.
 
 ### Phase 01 Progress
@@ -115,11 +118,13 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 | Plan | Scope | Status | Summary |
 |------|-------|--------|---------|
 | 01-01 | Repo scaffold, shared contract layer, Astro 7 shell | ✅ Complete | `01-01-SUMMARY.md` |
-| 01-02 | D1 schema, seed, single repository module | Pending | — |
+| 01-02 | D1 schema, seed, single repository module | ✅ Complete | `01-02-SUMMARY.md` |
 | 01-03 | Free-tier ceiling registry and the no-spend rule | Pending | — |
 | 01-04 | R2 lifecycle, eight-project shard, delivery-model ADR | Pending | — |
 | 01-05 | Excerpt budget, shared templates, image and domain ADRs | Pending | — |
 | 01-06 | Spikes S-1 through S-5 | Pending | — |
+
+**Note on the D1 schema (marked complete by plan 01-02).** OPS-14 is fully delivered: `apps/worker/src/db/repository.ts` is the only module in the repository that contains SQL, and a test scans the whole tree for SQL keywords outside it. The schema applies to an empty database — 19 tables, 32 named indexes — and `scripts/db/verify-local.mjs` asserts every count by name. **The four LSH band indexes on `stories` are load-bearing, not optional:** the Phase 3 clusterer must issue four index lookups, because a scan of `stories` is ~44,000 rows read per incoming item and breaches the 5M rows/day budget on its first busy day. The database identifier is a configuration value, proven by `scripts/db/verify-swap.mjs`, which repoints the binding, rebuilds the schema and the seed from nothing, and hashes `apps/worker/src` and `shared` before and after to prove nothing else moved.
 
 **Note on SEO-13 and DSN-12 (marked complete by plan 01-01).** DSN-12 is fully delivered: `compressHTML: true` is set and a built-HTML assertion proves the spacing survives. SEO-13 is complete on the *configuration* half — the site name now exists in exactly one place, `shared/config/site.ts`, and a repository-wide scan fails if a second copy appears. The `<news:name>` **emission** remains Phase 6's work and must read from that same value so the two cannot diverge.
 
@@ -145,6 +150,6 @@ Items acknowledged and carried forward:
 
 ## Session Continuity
 
-Last session: 2026-10-20T15:40:28.629Z
+Last session: 2026-10-20T17:16:30.884Z
 Stopped at: Completed 01-01-PLAN.md
 Resume file: None

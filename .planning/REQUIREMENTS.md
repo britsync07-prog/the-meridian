@@ -160,7 +160,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 - [ ] **OPS-11**: Story pages are pre-rendered to HTML, stored in R2, and served by an edge Worker with a cache header and a validator
 - [ ] **OPS-12**: The static tier contains only editions, sections, archives, topic and entity pages, and support files
 - [ ] **OPS-13**: The build reads its dataset from a single compressed snapshot object and never opens a datastore binding
-- [ ] **OPS-14**: All datastore access goes through one repository module with the database identifier held as a configuration value
+- [x] **OPS-14**: All datastore access goes through one repository module with the database identifier held as a configuration value
 - [ ] **OPS-15**: Raw item rows are pruned 30 days after their merge window closes, while the cluster's outlet list, headline, and URL are retained permanently
 - [ ] **OPS-16**: A build-in-progress guard prevents a second overlapping build from starting
 - [ ] **OPS-17**: Edge routing fails open, so a quota exhaustion degrades the site rather than serving an error page
@@ -365,7 +365,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OPS-11 | Phase 5 | Pending |
 | OPS-12 | Phase 5 | Pending |
 | OPS-13 | Phase 5 | Pending |
-| OPS-14 | Phase 1 | Pending |
+| OPS-14 | Phase 1 | Complete |
 | OPS-15 | Phase 7 | Pending |
 | OPS-16 | Phase 7 | Pending |
 | OPS-17 | Phase 7 | Pending |
