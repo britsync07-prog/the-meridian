@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "updated_on": "2026-10-20",
+  "limits": [
+    {
+      "id": "workers_requests_per_day",
+      "resource": "Workers requests",
+      "value": 100000,
+      "unit": "requests",
+      "period": "day",
+      "source_url": "https://developers.cloudflare.com/workers/platform/limits/",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "workers_cpu_ms_per_invocation",
+      "resource": "Workers CPU per invocation",
+      "value": 10,
+      "unit": "ms",
+      "period": "invocation",
+      "source_url": "https://developers.cloudflare.com/workers/platform/limits/",
+      "verified_on": "2026-10-20",
+      "enforcement": "informational"
+    },
+    {
+      "id": "workers_subrequests_per_invocation",
+      "resource": "Worker subrequests",
+      "value": 50,
+      "unit": "requests",
+      "period": "invocation",
+      "source_url": "https://developers.cloudflare.com/workers/platform/limits/",
+      "verified_on": "2026-10-20",
+      "enforcement": "informational"
+    },
+    {
+      "id": "workers_cron_triggers_per_account",
+      "resource": "Cron triggers",
+      "value": 5,
+      "unit": "triggers",
+      "period": "account",
+      "source_url": "https://developers.cloudflare.com/workers/platform/limits/",
+      "verified_on": "2026-10-20",
+      "enforcement": "informational"
+    },
+    {
+      "id": "d1_rows_read_per_day",
+      "resource": "D1 rows read",
+      "value": 5000000,
+      "unit": "rows",
+      "period": "day",
+      "source_url": "https://developers.cloudflare.com/d1/platform/pricing/",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "d1_rows_written_per_day",
+      "resource": "D1 rows written",
+      "value": 100000,
+      "unit": "rows",
+      "period": "day",
+      "source_url": "https://developers.cloudflare.com/d1/platform/pricing/",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "d1_storage_mb_per_database",
+      "resource": "D1 storage per database",
+      "value": 500,
+      "unit": "MB",
+      "period": "database",
+      "source_url": "https://developers.cloudflare.com/d1/platform/limits/",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "kv_writes_per_day",
+      "resource": "KV writes to different keys",
+      "value": 1000,
+      "unit": "writes",
+      "period": "day",
+      "source_url": "https://developers.cloudflare.com/kv/platform/limits/",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "r2_storage_gb_month",
+      "resource": "R2 storage",
+      "value": 10,
+      "unit": "GB-month",
+      "period": "month",
+      "source_url": "https://developers.cloudflare.com/r2/pricing/",
+      "verified_on": "2026-10-20",
+      "enforcement": "informational"
+    },
+    {
+      "id": "r2_class_a_ops_per_month",
+      "resource": "R2 Class A ops",
+      "value": 1000000,
+      "unit": "ops",
+      "period": "month",
+      "source_url": "https://developers.cloudflare.com/r2/pricing/",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "r2_class_b_ops_per_month",
+      "resource": "R2 Class B ops",
+      "value": 10000000,
+      "unit": "ops",
+      "period": "month",
+      "source_url": "https://developers.cloudflare.com/r2/pricing/",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "static_asset_files_per_project",
+      "resource": "Static asset files per project",
+      "value": 20000,
+      "unit": "files",
+      "period": "project",
+      "source_url": "https://developers.cloudflare.com/workers/platform/limits/",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "github_actions_minutes_per_month",
+      "resource": "GitHub Actions minutes",
+      "value": 2000,
+      "unit": "minutes",
+      "period": "month",
+      "source_url": "https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions",
+      "verified_on": "2026-10-20",
+      "enforcement": "informational"
+    },
+    {
+      "id": "brevo_emails_per_day",
+      "resource": "Brevo daily sends",
+      "value": 300,
+      "unit": "emails",
+      "period": "day",
+      "source_url": "https://www.brevo.com/pricing/",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "open_meteo_calls_per_day",
+      "resource": "Open-Meteo daily calls",
+      "value": 10000,
+      "unit": "calls",
+      "period": "day",
+      "source_url": "https://open-meteo.com/en/pricing",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "google_news_sitemap_entries_per_file",
+      "resource": "Google News sitemap entries",
+      "value": 1000,
+      "unit": "entries",
+      "period": "file",
+      "source_url": "https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap",
+      "verified_on": "2026-10-20",
+      "enforcement": "enforced"
+    },
+    {
+      "id": "google_news_sitemap_window_hours",
+      "resource": "Google News sitemap window",
+      "value": 48,
+      "unit": "hours",
+      "period": "file",
+      "source_url": "https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap",
+      "verified_on": "2026-10-20",
+      "enforcement": "informational"
+    },
+    {
+      "id": "r2_class_b_reads_per_image_view",
+      "resource": "Extra R2 Class B reads from the serve-time image check",
+      "value": 1,
+      "unit": "reads",
+      "period": "image view",
+      "source_url": "https://developers.cloudflare.com/r2/pricing/",
+      "verified_on": "2026-10-20",
+      "enforcement": "informational"
+    }
+  ],
+  "paid_plan_decision_rule": {
+    "version": 1,
+    "updated_on": "2026-10-20",
+    "triggers": [
+      {
+        "id": "traffic",
+        "metric": "daily_visitors",
+        "threshold": 4000,
+        "unit": "visitors/day",
+        "comparison": "approaching",
+        "source_requirement": "OPS-04",
+        "decision_ref": "D-08"
+      },
+      {
+        "id": "static_files",
+        "metric": "static_files_per_project",
+        "threshold": 20000,
+        "unit": "files",
+        "comparison": "exceeding",
+        "source_requirement": "OPS-04",
+        "decision_ref": "D-06"
+      },
+      {
+        "id": "revenue",
+        "metric": "monthly_revenue_usd",
+        "threshold": 1,
+        "unit": "USD/month",
+        "comparison": "any",
+        "source_requirement": "OPS-04",
+        "decision_ref": "D-05"
+      }
+    ],
+    "standing_disposition": "never_purchase",
+    "standing_decision_ref": "D-05",
+    "standing_decision_text": "The free tier is a permanent hard ceiling. The project never buys Workers Paid or any other paid tier, not even after the site earns revenue. Revenue is not a licence to spend on infrastructure.",
+    "response_mechanisms": [
+      "promote_hot_stories_into_the_static_tier",
+      "edge_cache_the_story_tier_hard",
+      "shard_the_static_tier_across_the_8_projects"
+    ],
+    "response_decision_ref": "D-07",
+    "request_ceiling_is_a_permanent_wall_ref": "D-08",
+    "known_non_conforming_dependency": {
+      "id": "open_meteo",
+      "requirement_ref": "D-09",
+      "issue": "The Open-Meteo free tier is restricted to non-commercial use and requires CC BY 4.0 attribution.",
+      "standing_obligation": "A free, commercially-usable weather replacement must be sourced before the site earns any revenue.",
+      "explicitly_excluded": "Buying the Open-Meteo paid Standard plan when that moment comes."
+    }
+  }
+}
