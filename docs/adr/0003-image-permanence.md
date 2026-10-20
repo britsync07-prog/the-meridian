@@ -45,10 +45,11 @@ made before the mechanism is built, because it determines what the mechanism
 is.
 
 **The free-tier budget has an opinion.** Every image view that checks the
-bucket is one more R2 Class B operation. The allowance is 10,000,000 per
-month, and the projected traffic is two orders of magnitude below it — but a
-cost that is not written down is a cost that gets discovered, and D-05 means
-there is no paid tier to move it to.
+bucket is one more R2 Class B operation, charged against the
+`r2_class_b_ops_per_month` ceiling in `config/free-tier-limits.json`. The
+projected traffic sits well inside that allowance — but a cost that is not
+written down is a cost that gets discovered, and D-05 means there is no paid
+tier to move it to.
 
 **The failure must be invisible.** A reader who opens a three-year-old
 story and sees "image expired" has been told something about the

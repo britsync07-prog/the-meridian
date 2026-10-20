@@ -150,14 +150,21 @@ const SCAN_ROOTS = [
 ] as const;
 
 /**
- * The delivery-model ADR, checked separately.
+ * The prose ADRs, checked on their own.
  *
- * It is prose, and it names the eight-project shard and the request ceiling —
- * two things that invite a number to be written down. The ADR has to state the
- * decision without restating the budget, so it is scanned on its own rather
- * than through the directory scan above.
+ * ADR 0001 names the eight-project shard and the request ceiling, ADR 0003
+ * names the R2 Class B ceiling that D-18's serve-time read is charged
+ * against, and ADR 0004 names the free-tier ceiling the permanent no-spend
+ * rule lives under. All three are prose that invites a ceiling to be written
+ * down. The ceilings live in `config/free-tier-limits.json` and are
+ * referenced by id, so a second copy of the number in an ADR would be a
+ * second place for the budget to drift.
  */
-const DELIVERY_MODEL_ADR = join(REPO_ROOT, 'docs', 'adr', '0001-delivery-model.md');
+const PROSE_ADRS = [
+  join(REPO_ROOT, 'docs', 'adr', '0001-delivery-model.md'),
+  join(REPO_ROOT, 'docs', 'adr', '0003-image-permanence.md'),
+  join(REPO_ROOT, 'docs', 'adr', '0004-domain-and-name.md'),
+];
 
 /** The file extensions the scan reads. */
 const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json', '.jsonc'] as const;
@@ -357,11 +364,15 @@ describe('no shard config or shard script hardcodes a free-tier ceiling', () => 
     expect(ENFORCED_LIMIT_TOKENS.length).toBeGreaterThan(0);
   });
 
-  it('keeps every ceiling literal out of the delivery-model ADR', () => {
-    expect(existsSync(DELIVERY_MODEL_ADR)).toBe(true);
+  it('keeps every ceiling literal out of the prose ADRs', () => {
+    for (const adr of PROSE_ADRS) {
+      expect(existsSync(adr)).toBe(true);
 
-    const hits = scanForLimitLiterals([DELIVERY_MODEL_ADR]);
+      const hits = scanForLimitLiterals([adr]);
 
-    expect(formatHits(hits), `stray ceiling literals found:\n${formatHits(hits)}`).toBe('');
+      expect(formatHits(hits), `stray ceiling literals in ${relativePath(adr)}:\n${formatHits(hits)}`).toBe(
+        '',
+      );
+    }
   });
 });
