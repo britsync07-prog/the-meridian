@@ -1,0 +1,74 @@
+# S-3 — the CI egress comparison.
+#
+# This workflow is triggered ONLY by workflow_dispatch. It must never fire on
+# a push: the spike makes real requests to ten publishers, and a workflow that
+# fires spontaneously would send them requests nobody asked for, at a moment
+# nobody chose. It also reads no secrets and writes nothing back to the
+# repository — the only permission it asks for is the one it needs to check
+# the code out.
+#
+# Two passes, mirroring S-2 exactly: the first fetches the ten feeds and
+# captures their ETags, the second replays those ETags so the conditional-GET
+# path is exercised from the runner as well. The results are written into the
+# job summary, which is where a reader looks after a manual dispatch.
+
+name: Spike S-3 — CI egress comparison
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  s3-egress:
+    name: Fetch the ten candidate feeds from the runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # The script reads the project's shared User-Agent out of its
+          # TypeScript config module, which needs Node's type stripping.
+          node-version: '24'
+
+      - name: Fetch the ten feeds (no conditional header)
+        run: node spikes/s-3-ci-egress/run.mjs --out etags.json --md pass-1.md
+
+      - name: Fetch the ten feeds again (conditional, with the ETags from pass 1)
+        run: node spikes/s-3-ci-egress/run.mjs --etags etags.json --out results.json --md pass-2.md
+
+      - name: Write the results into the job summary
+        run: |
+          {
+            echo '## S-3 — CI egress comparison'
+            echo ''
+            echo '### Pass 1 — no conditional header'
+            echo ''
+            cat pass-1.md
+            echo ''
+            echo '### Pass 2 — conditional GET, ETags replayed'
+            echo ''
+            cat pass-2.md
+            echo ''
+            echo '### Machine-readable result'
+            echo ''
+            echo '```json'
+            cat results.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the raw results
+        uses: actions/upload-artifact@v4
+        with:
+          name: s3-egress-results
+          path: |
+            results.json
+            pass-1.md
+            pass-2.md
+          retention-days: 7
