@@ -10,7 +10,8 @@
       "database_name": "meridian",
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "../../shared/db",
-      "migrations_table": "d1_migrations"
+      "migrations_table": "d1_migrations",
+      "migrations_pattern": "../../shared/db/[0-9]*.sql"
     }
   ],
   "r2_buckets": [

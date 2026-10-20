@@ -228,18 +228,22 @@ if (seedResult.status !== 0) {
 // ---------------------------------------------------------------------------
 // 4. Assert the schema and the seed.
 // ---------------------------------------------------------------------------
+// `GLOB` is used rather than `LIKE` because GLOB has no implicit single-
+// character wildcard: `sqlite_*` matches exactly the SQLite-internal objects
+// and `_cf_*` matches exactly Cloudflare's own `_cf_METADATA` table, which
+// D1 creates by itself and which is not part of this schema.
 const tableCount = scalar(
-  "SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'd1_migrations'",
+  "SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' AND name <> 'd1_migrations'",
 );
-check('tables (excluding sqlite_* and d1_migrations)', TABLE_COUNT, tableCount);
+check('tables (excluding sqlite_*, _cf_* and d1_migrations)', TABLE_COUNT, tableCount);
 
 const indexCount = scalar(
-  "SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%'",
+  "SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'index' AND name NOT GLOB 'sqlite_*'",
 );
 check('named indexes', INDEX_COUNT, indexCount);
 
 const indexNames = new Set(
-  query("SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%'").map(
+  query("SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT GLOB 'sqlite_*'").map(
     (row) => row.name,
   ),
 );

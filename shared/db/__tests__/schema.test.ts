@@ -25,28 +25,38 @@ const SEED_PATH = path.join(REPO_ROOT, 'shared', 'db', 'seed.sql');
  * needs it rather than the whole module at load time. The failure message
  * then names the missing artefact.
  */
-function read(filePath) {
+function read(filePath: string): string {
   return readFileSync(filePath, 'utf8');
 }
 
-const DDL = () => read(DDL_PATH);
-const SEED = () => read(SEED_PATH);
+const DDL = (): string => read(DDL_PATH);
+const SEED = (): string => read(SEED_PATH);
 
 /** The names of the objects the DDL creates, in creation order. */
-function createdObjects(ddl, kind) {
+function createdObjects(ddl: string, kind: string): string[] {
   const pattern = new RegExp(`CREATE\\s+${kind}\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?["'\`]?(\\w+)`, 'gi');
   return [...ddl.matchAll(pattern)].map((match) => match[1]);
 }
 
-const TABLES = () => createdObjects(DDL(), 'TABLE');
-const INDEXES = () => createdObjects(DDL(), 'INDEX');
+const TABLES = (): string[] => createdObjects(DDL(), 'TABLE');
+const INDEXES = (): string[] => createdObjects(DDL(), 'INDEX');
+
+/**
+ * Strip `--` line comments. The DDL and the seed both explain themselves in
+ * prose, and prose about SQL trips naive pattern matching — the seed's own
+ * header explains that a curator must set `terms_status = 'verified'`, which
+ * is exactly the string the "nothing is pre-verified" assertion forbids.
+ */
+function stripComments(sql: string): string {
+  return sql.replace(/--[^\n]*/g, '');
+}
 
 /** Count the value tuples in one `INSERT ... VALUES` statement. */
-function countInsertedTuples(sql, table) {
+function countInsertedTuples(sql: string, table: string): number {
   const statement = new RegExp(
     `INSERT\\s+OR\\s+IGNORE\\s+INTO\\s+${table}\\b[\\s\\S]*?;`,
     'i',
-  ).exec(sql);
+  ).exec(stripComments(sql));
   if (!statement) return 0;
   const text = statement[0];
   const valuesAt = text.toUpperCase().indexOf('VALUES');
@@ -148,14 +158,16 @@ describe('shared/db/0001_init.sql', () => {
   });
 
   it('never selects every column implicitly', () => {
-    expect(DDL()).not.toMatch(/\bselect\s+\*/i);
-    expect(SEED()).not.toMatch(/\bselect\s+\*/i);
+    expect(stripComments(DDL())).not.toMatch(/\bselect\s+\*/i);
+    expect(stripComments(SEED())).not.toMatch(/\bselect\s+\*/i);
   });
 
   it('enables foreign keys and defers them for the stories/clusters cycle', () => {
-    const statements = DDL().split(';')
+    const statements = DDL()
+      .replace(/--[^\n]*/g, '')
+      .split(';')
       .map((statement) => statement.trim())
-      .filter((statement) => statement.length > 0 && !statement.startsWith('--'));
+      .filter((statement) => statement.length > 0);
     expect(statements[0].toUpperCase()).toBe('PRAGMA FOREIGN_KEYS = ON');
     expect(statements[1].toUpperCase()).toBe('PRAGMA DEFER_FOREIGN_KEYS = TRUE');
   });
@@ -185,8 +197,9 @@ describe('shared/db/seed.sql', () => {
   });
 
   it('marks every seeded source unverified so Phase 2 cannot fetch an unchecked feed', () => {
-    expect(SEED()).not.toMatch(/terms_status\s+VALUES\s*\(\s*'verified'/i);
-    expect(SEED()).not.toMatch(/terms_status\s*=\s*'verified'/i);
+    const sql = stripComments(SEED());
+    expect(sql).not.toMatch(/terms_status\s+VALUES\s*\(\s*'verified'/i);
+    expect(sql).not.toMatch(/terms_status\s*=\s*'verified'/i);
     // Every source row states the three ledger columns explicitly.
     const sourceRows = SEED().split('\n').filter((line) => /^\s*\('/.test(line) && line.includes("'http"));
     expect(sourceRows.length).toBeGreaterThanOrEqual(30);
