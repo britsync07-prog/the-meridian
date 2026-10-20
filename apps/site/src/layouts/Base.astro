@@ -1,0 +1,29 @@
+---
+import { SITE_NAME } from '../../../../shared/config/site.ts';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  htmlLang?: string;
+}
+
+const {
+  title = SITE_NAME,
+  description = 'A free, automatically-curated daily paper for seven countries.',
+  htmlLang = 'en',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang={htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
