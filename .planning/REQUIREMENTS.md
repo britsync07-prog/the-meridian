@@ -147,10 +147,10 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 
 ### Platform and Operations
 
-- [ ] **OPS-01**: A single versioned configuration file holds every free-tier ceiling the project depends on
+- [x] **OPS-01**: A single versioned configuration file holds every free-tier ceiling the project depends on
 - [ ] **OPS-02**: A daily audit Worker reads the datastore usage log and reports each metric as a percentage of its ceiling
 - [ ] **OPS-03**: Alerts fire at 50 percent and 75 percent of each budgeted resource
-- [ ] **OPS-04**: A written decision rule states that the paid Workers plan is bought when daily visitors approach 4,000, when a static project would exceed 20,000 files, or when the project earns revenue
+- [x] **OPS-04**: A written decision rule states that the paid Workers plan is bought when daily visitors approach 4,000, when a static project would exceed 20,000 files, or when the project earns revenue
 - [ ] **OPS-05**: The build fails rather than deploying when any edition has fewer than eight stories, when a section has fewer than three stories, or when one outlet supplies more than 35 percent of a front page
 - [ ] **OPS-06**: The build fails rather than deploying when the story count falls outside 60 to 140 percent of the trailing seven-day mean
 - [ ] **OPS-07**: The build fails rather than deploying when any title repeats, any canonical is not self-referential, any excerpt breaks its budget, or any file count or build duration exceeds budget
@@ -352,10 +352,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DSN-11 | Phase 4 | Pending |
 | DSN-12 | Phase 4 | Complete |
 | DSN-13 | Phase 4 | Pending |
-| OPS-01 | Phase 1 | Pending |
+| OPS-01 | Phase 1 | Complete |
 | OPS-02 | Phase 7 | Pending |
 | OPS-03 | Phase 7 | Pending |
-| OPS-04 | Phase 1 | Pending |
+| OPS-04 | Phase 1 | Complete |
 | OPS-05 | Phase 7 | Pending |
 | OPS-06 | Phase 7 | Pending |
 | OPS-07 | Phase 7 | Pending |

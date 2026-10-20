@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-10-20T17:16:30.912Z"
-last_activity: 2026-10-20 -- 01-02 complete (D1 schema, seed, single repository module, D1 topology ADR)
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-10-20T17:57:42.733Z"
+last_activity: 2026-10-20 -- 01-03 complete (free-tier ceiling registry, single accessor, single-source scan, no-spend ADR)
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 6
-  completed_plans: 2
-  percent: 33
+  completed_plans: 3
+  percent: 50
 ---
 
 # Project State
@@ -22,17 +22,17 @@ See: `.planning/PROJECT.md` (updated 2026-10-20, after research synthesis — 25
 Architecture of record: `.planning/research/SUMMARY.md` (authoritative) and `.planning/research/ARCHITECTURE.md`
 
 **Core value:** Cross-outlet curation that turns many publishers' raw feeds into one genuinely useful daily paper per country, published with the speed, freshness, and discoverability that earns sustained organic search traffic.
-**Current focus:** Phase 01 — Foundation, Free-Tier Contract & Architecture Decisions (plans 01-01 and 01-02 of 01-06 complete)
+**Current focus:** Phase 01 — Foundation, Free-Tier Contract & Architecture Decisions (plans 01-01 through 01-03 of 01-06 complete)
 **Success target:** 1,000+ daily visitors and 10,000+ indexed pages within six months of launch.
 
 ## Current Position
 
 Phase: 01 (foundation-free-tier-contract-architecture-decisions) — EXECUTING
-Plan: 3 of 6
-Status: Executing Phase 01 — plans 01-01 and 01-02 complete
-Last activity: 2026-10-20 -- 01-02 complete (D1 schema, seed, single repository module, D1 topology ADR)
+Plan: 4 of 6
+Status: Executing Phase 01 — plans 01-01, 01-02 and 01-03 complete
+Last activity: 2026-10-20 -- 01-03 complete (free-tier ceiling registry, single accessor, single-source scan, no-spend ADR)
 
-Progress: [███░░░░░░░] 33%
+Progress: [█████░░░░░] 50%
 
 ## Phase Sequence
 
@@ -52,10 +52,11 @@ Progress: [███░░░░░░░] 33%
 |------|----------|-------|-------|
 | Phase 01 P01 | 21min | 3 tasks | 18 files |
 | Phase 01 P02 | 73min | 3 tasks | 12 files |
+| Phase 01 P03 | 15min | 3 tasks | 5 files |
 
-- Total plans completed: 2 · Average duration: 47min · Total execution time: 94min
-- By phase: Phase 01 — 2 plans, 94min
-- Recent trend: — (last 5 plans: 01-02, 73min; 01-01, 21min)
+- Total plans completed: 3 · Average duration: 36min · Total execution time: 109min
+- By phase: Phase 01 — 3 plans, 109min
+- Recent trend: 01-03, 15min; 01-02, 73min; 01-01, 21min
 
 *Updated after each plan completion*
 
@@ -88,6 +89,11 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 01]: DSN-12 is proven, not merely configured: the built HTML keeps the space between two inline elements, and a second Astro build ran in 1.7s against 10.6s, proving build.concurrency 1 and experimental.incrementalBuild are both in force.
 - [Phase 01]: D1 topology: ONE database named 'meridian', no edition sharding. The repository module (OPS-14) makes a future sharding a routing change, not a rewrite. Recorded in docs/adr/0002-d1-no-shard.md. — ~70 MB/year against a 500 MB per-database cap; sharding would destroy cross-country flagging, the one-story-many-editions model and Most Covered.
 - [Phase 01]: The D1 schema carries 19 tables and 32 named indexes (the research DDL has 17 and 31). usage_log and corrections were added because the architecture and OPS-23 require them; story_sources gained headline and url because the raw mention rows are pruned after 30 days. — Phase 1 owns the schema, and a table added later is a migration.
+- [Phase 01]: The free tier is a permanent hard ceiling, recorded as standing_disposition never_purchase inside config/free-tier-limits.json — D-05. The rule and the budget it governs live in one file, so they cannot drift apart. Revenue is not a licence to spend on infrastructure.
+- [Phase 01]: shared/config/free-tier-limits.ts is the only module permitted to read a free-tier ceiling, and it validates the registry with Zod at import time — OPS-01. A ceiling read from anywhere else has already drifted from the budget. The scan tokens are derived from the enforced ceilings at runtime, so the token list cannot drift from the registry either.
+- [Phase 01]: r2_storage_gb_month is informational, not enforced — The bare token 10 collides with D-10 and ING-10 in shared/config/site.ts and with a column-width argument in scripts/db/verify-local.mjs, so scanning for it could never pass. The ceiling keeps its source, its date and its measurement by the Phase 7 audit Worker; only the literal scan skips it.
+- [Phase 01]: The scan's self-proving fixture is planted outside any __tests__ directory — The scan excludes test fixtures - a test legitimately asserts the literal it guards - so a fixture inside scripts/__tests__/ would be skipped by the very scanner meant to catch it. It is planted at scripts/__planted_ceiling.ts, removed in a finally block, and gitignored.
+- [Phase 01]: Cloudflare budget alerts are informational only; the R2 lifecycle rules are the real cap on storage growth — D-04. Cloudflare states the alert does not cap usage or impact the account, and usage is processed once per day. The 50%/75% percentage-of-ceiling alerts belong to the Phase 7 audit Worker (OPS-03), which reads this same registry. ADR 0005 explicitly refuses to claim alerts prevent billing.
 
 ### Research Spikes (all seven assigned)
 
@@ -110,8 +116,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ### Pending Todos
 
-- **Phase 01, remaining 4 plans** (01-03 → 01-06). Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; plan 01-02 delivered the D1 schema, the seed, the single repository module and the D1 topology ADR. The free-tier ceiling registry, the R2 lifecycle rules and the eight-project shard, the excerpt budget and the five spikes are still outstanding.
-- **`shared/` is the contract for every later phase.** `shared/types.ts` holds the story schema, `shared/config/site.ts` the publication name, `shared/config/editions.ts` the eight editions and sections. Neither may be redefined downstream.
+- **Phase 01, remaining 3 plans** (01-04 → 01-06). Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; plan 01-02 delivered the D1 schema, the seed, the single repository module and the D1 topology ADR; plan 01-03 delivered the versioned free-tier ceiling registry, the single accessor, the single-source scan test and the standing no-spend ADR. The R2 lifecycle rules and the eight-project shard, the excerpt budget and the five spikes are still outstanding.
+- **`shared/` is the contract for every later phase.** `shared/types.ts` holds the story schema, `shared/config/site.ts` the publication name, `shared/config/editions.ts` the eight editions and sections, `shared/config/free-tier-limits.ts` the only legal home of a ceiling value. None may be redefined downstream.
 
 ### Phase 01 Progress
 
@@ -119,12 +125,14 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 |------|-------|--------|---------|
 | 01-01 | Repo scaffold, shared contract layer, Astro 7 shell | ✅ Complete | `01-01-SUMMARY.md` |
 | 01-02 | D1 schema, seed, single repository module | ✅ Complete | `01-02-SUMMARY.md` |
-| 01-03 | Free-tier ceiling registry and the no-spend rule | Pending | — |
+| 01-03 | Free-tier ceiling registry and the no-spend rule | ✅ Complete | `01-03-SUMMARY.md` |
 | 01-04 | R2 lifecycle, eight-project shard, delivery-model ADR | Pending | — |
 | 01-05 | Excerpt budget, shared templates, image and domain ADRs | Pending | — |
 | 01-06 | Spikes S-1 through S-5 | Pending | — |
 
 **Note on the D1 schema (marked complete by plan 01-02).** OPS-14 is fully delivered: `apps/worker/src/db/repository.ts` is the only module in the repository that contains SQL, and a test scans the whole tree for SQL keywords outside it. The schema applies to an empty database — 19 tables, 32 named indexes — and `scripts/db/verify-local.mjs` asserts every count by name. **The four LSH band indexes on `stories` are load-bearing, not optional:** the Phase 3 clusterer must issue four index lookups, because a scan of `stories` is ~44,000 rows read per incoming item and breaches the 5M rows/day budget on its first busy day. The database identifier is a configuration value, proven by `scripts/db/verify-swap.mjs`, which repoints the binding, rebuilds the schema and the seed from nothing, and hashes `apps/worker/src` and `shared` before and after to prove nothing else moved.
+
+**Note on OPS-01 and OPS-04 (marked complete by plan 01-03).** Both are delivered. `config/free-tier-limits.json` holds eighteen ceilings, each with its value, unit, period, source URL and verification date, plus the `paid_plan_decision_rule` in the same file — so the rule and the budget cannot drift apart. `shared/config/free-tier-limits.ts` is the only module permitted to read a ceiling; it validates the registry with Zod at import time and throws on any shape violation. **The scan is a gate, not a convention:** `shared/config/__tests__/free-tier-limits.test.ts` walks the whole source tree for every enforced ceiling literal and reports `file:line — token`, and it proves itself by planting a deliberate violation, asserting the scanner catches it, and removing it in a `finally` block. One ceiling — `r2_storage_gb_month`, whose value is `10` — is marked `informational` rather than `enforced`, because the bare token `10` collides with identifiers like `D-10` in unrelated source; it is still recorded, still sourced and still measured by the Phase 7 audit Worker.
 
 **Note on SEO-13 and DSN-12 (marked complete by plan 01-01).** DSN-12 is fully delivered: `compressHTML: true` is set and a built-HTML assertion proves the spacing survives. SEO-13 is complete on the *configuration* half — the site name now exists in exactly one place, `shared/config/site.ts`, and a repository-wide scan fails if a second copy appears. The `<news:name>` **emission** remains Phase 6's work and must read from that same value so the two cannot diverge.
 
@@ -135,6 +143,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - **[Phase 6]** Hindi digest quality on the free tier is unverified (S-6). The deterministic template stays the default until a model passes.
 - **[Phase 6]** `news:name` is the single highest-impact string in the project — it must exactly match the name on news.google.com. Fix it once in one config value before configuring Publisher Center.
 - **[Phase 7]** Brevo's free allowance (300/day vs 5,000/month) must be re-verified at Phase 7 planning, and the overflow policy decided before 250 subscribers.
+- **[Phase 7]** The single-source scan only covers ceilings marked `enforced`. A stray copy of an `informational` ceiling in source code will not be caught by the scan — the one to watch is `r2_storage_gb_month` (10 GB-month), because `10` is too common a number to scan for. The audit Worker's measurement against the registry is where that coverage lives.
 
 ## Deferred Items
 
@@ -150,6 +159,6 @@ Items acknowledged and carried forward:
 
 ## Session Continuity
 
-Last session: 2026-10-20T17:16:30.884Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-10-20T17:57:42.651Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
