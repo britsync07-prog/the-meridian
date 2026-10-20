@@ -59,11 +59,11 @@ Seven spikes are concrete work items, not research topics. Each has an owner pha
 ### Phase 1: Foundation, Free-Tier Contract & Architecture Decisions
 **Goal**: The delivery model, the shared data contract and the free-tier budget are decided, recorded and testable before any feature code exists, and the five architecture-changing spikes have been run.
 **Depends on**: Nothing (first phase)
-**Requirements**: OPS-01, OPS-04, OPS-14, MED-08
+**Requirements**: OPS-01, OPS-04, OPS-14, MED-08, OPS-12, PUB-12, ING-02
 **Success Criteria** (what must be TRUE):
   1. `config/free-tier-limits.json` holds every ceiling the project depends on (Workers requests, CPU per invocation, subrequests, cron triggers, D1 rows read and written, D1 storage, KV writes, R2 storage and Class A/B ops, static file count, GitHub Actions minutes, Brevo daily sends, Open-Meteo daily calls, Google News sitemap entry limit), each with its source and verification date, and a test fails if any code path reads a ceiling from anywhere else.
   2. All datastore access goes through one repository module and the database identifier is read from configuration; pointing that identifier at an empty database and running the migration succeeds with no code change.
-  3. The R2 lifecycle rule exists and is scoped to the `media/` prefix only. The live rule listing shows no rule that can match the `og/` prefix or the bucket root.
+  3. The R2 lifecycle rules are scoped to the two growing prefixes only — `raw/` and `media/` — and the live rule listing shows no rule that can match the `og/` prefix or the bucket root.
   4. The written paid-plan decision rule names all three triggers (daily visitors approaching 4,000, a static project exceeding 20,000 files, any revenue) and lives in the same versioned file the audit Worker reads, so the rule and the budget can never drift apart.
   5. Spikes S-1, S-2, S-3, S-4 and S-5 have each been executed and their outcomes recorded, with the decision each one drove and the resulting change, if any, to the delivery model.
 **Plans**: 6 plans
@@ -75,7 +75,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 - [x] 01-02-PLAN.md — D1 schema, seed and the single repository module, with the database id held as configuration
 - [x] 01-03-PLAN.md — The versioned free-tier ceiling registry and the standing no-spend decision rule
-- [ ] 01-04-PLAN.md — R2 bucket with prefix-scoped lifecycle rules, the eight-project static shard and the delivery-model ADR
+- [x] 01-04-PLAN.md — R2 bucket with prefix-scoped lifecycle rules, the eight-project static shard and the delivery-model ADR
 - [ ] 01-05-PLAN.md — The coded excerpt budget, the shared metadata and typographic fallback templates, and the image and domain ADRs
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -85,7 +85,7 @@ Plans:
 - Repo scaffold: one `package.json`, one lockfile, no workspace protocol; `shared/types.ts`, `shared/sections.ts`, `shared/taxonomy.ts`, `shared/templates/*` (pure functions returning HTML strings, shared by every rendering tier), `shared/db/*.sql`.
 - D1 DDL, migrations and seed for editions, sections and sources, with the full index set including the four LSH band indexes and the partial editorial-rank index.
 - `config/free-tier-limits.json`, plus the D1 repository module with the database id as a configuration value.
-- The R2 lifecycle rule scoped to `media/` only, and the paid-plan decision rule.
+- The R2 lifecycle rules scoped to the two growing prefixes only (`raw/` at 7 days and `media/` at 365 days), the paid-plan decision rule, and the live verification that no rule can match `og/` or the bucket root.
 - Delivery-model ADR (**eight** sharded Workers Static Assets projects — one per locale prefix — plus the edge Worker for the story tier, CI builds, no Cloudflare adapter) and the D1-no-shard ADR with its rationale. **D-06 supersedes the single-project conclusion in `research/SUMMARY.md` §1 and `codebase/ARCHITECTURE.md`:** because the free tier is a permanent ceiling with no paid escape hatch (D-05), the request ceiling is a permanent wall (D-08) and the shard is mandatory infrastructure, built in this phase rather than deferred.
 - `astro.config.mjs` with `compressHTML: true`, `experimental.incrementalBuild: true`, `build.concurrency: 1`.
 - The excerpt budget written as a coded, tested rule in the normaliser contract (implementation and test land in Phase 2).

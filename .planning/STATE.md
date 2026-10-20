@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-10-20T17:57:42.733Z"
-last_activity: 2026-10-20 -- 01-03 complete (free-tier ceiling registry, single accessor, single-source scan, no-spend ADR)
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-10-20T19:06:37.919Z"
+last_activity: 2026-10-20
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 6
-  completed_plans: 3
-  percent: 50
+  completed_plans: 4
+  percent: 67
 ---
 
 # Project State
@@ -22,23 +22,23 @@ See: `.planning/PROJECT.md` (updated 2026-10-20, after research synthesis — 25
 Architecture of record: `.planning/research/SUMMARY.md` (authoritative) and `.planning/research/ARCHITECTURE.md`
 
 **Core value:** Cross-outlet curation that turns many publishers' raw feeds into one genuinely useful daily paper per country, published with the speed, freshness, and discoverability that earns sustained organic search traffic.
-**Current focus:** Phase 01 — Foundation, Free-Tier Contract & Architecture Decisions (plans 01-01 through 01-03 of 01-06 complete)
+**Current focus:** Phase 01 — Foundation, Free-Tier Contract & Architecture Decisions (plans 01-01 through 01-04 of 01-06 complete)
 **Success target:** 1,000+ daily visitors and 10,000+ indexed pages within six months of launch.
 
 ## Current Position
 
 Phase: 01 (foundation-free-tier-contract-architecture-decisions) — EXECUTING
-Plan: 4 of 6
-Status: Executing Phase 01 — plans 01-01, 01-02 and 01-03 complete
-Last activity: 2026-10-20 -- 01-03 complete (free-tier ceiling registry, single accessor, single-source scan, no-spend ADR)
+Plan: 5 of 6
+Status: Executing Phase 01 — plans 01-01, 01-02, 01-03 and 01-04 complete
+Last activity: 2026-10-20 -- 01-04 complete (R2 lifecycle rules, eight-project static shard, delivery-model ADR)
 
-Progress: [█████░░░░░] 50%
+Progress: [███████░░░] 67%
 
 ## Phase Sequence
 
 | # | Phase | Depends on | Req count |
 |---|-------|-----------|-----------|
-| 1 | Foundation, Free-Tier Contract & Architecture Decisions | — | 4 |
+| 1 | Foundation, Free-Tier Contract & Architecture Decisions | — | 8 |
 | 2 | Feed Acquisition, Raw Capture & Normalization | 1 | 14 |
 | 3 | Curation Core: Clustering, Ranking & Enrichment | 2 | 14 |
 | 4 | Broadsheet Design System & Astro Shell | 1 — **runs in parallel with 2 and 3** | 13 |
@@ -53,10 +53,11 @@ Progress: [█████░░░░░] 50%
 | Phase 01 P01 | 21min | 3 tasks | 18 files |
 | Phase 01 P02 | 73min | 3 tasks | 12 files |
 | Phase 01 P03 | 15min | 3 tasks | 5 files |
+| Phase 01 P04 | 52min | 3 tasks | 15 files |
 
-- Total plans completed: 3 · Average duration: 36min · Total execution time: 109min
-- By phase: Phase 01 — 3 plans, 109min
-- Recent trend: 01-03, 15min; 01-02, 73min; 01-01, 21min
+- Total plans completed: 4 · Average duration: 40min · Total execution time: 161min
+- By phase: Phase 01 — 4 plans, 161min
+- Recent trend: 01-04, 52min; 01-03, 15min; 01-02, 73min; 01-01, 21min
 
 *Updated after each plan completion*
 
@@ -94,6 +95,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 01]: r2_storage_gb_month is informational, not enforced — The bare token 10 collides with D-10 and ING-10 in shared/config/site.ts and with a column-width argument in scripts/db/verify-local.mjs, so scanning for it could never pass. The ceiling keeps its source, its date and its measurement by the Phase 7 audit Worker; only the literal scan skips it.
 - [Phase 01]: The scan's self-proving fixture is planted outside any __tests__ directory — The scan excludes test fixtures - a test legitimately asserts the literal it guards - so a fixture inside scripts/__tests__/ would be skipped by the very scanner meant to catch it. It is planted at scripts/__planted_ceiling.ts, removed in a finally block, and gitignored.
 - [Phase 01]: Cloudflare budget alerts are informational only; the R2 lifecycle rules are the real cap on storage growth — D-04. Cloudflare states the alert does not cap usage or impact the account, and usage is processed once per day. The 50%/75% percentage-of-ceiling alerts belong to the Phase 7 audit Worker (OPS-03), which reads this same registry. ADR 0005 explicitly refuses to claim alerts prevent billing.
+- [Phase 01]: The static tier is EIGHT sharded Workers Static Assets projects, one per locale prefix, with the global surfaces duplicated into every shard — This overrides the research's single-project conclusion - D-05 removes the paid escape hatch entirely, making the request ceiling a permanent wall (D-08) and the shard mandatory infrastructure rather than an optimisation. Recorded in docs/adr/0001-delivery-model.md.
+- [Phase 01]: The R2 bucket 'meridian' carries exactly two prefix-scoped lifecycle rules: raw/ at 7 days and media/ at 365 days — The platform-default 'Default Multipart Abort Rule' that Cloudflare creates with an EMPTY prefix is removed - it aborts incomplete multipart uploads rather than expiring objects, and R2 aborts them after 7 days by default anyway, so the behaviour is unchanged. An empty-prefix rule is exactly the shape MED-08 forbids.
+- [Phase 01]: The lifecycle creator converges the bucket rather than only reporting, and the verifier is independent of it — The creator removes every rule it does not own, so a drifted bucket is repaired; the verifier parses the LIVE listing, so a parsing bug in the creator cannot hide itself from the check. A gate that was never observed to fail is not a gate - an empty-prefix rule was planted and the verifier was confirmed to exit 1.
 
 ### Research Spikes (all seven assigned)
 
@@ -116,8 +120,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ### Pending Todos
 
-- **Phase 01, remaining 3 plans** (01-04 → 01-06). Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; plan 01-02 delivered the D1 schema, the seed, the single repository module and the D1 topology ADR; plan 01-03 delivered the versioned free-tier ceiling registry, the single accessor, the single-source scan test and the standing no-spend ADR. The R2 lifecycle rules and the eight-project shard, the excerpt budget and the five spikes are still outstanding.
+- **Phase 01, remaining 2 plans** (01-05 → 01-06). Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; plan 01-02 delivered the D1 schema, the seed, the single repository module and the D1 topology ADR; plan 01-03 delivered the versioned free-tier ceiling registry, the single accessor, the single-source scan test and the standing no-spend ADR; plan 01-04 delivered the live R2 bucket with its two prefix-scoped lifecycle rules, the eight live Workers Static Assets projects with the route table and the build-time splitter, and the delivery-model ADR. The excerpt budget, the shared templates, the image and domain ADRs and the five spikes are still outstanding.
 - **`shared/` is the contract for every later phase.** `shared/types.ts` holds the story schema, `shared/config/site.ts` the publication name, `shared/config/editions.ts` the eight editions and sections, `shared/config/free-tier-limits.ts` the only legal home of a ceiling value. None may be redefined downstream.
+- **`wrangler/shards/route-table.json` is the single source of truth for the shard matrix.** The eight shard configs and the route table must change together — the route-table test asserts they agree. When a domain is bought (Phase 7, D-14), `zone_name` is the one value that changes, and it must change in the same commit as the eight configs, or the routes and the table disagree and the build fails.
 
 ### Phase 01 Progress
 
@@ -126,9 +131,11 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 | 01-01 | Repo scaffold, shared contract layer, Astro 7 shell | ✅ Complete | `01-01-SUMMARY.md` |
 | 01-02 | D1 schema, seed, single repository module | ✅ Complete | `01-02-SUMMARY.md` |
 | 01-03 | Free-tier ceiling registry and the no-spend rule | ✅ Complete | `01-03-SUMMARY.md` |
-| 01-04 | R2 lifecycle, eight-project shard, delivery-model ADR | Pending | — |
+| 01-04 | R2 lifecycle, eight-project shard, delivery-model ADR | ✅ Complete | `01-04-SUMMARY.md` |
 | 01-05 | Excerpt budget, shared templates, image and domain ADRs | Pending | — |
 | 01-06 | Spikes S-1 through S-5 | Pending | — |
+
+**Note on MED-08, OPS-12, PUB-12 and ING-02 (marked complete by plan 01-04).** MED-08 is fully delivered: the R2 bucket `meridian` exists with exactly two prefix-scoped lifecycle rules — `raw/` at 7 days and `media/` at 365 days — and `scripts/cloudflare/verify-lifecycle.mjs` proves against the **live** rule listing that no rule can match `og/` or the bucket root. The gate was observed to fail: an empty-prefix rule was planted, the verifier exited 1 with a specific message, and the creator repaired the bucket. **OPS-12** records the tier split in `docs/adr/0001-delivery-model.md`: the static tier holds only editions, sections, archives, Most Covered, topic and entity pages; story pages are pre-rendered to R2 and served at `/story/*`; the build reads one gzipped snapshot object and never opens a datastore binding. **PUB-12** records the one-hostname rule: seven editions and the Hindi edition under locale path prefixes, never subdomains. **ING-02** records that the fetch Worker performs no parsing, no normalization and no scoring — all transformation happens in CI, because the Free plan's per-cron CPU ceiling is a measured 9.45 ms against a 9.45 ms realistic feed parse. The **eight static shards are live** (`meridian-static-uk` … `meridian-static-in-hi`), each serving its own locale prefix on its `workers.dev` subdomain; the zone routes attach when a domain exists (D-10). The delivery-model ADR explicitly overrides the research's single-project conclusion and names why.
 
 **Note on the D1 schema (marked complete by plan 01-02).** OPS-14 is fully delivered: `apps/worker/src/db/repository.ts` is the only module in the repository that contains SQL, and a test scans the whole tree for SQL keywords outside it. The schema applies to an empty database — 19 tables, 32 named indexes — and `scripts/db/verify-local.mjs` asserts every count by name. **The four LSH band indexes on `stories` are load-bearing, not optional:** the Phase 3 clusterer must issue four index lookups, because a scan of `stories` is ~44,000 rows read per incoming item and breaches the 5M rows/day budget on its first busy day. The database identifier is a configuration value, proven by `scripts/db/verify-swap.mjs`, which repoints the binding, rebuilds the schema and the seed from nothing, and hashes `apps/worker/src` and `shared` before and after to prove nothing else moved.
 
@@ -144,6 +151,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - **[Phase 6]** `news:name` is the single highest-impact string in the project — it must exactly match the name on news.google.com. Fix it once in one config value before configuring Publisher Center.
 - **[Phase 7]** Brevo's free allowance (300/day vs 5,000/month) must be re-verified at Phase 7 planning, and the overflow policy decided before 250 subscribers.
 - **[Phase 7]** The single-source scan only covers ceilings marked `enforced`. A stray copy of an `informational` ceiling in source code will not be caught by the scan — the one to watch is `r2_storage_gb_month` (10 GB-month), because `10` is too common a number to scan for. The audit Worker's measurement against the registry is where that coverage lives.
+- **[Phase 7]** The eight zone routes are pending because no domain exists (D-10). Each shard is live on its `workers.dev` subdomain and the route table's `zone_name` is `PLACEHOLDER_NO_DOMAIN_YET`. When the domain is bought, `zone_name` and the eight shard configs must change in the same commit — the route-table test asserts they agree, so a divergence fails the build rather than the deployment.
+- **[Phase 1]** The Cloudflare budget alerts still need a manual dashboard configuration (D-04). Everything that can be automated was done: the bucket, its two lifecycle rules, and the live proof that no rule can match `og/` or the bucket root. The alerts themselves notify but do not cap usage, so the lifecycle rules are the real budget protection. The exact steps are in `scripts/cloudflare/billing-alerts.md`.
 
 ## Deferred Items
 
@@ -159,6 +168,6 @@ Items acknowledged and carried forward:
 
 ## Session Continuity
 
-Last session: 2026-10-20T17:57:42.651Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-10-20T19:06:37.874Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None

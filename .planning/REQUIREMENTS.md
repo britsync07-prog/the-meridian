@@ -16,7 +16,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 ### Ingest Pipeline
 
 - [ ] **ING-01**: A Cloudflare Worker fetches every registered publisher feed on a schedule using conditional GET (ETag / If-Modified-Since) and persists the raw response bytes to R2 under `raw/{date}/{source}.xml`
-- [ ] **ING-02**: The fetch Worker performs no parsing, no normalization, and no scoring; all transformation happens in the CI pipeline
+- [x] **ING-02**: The fetch Worker performs no parsing, no normalization, and no scoring; all transformation happens in the CI pipeline
 - [ ] **ING-03**: Each feed has a registry record holding publisher name, country, language, feed URL, section prior, ETag, last-modified, consecutive failure count, and disabled-until timestamp
 - [ ] **ING-04**: A feed is fetched only after its terms of use have been verified, and the verification date is recorded on its registry record
 - [ ] **ING-05**: The Sources page publishes every outlet the site aggregates, each with the date its feed terms were verified
@@ -75,7 +75,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 - [ ] **PUB-09**: Entity pages are generated for gazetteer-matched entities only
 - [ ] **PUB-10**: A topic or entity page is published only when it holds at least five stories
 - [ ] **PUB-11**: An archive, section, or topic page that has no qualifying content returns a 404 rather than a 200 with an empty list
-- [ ] **PUB-12**: All editions are served from one hostname using locale path prefixes; no edition uses a subdomain
+- [x] **PUB-12**: All editions are served from one hostname using locale path prefixes; no edition uses a subdomain
 - [ ] **PUB-13**: Every indexable URL is reachable within three clicks of a front page through ordinary anchor links
 - [ ] **PUB-14**: No indexable surface uses infinite scroll or auto-refresh; listing pages paginate with real anchor links
 - [ ] **PUB-15**: A front page's content and ordering are identical for every visitor within a build cycle
@@ -92,7 +92,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 - [ ] **MED-05**: The lead image on a front page loads eagerly with high fetch priority and is preloaded
 - [ ] **MED-06**: Every image shows a visible credit naming the publisher it came from, and its alt text is derived from the story headline
 - [ ] **MED-07**: An image that cannot be fetched renders a typographic fallback and never fails the build
-- [ ] **MED-08**: An R2 lifecycle rule expires objects under the media prefix after 12 months, and is scoped so that it can never apply to Open Graph images or the site root
+- [x] **MED-08**: An R2 lifecycle rule expires objects under the media prefix after 12 months, and is scoped so that it can never apply to Open Graph images or the site root
 - [ ] **MED-09**: Media and Open Graph images are served from a custom media subdomain with a one-year immutable cache, never from the default R2 development domain
 
 ### SEO and Discovery
@@ -158,7 +158,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 - [ ] **OPS-09**: The scheduled build runs in CI and triggers on a fixed schedule rather than a deploy hook
 - [ ] **OPS-10**: The static build is incremental via a render manifest, so only clusters changed since the last successful build are re-rendered
 - [ ] **OPS-11**: Story pages are pre-rendered to HTML, stored in R2, and served by an edge Worker with a cache header and a validator
-- [ ] **OPS-12**: The static tier contains only editions, sections, archives, topic and entity pages, and support files
+- [x] **OPS-12**: The static tier contains only editions, sections, archives, topic and entity pages, and support files
 - [ ] **OPS-13**: The build reads its dataset from a single compressed snapshot object and never opens a datastore binding
 - [x] **OPS-14**: All datastore access goes through one repository module with the database identifier held as a configuration value
 - [ ] **OPS-15**: Raw item rows are pruned 30 days after their merge window closes, while the cluster's outlet list, headline, and URL are retained permanently
@@ -245,7 +245,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ING-01 | Phase 2 | Pending |
-| ING-02 | Phase 2 | Pending |
+| ING-02 | Phase 2 | Complete |
 | ING-03 | Phase 2 | Pending |
 | ING-04 | Phase 2 | Pending |
 | ING-05 | Phase 6 | Pending |
@@ -295,7 +295,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PUB-09 | Phase 5 | Pending |
 | PUB-10 | Phase 5 | Pending |
 | PUB-11 | Phase 5 | Pending |
-| PUB-12 | Phase 5 | Pending |
+| PUB-12 | Phase 5 | Complete |
 | PUB-13 | Phase 5 | Pending |
 | PUB-14 | Phase 5 | Pending |
 | PUB-15 | Phase 5 | Pending |
@@ -309,7 +309,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MED-05 | Phase 5 | Pending |
 | MED-06 | Phase 5 | Pending |
 | MED-07 | Phase 5 | Pending |
-| MED-08 | Phase 1 | Pending |
+| MED-08 | Phase 1 | Complete |
 | MED-09 | Phase 5 | Pending |
 | SEO-01 | Phase 6 | Pending |
 | SEO-02 | Phase 6 | Pending |
@@ -363,7 +363,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OPS-09 | Phase 5 | Pending |
 | OPS-10 | Phase 5 | Pending |
 | OPS-11 | Phase 5 | Pending |
-| OPS-12 | Phase 5 | Pending |
+| OPS-12 | Phase 5 | Complete |
 | OPS-13 | Phase 5 | Pending |
 | OPS-14 | Phase 1 | Complete |
 | OPS-15 | Phase 7 | Pending |
