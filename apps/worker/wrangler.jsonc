@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "meridian-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "meridian",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "../../shared/db",
+      "migrations_table": "d1_migrations"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "R2", "bucket_name": "meridian" }
+  ]
+}
