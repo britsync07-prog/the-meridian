@@ -7,15 +7,32 @@
  * D-05 makes the free tier a permanent hard ceiling, so these values are design
  * inputs rather than operational trivia: the code that depends on a ceiling has
  * to know it before the ceiling is reached.
+ *
+ * The scan below is the enforcement half of OPS-01. It searches the whole
+ * source tree for the literal value of every `enforced` ceiling, because a
+ * ceiling hardcoded anywhere but the registry is a ceiling that has already
+ * drifted from the budget. The scan is deliberately blunt: it reports a file, a
+ * line number and the token it found, so the fix is obvious.
+ *
+ * A gate that has never been observed to fail is not a gate, so the suite also
+ * plants a deliberate violation, proves the scanner catches it, and removes it.
  */
 
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import {
+  ENFORCED_LIMIT_TOKENS,
+  FREE_TIER_LIMITS,
+  PAID_PLAN_DECISION_RULE,
+  limit,
+} from '../free-tier-limits';
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url).href);
 const REGISTRY_PATH = join(REPO_ROOT, 'config', 'free-tier-limits.json');
+const ACCESSOR_PATH = join(REPO_ROOT, 'shared', 'config', 'free-tier-limits.ts');
 
 /** The shape of one row of `limits`. */
 interface RegistryLimit {
@@ -95,6 +112,129 @@ function readRegistry(): RegistryFile {
   return JSON.parse(readFileSync(REGISTRY_PATH, 'utf8')) as RegistryFile;
 }
 
+/* ------------------------------------------------------------------------- */
+/* The scan                                                                  */
+/* ------------------------------------------------------------------------- */
+
+/** The roots the scan walks. */
+const SCAN_ROOTS = ['shared', 'apps', 'scripts', 'spikes', 'config'] as const;
+
+/** The file extensions the scan reads. */
+const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json'] as const;
+
+/** Directories that hold build output, dependency trees or planning artefacts. */
+const SKIPPED_DIRECTORIES = new Set([
+  'node_modules',
+  'dist',
+  '.astro-cache',
+  '.wrangler',
+  '.planning',
+]);
+
+/**
+ * Test fixtures are excluded from the scan.
+ *
+ * A test legitimately asserts the literal value it guards, and the self-proving
+ * step below plants a deliberate literal on purpose. Scanning test files would
+ * make this suite fail against itself — a gate that reports its own fixtures is
+ * a gate nobody reads.
+ */
+const TEST_FIXTURE_DIRECTORIES = new Set(['__tests__']);
+
+/**
+ * The two legal homes of a ceiling literal: the registry itself and the
+ * accessor that reads it. The accessor derives its scan tokens at runtime from
+ * the registry, so the exemption is a forward-looking allowance rather than a
+ * working hole — the purity assertion below proves the accessor holds no
+ * literal at all.
+ */
+const EXEMPT_FROM_SCAN = new Set([
+  'config/free-tier-limits.json',
+  'shared/config/free-tier-limits.ts',
+]);
+
+/** One stray ceiling literal found in the source tree. */
+interface LimitLiteralHit {
+  file: string;
+  line: number;
+  token: string;
+}
+
+/** The repository-relative path of a file, with forward slashes. */
+function relativePath(file: string): string {
+  return relative(REPO_ROOT, file).split(/[\\/]/).join('/');
+}
+
+/**
+ * Recursively collect the scannable files under a root.
+ *
+ * `includeExempt` decides whether the two legal homes of a literal are part of
+ * the result. The scan excludes them; the purity assertion includes them.
+ */
+function collectSourceFiles(root: string, includeExempt: boolean): string[] {
+  if (!existsSync(root)) return [];
+  const found: string[] = [];
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      if (SKIPPED_DIRECTORIES.has(entry.name)) continue;
+      if (TEST_FIXTURE_DIRECTORIES.has(entry.name)) continue;
+      found.push(...collectSourceFiles(join(root, entry.name), includeExempt));
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    if (entry.name.endsWith('.test.ts')) continue;
+    if (!SCANNED_EXTENSIONS.some((extension) => entry.name.endsWith(extension))) continue;
+    const file = join(root, entry.name);
+    if (!includeExempt && EXEMPT_FROM_SCAN.has(relativePath(file))) continue;
+    found.push(file);
+  }
+  return found;
+}
+
+/** Every scannable file in the tree. */
+function scannableFiles(includeExempt: boolean): string[] {
+  return SCAN_ROOTS.flatMap((root) => collectSourceFiles(join(REPO_ROOT, root), includeExempt));
+}
+
+/**
+ * Search each file for every enforced ceiling token.
+ *
+ * The token is matched on word boundaries so that `10000` never matches inside
+ * `100000`, and so that a ceiling written as `1_000_000` or `1,000,000` is
+ * caught as readily as one written as `1000000`.
+ */
+function scanForLimitLiterals(files: readonly string[]): LimitLiteralHit[] {
+  const hits: LimitLiteralHit[] = [];
+  for (const file of files) {
+    const filePath = relativePath(file);
+    const lines = readFileSync(file, 'utf8').split(/\r?\n/);
+    lines.forEach((line, index) => {
+      for (const token of ENFORCED_LIMIT_TOKENS) {
+        const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = new RegExp(`(?<![0-9A-Za-z_])${escaped}(?![0-9A-Za-z_])`);
+        if (pattern.test(line)) {
+          hits.push({ file: filePath, line: index + 1, token });
+        }
+      }
+    });
+  }
+  return hits;
+}
+
+/** Render hits as `file:line — token`, one per line. */
+function formatHits(hits: readonly LimitLiteralHit[]): string {
+  return hits.map((hit) => `${hit.file}:${hit.line} — ${hit.token}`).join('\n');
+}
+
+/** The file the self-proving step plants a violation in. */
+const PLANTED_FILE = join(REPO_ROOT, 'scripts', '__planted_ceiling.ts');
+const PLANTED_RELATIVE_PATH = 'scripts/__planted_ceiling.ts';
+const PLANTED_SOURCE = 'const FREE_TIER_WORKERS_REQUESTS = 100000;\n';
+
+/* ------------------------------------------------------------------------- */
+/* Group A — registry integrity                                              */
+/* ------------------------------------------------------------------------- */
+
 describe('the free-tier ceiling registry (OPS-01)', () => {
   it('holds every ceiling the project depends on', () => {
     const registry = readRegistry();
@@ -158,5 +298,138 @@ describe('the free-tier ceiling registry (OPS-01)', () => {
     expect(dependency.requirement_ref).toBe('D-09');
     expect(dependency.standing_obligation.length).toBeGreaterThan(0);
     expect(dependency.explicitly_excluded).toContain('Open-Meteo');
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+/* Group A — the accessor                                                    */
+/* ------------------------------------------------------------------------- */
+
+describe('the free-tier accessor', () => {
+  it('exports the registry and the decision rule as the module reads them', () => {
+    const registry = readRegistry();
+
+    expect(FREE_TIER_LIMITS.map((entry) => entry.id)).toEqual(
+      registry.limits.map((entry) => entry.id),
+    );
+    expect(PAID_PLAN_DECISION_RULE).toEqual(registry.paid_plan_decision_rule);
+  });
+
+  it('resolves every limit id to the value the registry holds', () => {
+    const registry = readRegistry();
+
+    for (const entry of registry.limits) {
+      expect(limit(entry.id)).toEqual({
+        value: entry.value,
+        unit: entry.unit,
+        period: entry.period,
+        source_url: entry.source_url,
+        verified_on: entry.verified_on,
+      });
+    }
+  });
+
+  it('throws for an unknown limit id rather than returning undefined', () => {
+    expect(() => limit('does-not-exist')).toThrow(/unknown free-tier limit/i);
+  });
+
+  it('derives the scan tokens from the enforced ceilings only', () => {
+    const registry = readRegistry();
+    const enforced = registry.limits.filter((entry) => entry.enforcement === 'enforced');
+    const informational = registry.limits.filter((entry) => entry.enforcement === 'informational');
+
+    expect(enforced.length).toBeGreaterThan(0);
+    expect(ENFORCED_LIMIT_TOKENS.length).toBeGreaterThan(0);
+    expect(new Set(ENFORCED_LIMIT_TOKENS).size).toBe(ENFORCED_LIMIT_TOKENS.length);
+
+    for (const entry of enforced) {
+      expect(ENFORCED_LIMIT_TOKENS).toContain(String(entry.value));
+    }
+    for (const entry of informational) {
+      // A ceiling whose value is shared with an enforced one is still a token;
+      // one that is unique to an informational ceiling is not scanned for.
+      const shared = enforced.some((other) => other.value === entry.value);
+      if (!shared) {
+        expect(ENFORCED_LIMIT_TOKENS, `${entry.id} is informational and must not be scanned`).not.toContain(
+          String(entry.value),
+        );
+      }
+    }
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+/* Group B — the single-source scan                                          */
+/* ------------------------------------------------------------------------- */
+
+describe('the single-source scan', () => {
+  it('finds no enforced ceiling literal outside the registry and the accessor', () => {
+    const hits = scanForLimitLiterals(scannableFiles(false));
+
+    expect(
+      formatHits(hits),
+      `stray ceiling literals found:\n${formatHits(hits)}`,
+    ).toBe('');
+    expect(hits).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+/* Group C — the self-proving step                                           */
+/* ------------------------------------------------------------------------- */
+
+describe('the self-proving step', () => {
+  it('detects a deliberately planted ceiling literal and is clean once it is removed', () => {
+    // The planted file lives in a scanned root and is not a test fixture, so the
+    // scan sees it. It is removed in the `finally` block, and the scan is run
+    // once more afterwards to prove the tree is clean again.
+    expect(existsSync(PLANTED_FILE)).toBe(false);
+
+    writeFileSync(PLANTED_FILE, PLANTED_SOURCE, 'utf8');
+    try {
+      const hits = scanForLimitLiterals(scannableFiles(false));
+      const planted = hits.filter((hit) => hit.file === PLANTED_RELATIVE_PATH);
+
+      expect(planted.length).toBeGreaterThan(0);
+      expect(formatHits(planted)).toContain(`${PLANTED_RELATIVE_PATH}:1 — 100000`);
+    } finally {
+      rmSync(PLANTED_FILE, { force: true });
+    }
+
+    expect(existsSync(PLANTED_FILE)).toBe(false);
+    expect(scanForLimitLiterals(scannableFiles(false))).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+/* Group D — accessor purity                                                 */
+/* ------------------------------------------------------------------------- */
+
+describe('accessor purity', () => {
+  it('imports nothing but zod and the registry', () => {
+    const source = readFileSync(ACCESSOR_PATH, 'utf8');
+    const specifiers = [...source.matchAll(/from\s+'([^']+)'/g)].map((match) => match[1]);
+
+    expect(specifiers.length).toBeGreaterThan(0);
+    for (const specifier of specifiers) {
+      expect(specifier === 'zod' || specifier.endsWith('.json'), `unexpected import: ${specifier}`).toBe(
+        true,
+      );
+      expect(specifier, `the accessor must not import from a runtime: ${specifier}`).not.toMatch(
+        /(?:^|\/)(?:apps|scripts|spikes)\//,
+      );
+    }
+  });
+
+  it('keeps the registry the only file in the tree that holds a ceiling literal', () => {
+    // Test fixtures are excluded here too: this suite holds the planted literal
+    // in its own source, and the registry and the accessor are deliberately
+    // included so that the accessor's own purity is asserted.
+    const holders = scannableFiles(true)
+      .filter((file) => scanForLimitLiterals([file]).length > 0)
+      .map((file) => relativePath(file))
+      .sort();
+
+    expect(holders).toEqual(['config/free-tier-limits.json']);
   });
 });
