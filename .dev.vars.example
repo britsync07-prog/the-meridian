@@ -1,0 +1,23 @@
+# Local environment overrides for the edge Worker.
+#
+# Copy this file to `apps/worker/.dev.vars` — the Workers runtime reads
+# `.dev.vars` from the directory that holds `wrangler.jsonc`, so the copy
+# belongs at `apps/worker/.dev.vars`:
+#
+#     copy .dev.vars.example apps\worker\.dev.vars      # Windows
+#     cp .dev.vars.example apps/worker/.dev.vars        # macOS / Linux
+#
+# `.dev.vars` itself is gitignored and must never be committed. This example
+# file is committed, so it may only ever hold a NON-SECRET value.
+#
+# The database identifier is NOT a secret. It is the id of the D1 database the
+# `d1_databases` binding in `apps/worker/wrangler.jsonc` points at, and it
+# grants no access to anything on its own: reading or writing the database
+# still requires an account credential. It is recorded here so the Worker can
+# report which database it is talking to without a code change.
+#
+# The authoritative configuration value remains the `database_id` of the
+# `d1_databases` binding. This variable only overrides what the Worker
+# *reports*; the binding still decides where the datastore lives.
+
+MERIDIAN_DB_ID=af7ca858-b8ce-432a-8e80-a05c39e3c1be

@@ -8,7 +8,7 @@
     {
       "binding": "DB",
       "database_name": "meridian",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "af7ca858-b8ce-432a-8e80-a05c39e3c1be",
       "migrations_dir": "../../shared/db",
       "migrations_table": "d1_migrations",
       "migrations_pattern": "../../shared/db/[0-9]*.sql"
