@@ -149,6 +149,16 @@ const SCAN_ROOTS = [
   join(REPO_ROOT, 'scripts', 'cloudflare'),
 ] as const;
 
+/**
+ * The delivery-model ADR, checked separately.
+ *
+ * It is prose, and it names the eight-project shard and the request ceiling —
+ * two things that invite a number to be written down. The ADR has to state the
+ * decision without restating the budget, so it is scanned on its own rather
+ * than through the directory scan above.
+ */
+const DELIVERY_MODEL_ADR = join(REPO_ROOT, 'docs', 'adr', '0001-delivery-model.md');
+
 /** The file extensions the scan reads. */
 const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json', '.jsonc'] as const;
 
@@ -345,5 +355,13 @@ describe('no shard config or shard script hardcodes a free-tier ceiling', () => 
 
   it('has tokens to scan for — the gate is not vacuous', () => {
     expect(ENFORCED_LIMIT_TOKENS.length).toBeGreaterThan(0);
+  });
+
+  it('keeps every ceiling literal out of the delivery-model ADR', () => {
+    expect(existsSync(DELIVERY_MODEL_ADR)).toBe(true);
+
+    const hits = scanForLimitLiterals([DELIVERY_MODEL_ADR]);
+
+    expect(formatHits(hits), `stray ceiling literals found:\n${formatHits(hits)}`).toBe('');
   });
 });
