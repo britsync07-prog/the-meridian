@@ -76,7 +76,7 @@ Plans:
 - [x] 01-02-PLAN.md — D1 schema, seed and the single repository module, with the database id held as configuration
 - [x] 01-03-PLAN.md — The versioned free-tier ceiling registry and the standing no-spend decision rule
 - [x] 01-04-PLAN.md — R2 bucket with prefix-scoped lifecycle rules, the eight-project static shard and the delivery-model ADR
-- [ ] 01-05-PLAN.md — The coded excerpt budget, the shared metadata and typographic fallback templates, and the image and domain ADRs
+- [x] 01-05-PLAN.md — The coded excerpt budget, the shared metadata and typographic fallback templates, and the image and domain ADRs
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 01-06-PLAN.md — Spikes S-1 through S-5, executed and recorded with the decision each one drove

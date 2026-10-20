@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-10-20T19:06:37.919Z"
+stopped_at: Completed 01-05-PLAN.md
+last_updated: "2026-10-20T20:55:25.431Z"
 last_activity: 2026-10-20
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 5
+  percent: 83
 ---
 
 # Project State
@@ -22,17 +22,17 @@ See: `.planning/PROJECT.md` (updated 2026-10-20, after research synthesis — 25
 Architecture of record: `.planning/research/SUMMARY.md` (authoritative) and `.planning/research/ARCHITECTURE.md`
 
 **Core value:** Cross-outlet curation that turns many publishers' raw feeds into one genuinely useful daily paper per country, published with the speed, freshness, and discoverability that earns sustained organic search traffic.
-**Current focus:** Phase 01 — Foundation, Free-Tier Contract & Architecture Decisions (plans 01-01 through 01-04 of 01-06 complete)
+**Current focus:** Phase 01 — Foundation, Free-Tier Contract & Architecture Decisions (plans 01-01 through 01-05 of 01-06 complete)
 **Success target:** 1,000+ daily visitors and 10,000+ indexed pages within six months of launch.
 
 ## Current Position
 
 Phase: 01 (foundation-free-tier-contract-architecture-decisions) — EXECUTING
-Plan: 5 of 6
-Status: Executing Phase 01 — plans 01-01, 01-02, 01-03 and 01-04 complete
-Last activity: 2026-10-20 -- 01-04 complete (R2 lifecycle rules, eight-project static shard, delivery-model ADR)
+Plan: 6 of 6
+Status: Ready to execute
+Last activity: 2026-10-21 -- 01-05 complete (coded excerpt budget, shared metadata and typographic fallback templates, image and domain ADRs)
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 83%
 
 ## Phase Sequence
 
@@ -54,10 +54,11 @@ Progress: [███████░░░] 67%
 | Phase 01 P02 | 73min | 3 tasks | 12 files |
 | Phase 01 P03 | 15min | 3 tasks | 5 files |
 | Phase 01 P04 | 52min | 3 tasks | 15 files |
+| Phase 01 P05 | 34min | 3 tasks | 11 files |
 
-- Total plans completed: 4 · Average duration: 40min · Total execution time: 161min
-- By phase: Phase 01 — 4 plans, 161min
-- Recent trend: 01-04, 52min; 01-03, 15min; 01-02, 73min; 01-01, 21min
+- Total plans completed: 5 · Average duration: 39min · Total execution time: 195min
+- By phase: Phase 01 — 5 plans, 195min
+- Recent trend: 01-05, 34min; 01-04, 52min; 01-03, 15min; 01-02, 73min; 01-01, 21min
 
 *Updated after each plan completion*
 
@@ -83,7 +84,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - **D1:** one database (`meridian`) behind a single repository module, database id as a config value. No edition sharding. **Recorded in `docs/adr/0002-d1-no-shard.md` (Phase 1, plan 01-02), which overrides `research/PITFALLS.md`'s "shard from day one".** The schema is 19 tables and 32 named indexes; `usage_log` and `corrections` were added on top of the research DDL's 17, and `story_sources` carries `headline` and `url` so the outlet list survives the 30-day prune of the raw mention rows.
 - **Canonical model:** self-referential canonicals only, never cross-domain. One canonical story page per cluster at `/story/{slug}/`, edition-agnostic. Publisher URLs are normal followed links with `rel="noopener"`.
 - **hreflang:** only between India English and India Hindi. All seven editions use locale path prefixes on **one hostname** — never subdomains.
-- **Excerpt budget:** ≤50 words / ≤320 chars / ≤2 sentences / ≤30% of source visible text; quoted verbatim or omitted, never paraphrased; sources under 160 words publish no excerpt. **Coded as a contract in Phase 1** (`shared/contract/excerpt-budget.ts`); the normaliser and its full unit test land in Phase 2.
+- **Excerpt budget:** ≤50 words / ≤320 chars / ≤2 sentences / ≤30% of source visible text; quoted verbatim or omitted, never paraphrased; sources under 160 words publish no excerpt. **Coded as a contract in Phase 1 and LANDED** (`shared/contract/excerpt-budget.ts`, 22 assertions, 2026-10-21): the contract only ever TRUNCATES — no rewrite path, no per-source override, no config lookup — and it verifies its own output is a verbatim prefix of the candidate. The word cap and the source-share cap are both ceilings and the tighter one binds. Phase 2 inherits the contract and calls `applyExcerptBudget()` then `assertExcerptWithinBudget()`; it does NOT write its own excerpt logic.
 - **No human editor:** the daily digest defaults to a deterministic template; every automated surface carries a visible disclosure. The original-articles programme is deferred to v2 (V2-EDT-01) rather than faked.
 - [Phase 01]: The GitHub repository is britsync07-prog/the-meridian - public, under a personal account, named for the locked site name (D-02, D-03, D-12).
 - [Phase 01]: The shared contract is a plain directory imported by RELATIVE path only. The @shared/* TypeScript alias exists for tsc and the editor, never for a bundler - edge alias resolution is the least predictable part of the Workers build.
@@ -98,6 +99,12 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 01]: The static tier is EIGHT sharded Workers Static Assets projects, one per locale prefix, with the global surfaces duplicated into every shard — This overrides the research's single-project conclusion - D-05 removes the paid escape hatch entirely, making the request ceiling a permanent wall (D-08) and the shard mandatory infrastructure rather than an optimisation. Recorded in docs/adr/0001-delivery-model.md.
 - [Phase 01]: The R2 bucket 'meridian' carries exactly two prefix-scoped lifecycle rules: raw/ at 7 days and media/ at 365 days — The platform-default 'Default Multipart Abort Rule' that Cloudflare creates with an EMPTY prefix is removed - it aborts incomplete multipart uploads rather than expiring objects, and R2 aborts them after 7 days by default anyway, so the behaviour is unchanged. An empty-prefix rule is exactly the shape MED-08 forbids.
 - [Phase 01]: The lifecycle creator converges the bucket rather than only reporting, and the verifier is independent of it — The creator removes every rule it does not own, so a drifted bucket is repaired; the verifier parses the LIVE listing, so a parsing bug in the creator cannot hide itself from the check. A gate that was never observed to fail is not a gate - an empty-prefix rule was planted and the verifier was confirmed to exit 1.
+- [Phase 01]: The excerpt budget is truncation-only with no override path - CONTEXT.md left the choice open and it is exercised in the negative: an override is a paraphrase-shaped loophole, so applyExcerptBudget takes exactly one argument and the contract verifies its own output is a verbatim prefix of the candidate. — CON-04 is structural rather than procedural. Google names synonymizing and translating as a scaled-content-abuse example, so paraphrasing to dodge duplicate detection is a policy violation. The API shape makes it impossible rather than merely discouraged.
+- [Phase 01]: The word cap and the source-share cap are both ceilings and the tighter one binds - a 200-word source would allow 60 words at 30 percent, but 60 breaches the 50-word cap, so the excerpt is 50 words and a quarter of the source. — CON-01 states every limit as a ceiling. The plan's own test 6 asked for 60 words, which would have breached the 50-word cap; the plan's algorithm (min of both caps) is the correct reading. Both caps are now proven independently - the share cap at a 160-word source, the word cap at 200.
+- [Phase 01]: A canonical is CONSTRUCTED, not sanitised - pageMeta builds it as SITE_ORIGIN plus a path and refuses a full URL as a path outright. — CON-09. A cross-domain canonical tells Google the Meridian page is not canonical, so the page leaves the index and the publication becomes referral-only. There is now no code path by which a canonical could come to point at a publisher.
+- [Phase 01]: The shared layer is pure string builders returning HTML, not components - head.ts carries both pageMeta (what the metadata IS) and renderHead (how it is WRITTEN). — A dynamically served story page must render identically to a statically served section page, and an Astro component cannot render inside an edge Function. Keeping both halves in one module means the two runtimes emit the same bytes and the halves cannot drift.
+- [Phase 01]: The image-permanence resolution rule is split into shared/contract/image-permanence.ts, and the media lifetime is one named constant read by both the serve-time resolution and the sweep's predicate. — The rule (present or expired) and the rendering (what an expired object looks like) are different concerns, and Phase 5's edge Worker needs the rule without the rendering. One constant means the two apply mechanisms cannot use different clocks.
+- [Phase 01]: A decision that names a budget references the registry id, never the number - ADR 0003 charges D-18's cost against r2_class_b_ops_per_month. — The prose-ADR ceiling scan was widened from ADR 0001 to cover ADR 0003 and ADR 0004, and the gate was observed to fail on a planted literal. A ceiling written into prose is a second copy of the budget that can drift from the registry.
 
 ### Research Spikes (all seven assigned)
 
@@ -120,8 +127,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ### Pending Todos
 
-- **Phase 01, remaining 2 plans** (01-05 → 01-06). Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; plan 01-02 delivered the D1 schema, the seed, the single repository module and the D1 topology ADR; plan 01-03 delivered the versioned free-tier ceiling registry, the single accessor, the single-source scan test and the standing no-spend ADR; plan 01-04 delivered the live R2 bucket with its two prefix-scoped lifecycle rules, the eight live Workers Static Assets projects with the route table and the build-time splitter, and the delivery-model ADR. The excerpt budget, the shared templates, the image and domain ADRs and the five spikes are still outstanding.
-- **`shared/` is the contract for every later phase.** `shared/types.ts` holds the story schema, `shared/config/site.ts` the publication name, `shared/config/editions.ts` the eight editions and sections, `shared/config/free-tier-limits.ts` the only legal home of a ceiling value. None may be redefined downstream.
+- **Phase 01, remaining 1 plan** (01-06). Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; plan 01-02 delivered the D1 schema, the seed, the single repository module and the D1 topology ADR; plan 01-03 delivered the versioned free-tier ceiling registry, the single accessor, the single-source scan test and the standing no-spend ADR; plan 01-04 delivered the live R2 bucket with its two prefix-scoped lifecycle rules, the eight live Workers Static Assets projects with the route table and the build-time splitter, and the delivery-model ADR; plan 01-05 delivered the coded excerpt budget contract, the shared metadata and typographic fallback templates, the image-permanence contract and the two remaining ADRs. **Only the five spikes (S-1 through S-5) are still outstanding.**
+- **`shared/` is the contract for every later phase.** `shared/types.ts` holds the story schema, `shared/config/site.ts` the publication name, `shared/config/editions.ts` the eight editions and sections, `shared/config/free-tier-limits.ts` the only legal home of a ceiling value, `shared/contract/excerpt-budget.ts` the coded excerpt budget, `shared/contract/image-permanence.ts` the media lifetime and resolution rule, and `shared/templates/` the pure string builders (`head.ts` with `pageMeta()` and `renderHead()`, `typographic-fallback.ts` with the silent panel). None may be redefined downstream. **`shared/` is a directory, not a package — it holds no `package.json`, and `shared/__tests__/purity.test.ts` fails the build if it ever does, or if any shared module imports a runtime-specific module.**
 - **`wrangler/shards/route-table.json` is the single source of truth for the shard matrix.** The eight shard configs and the route table must change together — the route-table test asserts they agree. When a domain is bought (Phase 7, D-14), `zone_name` is the one value that changes, and it must change in the same commit as the eight configs, or the routes and the table disagree and the build fails.
 
 ### Phase 01 Progress
@@ -132,7 +139,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 | 01-02 | D1 schema, seed, single repository module | ✅ Complete | `01-02-SUMMARY.md` |
 | 01-03 | Free-tier ceiling registry and the no-spend rule | ✅ Complete | `01-03-SUMMARY.md` |
 | 01-04 | R2 lifecycle, eight-project shard, delivery-model ADR | ✅ Complete | `01-04-SUMMARY.md` |
-| 01-05 | Excerpt budget, shared templates, image and domain ADRs | Pending | — |
+| 01-05 | Excerpt budget, shared templates, image and domain ADRs | ✅ Complete | `01-05-SUMMARY.md` |
 | 01-06 | Spikes S-1 through S-5 | Pending | — |
 
 **Note on MED-08, OPS-12, PUB-12 and ING-02 (marked complete by plan 01-04).** MED-08 is fully delivered: the R2 bucket `meridian` exists with exactly two prefix-scoped lifecycle rules — `raw/` at 7 days and `media/` at 365 days — and `scripts/cloudflare/verify-lifecycle.mjs` proves against the **live** rule listing that no rule can match `og/` or the bucket root. The gate was observed to fail: an empty-prefix rule was planted, the verifier exited 1 with a specific message, and the creator repaired the bucket. **OPS-12** records the tier split in `docs/adr/0001-delivery-model.md`: the static tier holds only editions, sections, archives, Most Covered, topic and entity pages; story pages are pre-rendered to R2 and served at `/story/*`; the build reads one gzipped snapshot object and never opens a datastore binding. **PUB-12** records the one-hostname rule: seven editions and the Hindi edition under locale path prefixes, never subdomains. **ING-02** records that the fetch Worker performs no parsing, no normalization and no scoring — all transformation happens in CI, because the Free plan's per-cron CPU ceiling is a measured 9.45 ms against a 9.45 ms realistic feed parse. The **eight static shards are live** (`meridian-static-uk` … `meridian-static-in-hi`), each serving its own locale prefix on its `workers.dev` subdomain; the zone routes attach when a domain exists (D-10). The delivery-model ADR explicitly overrides the research's single-project conclusion and names why.
@@ -142,6 +149,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 **Note on OPS-01 and OPS-04 (marked complete by plan 01-03).** Both are delivered. `config/free-tier-limits.json` holds eighteen ceilings, each with its value, unit, period, source URL and verification date, plus the `paid_plan_decision_rule` in the same file — so the rule and the budget cannot drift apart. `shared/config/free-tier-limits.ts` is the only module permitted to read a ceiling; it validates the registry with Zod at import time and throws on any shape violation. **The scan is a gate, not a convention:** `shared/config/__tests__/free-tier-limits.test.ts` walks the whole source tree for every enforced ceiling literal and reports `file:line — token`, and it proves itself by planting a deliberate violation, asserting the scanner catches it, and removing it in a `finally` block. One ceiling — `r2_storage_gb_month`, whose value is `10` — is marked `informational` rather than `enforced`, because the bare token `10` collides with identifiers like `D-10` in unrelated source; it is still recorded, still sourced and still measured by the Phase 7 audit Worker.
 
 **Note on SEO-13 and DSN-12 (marked complete by plan 01-01).** DSN-12 is fully delivered: `compressHTML: true` is set and a built-HTML assertion proves the spacing survives. SEO-13 is complete on the *configuration* half — the site name now exists in exactly one place, `shared/config/site.ts`, and a repository-wide scan fails if a second copy appears. The `<news:name>` **emission** remains Phase 6's work and must read from that same value so the two cannot diverge.
+
+**Note on CON-01 to CON-05, CON-09 and CON-10 (marked complete by plan 01-05).** The excerpt budget is **coded, not described** — `shared/contract/excerpt-budget.ts` enforces all five limits and its only operation on the candidate is cutting it. There is no rewrite path, no per-source override parameter and no configuration lookup, and the contract verifies its own output is a verbatim prefix of the candidate, so a future edit that paraphrased would fail at the contract rather than in a stored row. **Phase 2 must call `applyExcerptBudget()` and then `assertExcerptWithinBudget()` — it must not write its own excerpt logic.** CON-09 is enforced by construction rather than by inspection: `pageMeta()` builds the canonical as the site's own origin plus a path and **refuses a full URL as a path outright**, so there is no code path by which a canonical could come to point at a publisher. `shared/__tests__/purity.test.ts` is the gate that keeps `shared/` framework-free and package-free, because a shared module that imported `astro/` could not be used by the Worker and the two tiers would drift into looking like different products.
 
 ### Blockers/Concerns
 
@@ -168,6 +177,6 @@ Items acknowledged and carried forward:
 
 ## Session Continuity
 
-Last session: 2026-10-20T19:06:37.874Z
-Stopped at: Completed 01-04-PLAN.md
+Last session: 2026-10-20T20:55:13.642Z
+Stopped at: Completed 01-05-PLAN.md
 Resume file: None
