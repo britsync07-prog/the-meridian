@@ -1,0 +1,37 @@
+{
+  "name": "meridian",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Meridian — a free, automatically-curated daily news portal publishing a broadsheet edition per country.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "build": "astro build --root apps/site",
+    "build:site": "astro build --root apps/site",
+    "dev": "astro dev --root apps/site",
+    "db:verify:local": "node scripts/db/verify-local.mjs",
+    "db:verify:swap": "node scripts/db/verify-swap.mjs",
+    "r2:lifecycle:verify": "node scripts/cloudflare/verify-lifecycle.mjs",
+    "shards:split": "node scripts/shards/split-output.mjs",
+    "shards:deploy": "node scripts/shards/deploy-all.mjs",
+    "build:spike:s4": "node spikes/s-4-astro-throughput/generate.mjs"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.4.1",
+    "tailwindcss": "4.3.3",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261019.1",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5",
+    "wrangler": "4.151.3"
+  }
+}

@@ -48,3 +48,12 @@ playwright-report/
 
 # Graphify regeneration cache (the graph itself is committed)
 graphify-out/cache/
+
+# Astro build artefacts (Phase 1 scaffold)
+apps/site/dist/
+apps/site/.astro/
+.astro-cache/
+
+# Local environment overrides
+*.local
+
