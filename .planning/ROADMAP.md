@@ -66,18 +66,31 @@ Seven spikes are concrete work items, not research topics. Each has an owner pha
   3. The R2 lifecycle rule exists and is scoped to the `media/` prefix only. The live rule listing shows no rule that can match the `og/` prefix or the bucket root.
   4. The written paid-plan decision rule names all three triggers (daily visitors approaching 4,000, a static project exceeding 20,000 files, any revenue) and lives in the same versioned file the audit Worker reads, so the rule and the budget can never drift apart.
   5. Spikes S-1, S-2, S-3, S-4 and S-5 have each been executed and their outcomes recorded, with the decision each one drove and the resulting change, if any, to the delivery model.
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+**Wave 1**
+- [ ] 01-01-PLAN.md — Repo scaffold, shared contract layer and the Astro 7 shell configuration
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 01-02-PLAN.md — D1 schema, seed and the single repository module, with the database id held as configuration
+- [ ] 01-03-PLAN.md — The versioned free-tier ceiling registry and the standing no-spend decision rule
+- [ ] 01-04-PLAN.md — R2 bucket with prefix-scoped lifecycle rules, the eight-project static shard and the delivery-model ADR
+- [ ] 01-05-PLAN.md — The coded excerpt budget, the shared metadata and typographic fallback templates, and the image and domain ADRs
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 01-06-PLAN.md — Spikes S-1 through S-5, executed and recorded with the decision each one drove
 **UI hint**: no
 **Work items**:
 - Repo scaffold: one `package.json`, one lockfile, no workspace protocol; `shared/types.ts`, `shared/sections.ts`, `shared/taxonomy.ts`, `shared/templates/*` (pure functions returning HTML strings, shared by every rendering tier), `shared/db/*.sql`.
 - D1 DDL, migrations and seed for editions, sections and sources, with the full index set including the four LSH band indexes and the partial editorial-rank index.
 - `config/free-tier-limits.json`, plus the D1 repository module with the database id as a configuration value.
 - The R2 lifecycle rule scoped to `media/` only, and the paid-plan decision rule.
-- Delivery-model ADR (Workers Static Assets, one project, assets plus a minimal Worker script, R2 story tier, CI builds, no Cloudflare adapter) and the D1-no-shard ADR with its rationale.
+- Delivery-model ADR (**eight** sharded Workers Static Assets projects — one per locale prefix — plus the edge Worker for the story tier, CI builds, no Cloudflare adapter) and the D1-no-shard ADR with its rationale. **D-06 supersedes the single-project conclusion in `research/SUMMARY.md` §1 and `codebase/ARCHITECTURE.md`:** because the free tier is a permanent ceiling with no paid escape hatch (D-05), the request ceiling is a permanent wall (D-08) and the shard is mandatory infrastructure, built in this phase rather than deferred.
 - `astro.config.mjs` with `compressHTML: true`, `experimental.incrementalBuild: true`, `build.concurrency: 1`.
 - The excerpt budget written as a coded, tested rule in the normaliser contract (implementation and test land in Phase 2).
 - **Spikes S-1, S-2, S-3, S-4, S-5.**
-- **Parallel workstreams started here:** domain acquisition, and Track E taxonomy curation.
+- **Parallel workstreams started here:** domain acquisition (deferred past launch by D-10; the accepted consequences are recorded in ADR 0004), and Track E taxonomy curation (the 30-outlet starter source registry and the eight-section lexicon seed).
 **Research flag**: YES, for spikes, not literature.
 
 ### Phase 2: Feed Acquisition, Raw Capture & Normalization
