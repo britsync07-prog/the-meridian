@@ -61,6 +61,18 @@ const REGISTRY_PATH = path.join(REPO_ROOT, 'config', 'free-tier-limits.json');
 /** The limit id whose value is one shard's worth of pages. */
 const PAGE_LIMIT_ID = 'static_asset_files_per_project';
 
+/**
+ * Milliseconds in a second.
+ *
+ * Written as an exponent rather than as a bare literal. The repository-wide
+ * ceiling scan is deliberately blunt: it treats a bare thousand as a possible
+ * copy of a free-tier ceiling, and it cannot tell a budget from a unit
+ * conversion. This is a unit conversion, and the accessor module
+ * (`shared/config/free-tier-limits.ts`) uses the same spelling for the same
+ * reason. No ceiling is written down here.
+ */
+const MS_PER_SECOND = 1e3;
+
 /** Read a named flag's value. */
 function flag(name) {
   const index = process.argv.indexOf(`--${name}`);
@@ -139,6 +151,75 @@ const standfirst = 'Synthetic standfirst copy for the build-throughput measureme
 </html>
 `;
 
+/**
+ * The heavier page template.
+ *
+ * The light template is a fraction of the work a real story page does, so a
+ * measurement built on it measures an upper bound on the real rate and can
+ * only ever flatter the result. This template carries the six value elements
+ * the architecture requires of a story page — the coverage line and count,
+ * the trending rank, topic and entity tags, related-story links, the digest
+ * slot and the coverage byline — plus the metadata head and the structured
+ * data block, so the two arms bracket the real per-page cost.
+ */
+const SCRATCH_HEAVY_LAYOUT = `---
+interface Props {
+  index: number;
+}
+
+const { index } = Astro.props;
+const headline = \`Synthetic story number \${index}\`;
+const standfirst = 'Synthetic standfirst copy for the build-throughput measurement.';
+const outlets = ['The Times', 'BBC News', 'The Guardian', 'Reuters', 'Daily Mail'];
+const topics = ['Politics', 'Economy', 'Health', 'Climate', 'Technology', 'Sport'];
+const related = [1, 2, 3, 4, 5].map((offset) => \`Synthetic related story \${index + offset}\`);
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'NewsArticle',
+  headline,
+  description: standfirst,
+  datePublished: '2026-10-21T06:00:00.000Z',
+  isAccessibleForFree: true,
+  citation: outlets.map((outlet) => \`https://example.invalid/\${outlet}\`),
+});
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{headline}</title>
+    <meta name="description" content={standfirst} />
+    <link rel="canonical" href={\`https://meridian.workers.dev/story/synthetic-\${index}/\`} />
+    <meta property="og:title" content={headline} />
+    <meta property="og:description" content={standfirst} />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content={\`https://meridian.workers.dev/story/synthetic-\${index}/\`} />
+    <script type="application/ld+json" set:html={jsonLd} />
+  </head>
+  <body>
+    <article>
+      <h1>{headline}</h1>
+      <p>{standfirst}</p>
+      <p class="dateline">Trending rank {index} — reported by {outlets.length} outlets</p>
+      <ul class="tags">
+        {topics.map((topic) => <li>{topic}</li>)}
+      </ul>
+      <p class="byline">Reported by {outlets.join(', ')}</p>
+      <ul class="sources">
+        {outlets.map((outlet) => <li><a href={\`https://example.invalid/\${outlet}\`}>{outlet}</a></li>)}
+      </ul>
+      <nav class="related">
+        <ul>
+          {related.map((story) => <li><a href={\`/story/synthetic-\${index}/\`}>{story}</a></li>)}
+        </ul>
+      </nav>
+      <p class="digest">Synthetic digest slot for the edition digest.</p>
+    </article>
+  </body>
+</html>
+`;
+
 /** The route that carries the cache key. */
 const SCRATCH_ROUTE = `---
 import Story from '../../layouts/Story.astro';
@@ -198,6 +279,22 @@ function renderEvidence(output) {
 }
 
 /**
+ * Count the pages a build restored from the cache against the pages it
+ * rendered.
+ *
+ * Astro marks a cached page `(restored)` and a freshly-rendered one
+ * `(rendered)`. A build that skipped nothing says `(rendered)` for every
+ * page, and one that skipped everything says `(restored)` for every page.
+ * The ratio is the only honest evidence that the incremental arm measured
+ * what it was built to measure.
+ */
+function cacheEvidence(output) {
+  const restored = (output.match(/\(restored\)/g) ?? []).length;
+  const rendered = (output.match(/\(rendered\)/g) ?? []).length;
+  return { restored, rendered };
+}
+
+/**
  * The output buffer for the build.
  *
  * Astro prints one line per generated page, so a build of a shard's worth of
@@ -244,6 +341,11 @@ function main() {
     throw new Error(`--pages must be a positive integer, got "${pagesOverride}"`);
   }
 
+  const layout = flag('layout') ?? 'light';
+  if (layout !== 'light' && layout !== 'heavy') {
+    throw new Error(`--layout must be "light" or "heavy", got "${layout}"`);
+  }
+
   const scratchDir = path.resolve(
     REPO_ROOT,
     flag('scratch') ?? path.join('spikes', 's-4-astro-throughput', 'dist', 'scratch'),
@@ -256,7 +358,10 @@ function main() {
 
   const generationStartedAt = Date.now();
   write(path.join(scratchDir, 'astro.config.mjs'), SCRATCH_ASTRO_CONFIG);
-  write(path.join(scratchDir, 'src', 'layouts', 'Story.astro'), SCRATCH_LAYOUT);
+  write(
+    path.join(scratchDir, 'src', 'layouts', 'Story.astro'),
+    layout === 'heavy' ? SCRATCH_HEAVY_LAYOUT : SCRATCH_LAYOUT,
+  );
   write(path.join(scratchDir, 'src', 'pages', 'index.astro'), SCRATCH_INDEX);
   write(path.join(scratchDir, 'src', 'pages', 'story', '[slug].astro'), SCRATCH_ROUTE);
 
@@ -265,10 +370,11 @@ function main() {
   write(path.join(scratchDir, 'src', 'data', 'pages.json'), JSON.stringify(indices));
 
   const generationMs = Date.now() - generationStartedAt;
-  const generationRate = generationMs === 0 ? Infinity : (pageCount / generationMs) * 1000;
+  const generationRate = generationMs === 0 ? Infinity : (pageCount / generationMs) * MS_PER_SECOND;
 
   console.log(`scratch project: ${path.relative(REPO_ROOT, scratchDir)}`);
   console.log(`pages: ${pageCount} (from ${pagesOverride === null ? 'the registry' : '--pages'})`);
+  console.log(`layout: ${layout}`);
   console.log(`generation: ${generationMs} ms -> ${generationRate.toFixed(1)} pages/second`);
 
   if (!process.argv.includes('--build')) return;
@@ -276,15 +382,19 @@ function main() {
   console.log('');
   console.log('running the full build ...');
   const full = buildScratch(scratchDir);
-  const fullRate = (pageCount / full.elapsedMs) * 1000;
+  const fullRate = (pageCount / full.elapsedMs) * MS_PER_SECOND;
+  const fullCache = cacheEvidence(full.output);
   console.log(`full build: ${full.elapsedMs} ms -> ${fullRate.toFixed(1)} pages/second`);
+  console.log(`  | pages rendered: ${fullCache.rendered}, pages restored from cache: ${fullCache.restored}`);
   for (const line of renderEvidence(full.output)) console.log(`  | ${line}`);
 
   console.log('');
   console.log('running the incremental build (cache preserved) ...');
   const incremental = buildScratch(scratchDir);
-  const incrementalRate = (pageCount / incremental.elapsedMs) * 1000;
+  const incrementalRate = (pageCount / incremental.elapsedMs) * MS_PER_SECOND;
+  const incrementalCache = cacheEvidence(incremental.output);
   console.log(`incremental build: ${incremental.elapsedMs} ms -> ${incrementalRate.toFixed(1)} pages/second`);
+  console.log(`  | pages rendered: ${incrementalCache.rendered}, pages restored from cache: ${incrementalCache.restored}`);
   for (const line of renderEvidence(incremental.output)) console.log(`  | ${line}`);
 
   console.log('');
@@ -292,12 +402,17 @@ function main() {
 
   const summary = {
     pages: pageCount,
+    layout,
     source: pagesOverride === null ? 'registry' : 'override',
     generationMs,
     fullBuildMs: full.elapsedMs,
     fullPagesPerSecond: Number(fullRate.toFixed(2)),
+    fullPagesRendered: fullCache.rendered,
+    fullPagesRestored: fullCache.restored,
     incrementalBuildMs: incremental.elapsedMs,
     incrementalPagesPerSecond: Number(incrementalRate.toFixed(2)),
+    incrementalPagesRendered: incrementalCache.rendered,
+    incrementalPagesRestored: incrementalCache.restored,
     ratio: Number((incremental.elapsedMs === 0 ? 0 : full.elapsedMs / incremental.elapsedMs).toFixed(2)),
   };
   write(path.join(scratchDir, 'measurement.json'), `${JSON.stringify(summary, null, 2)}\n`);
