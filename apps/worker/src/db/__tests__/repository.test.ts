@@ -194,6 +194,7 @@ describe('createRepository', () => {
         'countRows',
         'countTables',
         'findClusterBySlug',
+        'findLshCandidates',
         'insertStory',
         'listActiveSources',
         'listProminentClusters',
@@ -388,6 +389,70 @@ describe('createRepository', () => {
       3,
       '2026-10-21T13:00:00.000Z',
       99,
+    ]);
+  });
+
+  it('findLshCandidates executes parameterized query on 4 LSH bands with explicit column projection', async () => {
+    let captured: { sql: string; bindings: unknown[] } | null = null;
+    const mockDb = {
+      prepare(sql: string) {
+        return {
+          bind(...bindings: unknown[]) {
+            captured = { sql, bindings };
+            return {
+              async all() {
+                return {
+                  results: [
+                    {
+                      id: 101,
+                      cluster_id: 5,
+                      headline: 'Bank of England cuts rates',
+                      excerpt: 'Rate cut to 4.75%',
+                      published_at: '2026-10-21T11:00:00.000Z',
+                      simhash: 12345678,
+                      language: 'en',
+                      country_code: 'GB',
+                      is_primary: 1,
+                    },
+                  ],
+                };
+              },
+            };
+          },
+        };
+      },
+    };
+
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] })
+    );
+
+    const candidates = await repository.findLshCandidates(
+      1000,
+      2000,
+      3000,
+      4000,
+      '2026-10-20T12:00:00.000Z',
+      'en',
+    );
+
+    expect(candidates.length).toBe(1);
+    expect(candidates[0].id).toBe(101);
+    expect(captured).not.toBeNull();
+    expect(captured!.sql).toMatch(/SELECT id, cluster_id, headline, excerpt, published_at, simhash, language, country_code, is_primary/i);
+    expect(captured!.sql).toMatch(/FROM stories/i);
+    expect(captured!.sql).toMatch(/WHERE published_at >= \?/i);
+    expect(captured!.sql).toMatch(/AND language = \?/i);
+    expect(captured!.sql).toMatch(/AND \(band0 = \? OR band1 = \? OR band2 = \? OR band3 = \?\)/i);
+    expect(captured!.sql).toMatch(/ORDER BY published_at DESC/i);
+    expect(captured!.sql).toMatch(/LIMIT 50/i);
+    expect(captured!.bindings).toEqual([
+      '2026-10-20T12:00:00.000Z',
+      'en',
+      1000,
+      2000,
+      3000,
+      4000,
     ]);
   });
 

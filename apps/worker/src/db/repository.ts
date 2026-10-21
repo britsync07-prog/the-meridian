@@ -95,6 +95,19 @@ export interface RawStoryInsert {
   countryCode: string;
 }
 
+/** One row returned for LSH candidate matching. */
+export interface LshCandidateRow {
+  id: number;
+  cluster_id: number;
+  headline: string;
+  excerpt: string | null;
+  published_at: string;
+  simhash: number;
+  language: string;
+  country_code: string;
+  is_primary: number;
+}
+
 /* ──────────────────────────── The public surface ─────────────────────────── */
 
 export interface Repository {
@@ -129,6 +142,15 @@ export interface Repository {
       lastFetchedAt?: string;
     },
   ): Promise<void>;
+  /** Candidate stories matching any of the 4 LSH bands within the publication window. */
+  findLshCandidates(
+    band0: number,
+    band1: number,
+    band2: number,
+    band3: number,
+    sinceIso: string,
+    language: string,
+  ): Promise<LshCandidateRow[]>;
 }
 
 /**
@@ -434,6 +456,29 @@ export function createRepository(env: MeridianEnv): Repository {
           sourceId,
         )
         .run();
+    },
+
+    async findLshCandidates(
+      band0: number,
+      band1: number,
+      band2: number,
+      band3: number,
+      sinceIso: string,
+      language: string,
+    ): Promise<LshCandidateRow[]> {
+      const result = await db
+        .prepare(
+          `SELECT id, cluster_id, headline, excerpt, published_at, simhash, language, country_code, is_primary
+             FROM stories
+            WHERE published_at >= ?
+              AND language = ?
+              AND (band0 = ? OR band1 = ? OR band2 = ? OR band3 = ?)
+            ORDER BY published_at DESC
+            LIMIT 50`,
+        )
+        .bind(sinceIso, language, band0, band1, band2, band3)
+        .all<LshCandidateRow>();
+      return result.results ?? [];
     },
   };
 }
