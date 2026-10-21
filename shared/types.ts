@@ -17,6 +17,7 @@ export interface RawItem {
   canonicalUrl: string;
   title: string;
   description: string;
+  excerpt?: StoryExcerpt | null;
   author: string | null;
   publishedAt: string;
   imageUrl: string | null;

@@ -1,28 +1,10 @@
 import type { RawItem, SourceRegistryEntry } from '../../shared/types';
+import { buildSanitizedExcerpt, extractExcerptCandidate } from './excerpt';
 import { resolveItemIdentity } from './identity';
 import { extractMediaEnclosure } from './media';
 import { parseXmlFeed } from './parser';
+import { cleanCandidateText } from './text';
 import { canonicalizeSourceUrl } from './url';
-
-function cleanText(text: string | null | undefined): string {
-  if (!text) return '';
-  return text
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number(dec)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 function parseTimestamp(
   dateStr: string | undefined,
@@ -53,6 +35,7 @@ interface ItemWithTimestamp {
  * Normalizes raw XML feed snapshots into canonical RawItem records:
  * - Parses multi-dialect XML feeds (RSS 2.0, Atom 1.0, RDF).
  * - Strips markup and decodes entities in titles and descriptions.
+ * - Extracts and enforces the hard excerpt budget via buildSanitizedExcerpt (CON-01 - CON-05).
  * - Resolves dual-identity deduplication (stable GUID vs SHA-256 of canonical URL).
  * - Extracts candidate media enclosures with photographer credits.
  * - Filters items older than 48 hours (D-24).
@@ -101,10 +84,18 @@ export function normalizeFeed(
       itemTime = nowMs;
     }
 
-    const title = cleanText(item.title);
-    const description = cleanText(item.description || item.contentEncoded);
-    const author = item.author ? cleanText(item.author) : null;
+    const title = cleanCandidateText(item.title);
+    const author = item.author ? cleanCandidateText(item.author) : null;
     const media = extractMediaEnclosure(item);
+
+    const { candidate, sourceVisibleText } = extractExcerptCandidate(item);
+    const excerpt = buildSanitizedExcerpt({
+      candidateText: candidate,
+      sourceVisibleText,
+      language: source.language,
+    });
+
+    const description = excerpt?.text ?? candidate;
 
     const rawItem: RawItem = {
       sourceId: source.slug,
@@ -112,6 +103,7 @@ export function normalizeFeed(
       canonicalUrl,
       title,
       description,
+      excerpt,
       author: author || null,
       publishedAt: new Date(itemTime).toISOString(),
       imageUrl: media.imageUrl,
