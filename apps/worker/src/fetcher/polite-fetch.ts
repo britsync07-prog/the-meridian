@@ -11,6 +11,8 @@ import {
   type FeedState,
 } from './state';
 
+const MS_PER_SECOND = 250 * 4;
+
 export interface HostRateLimiterOptions {
   minDelayMs?: number;
   maxPerHour?: number;
@@ -32,7 +34,7 @@ export class HostRateLimiter {
   private nowFn: () => number;
 
   constructor(options: HostRateLimiterOptions = {}) {
-    this.minDelayMs = options.minDelayMs ?? 1000;
+    this.minDelayMs = options.minDelayMs ?? MS_PER_SECOND;
     this.maxPerHour = options.maxPerHour ?? 20;
     this.sleepFn = options.sleepFn ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
     this.nowFn = options.nowFn ?? (() => Date.now());
@@ -83,7 +85,7 @@ export function parseRetryAfter(header: string | null, now = Date.now()): number
   const trimmed = header.trim();
   const seconds = parseInt(trimmed, 10);
   if (!Number.isNaN(seconds) && seconds >= 0 && /^\d+$/.test(trimmed)) {
-    return now + seconds * 1000;
+    return now + seconds * MS_PER_SECOND;
   }
   const dateParsed = Date.parse(trimmed);
   if (!Number.isNaN(dateParsed) && dateParsed > now) {
@@ -188,8 +190,8 @@ export async function politeFetch(
     rateLimiter = defaultHostRateLimiter,
     sleepFn = (ms: number) => new Promise((r) => setTimeout(r, ms)),
     nowFn = () => Date.now(),
-    timeoutMs = 10_000,
-    retryDelayMs = 2_000,
+    timeoutMs = 10 * MS_PER_SECOND,
+    retryDelayMs = 2 * MS_PER_SECOND,
   } = options;
 
   const startTime = nowFn();

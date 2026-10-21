@@ -2,7 +2,7 @@
  * Feed polling state and KV persistence helpers (D-02, ING-01).
  *
  * Persists ETag, Last-Modified, HTTP status, and backoff state in Cloudflare KV.
- * Writes to KV occur only on change (~50 writes/day), well within the 1,000 writes/day free ceiling.
+ * Writes to KV occur only on change (~50 writes/day), well within the free write budget.
  */
 
 export interface FeedState {

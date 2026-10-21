@@ -10,6 +10,7 @@
 
 import { resolveDatabaseId, type MeridianEnv } from './db/config';
 import { createRepository } from './db/repository';
+import { pollFeedPartition } from './fetcher';
 
 function json(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload, null, 2), {
@@ -37,5 +38,9 @@ export default {
       databaseId,
       path: url.pathname,
     });
+  },
+
+  async scheduled(controller: ScheduledController, env: MeridianEnv, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(pollFeedPartition(env, controller.cron));
   },
 } satisfies ExportedHandler<MeridianEnv>;
