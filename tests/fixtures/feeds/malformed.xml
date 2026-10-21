@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Corrupted Chronicle</title>
+    <link>https://corrupted.example.com</link>
+    <item>
+      <title>Unclosed Headline
+      <description>This feed is truncated midway through without closing tags

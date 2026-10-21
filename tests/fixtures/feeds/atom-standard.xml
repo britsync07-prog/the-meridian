@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Global Tech Dispatch</title>
+  <subtitle>Engineering and digital infrastructure dispatches.</subtitle>
+  <link href="https://techdispatch.example.com/feed.atom" rel="self" />
+  <link href="https://techdispatch.example.com" />
+  <id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6</id>
+  <updated>2026-10-21T08:30:00Z</updated>
+  <author>
+    <name>Dispatch Editorial Board</name>
+  </author>
+  <entry>
+    <title>Quantum Compute Consortium Publishes Open Calibration Standard</title>
+    <link rel="alternate" type="text/html" href="https://techdispatch.example.com/posts/quantum-calibration-spec" />
+    <id>tag:techdispatch.example.com,2026:post-9102</id>
+    <updated>2026-10-21T08:00:00Z</updated>
+    <summary>Research laboratories across three continents agreed on a unified error-budget benchmark for superconducting qubit architectures. The consensus standard will be maintained by an open foundation.</summary>
+    <author>
+      <name>Dr. Aris Thorne</name>
+    </author>
+  </entry>
+  <entry>
+    <title>Next-Generation Optical Interconnects Pass Subsea Deployment Trials</title>
+    <link rel="alternate" type="text/html" href="https://techdispatch.example.com/posts/subsea-optical-trials" />
+    <id>tag:techdispatch.example.com,2026:post-9103</id>
+    <updated>2026-10-21T07:45:00Z</updated>
+    <summary>Telecommunication consortiums reported sustained terabit-per-second throughput across transatlantic hollow-core fiber cables. Commercial activation is scheduled for the second quarter.</summary>
+    <author>
+      <name>Sarah Jenkins</name>
+    </author>
+  </entry>
+</feed>

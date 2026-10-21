@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Oscillating Wire</title>
+    <link>https://oscillating.example.com</link>
+    <description>Feed with unstable GUIDs</description>
+    <item>
+      <title>Stable Article With Missing Guid</title>
+      <link>https://oscillating.example.com/articles/stable-story-one?ref=rss&amp;utm_source=feed</link>
+      <pubDate>Wed, 21 Oct 2026 08:00:00 GMT</pubDate>
+      <description>This item has no guid tag at all but has a canonical URL.</description>
+    </item>
+    <item>
+      <title>Stable Article With Empty Guid</title>
+      <link>https://oscillating.example.com/articles/stable-story-two</link>
+      <guid></guid>
+      <pubDate>Wed, 21 Oct 2026 07:30:00 GMT</pubDate>
+      <description>This item has an empty guid tag but has a canonical URL.</description>
+    </item>
+    <item>
+      <title>Stable Article With Transient Random Guid</title>
+      <link>https://oscillating.example.com/articles/stable-story-three</link>
+      <guid isPermaLink="false">transient-random-uuid-9923847293847</guid>
+      <pubDate>Wed, 21 Oct 2026 07:00:00 GMT</pubDate>
+      <description>This item has a changing guid across polls but constant canonical URL.</description>
+    </item>
+  </channel>
+</rss>

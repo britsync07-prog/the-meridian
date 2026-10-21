@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF 
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+  xmlns="http://purl.org/rss/1.0/" 
+  xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel rdf:about="https://rdf-herald.example.org">
+    <title>The Herald Index (RDF)</title>
+    <link>https://rdf-herald.example.org</link>
+    <description>Archival wire service syndicated via RDF / RSS 1.0.</description>
+    <items>
+      <rdf:Seq>
+        <rdf:li rdf:resource="https://rdf-herald.example.org/stories/2026-trade-pact" />
+        <rdf:li rdf:resource="https://rdf-herald.example.org/stories/2026-monetary-council" />
+      </rdf:Seq>
+    </items>
+  </channel>
+  <item rdf:about="https://rdf-herald.example.org/stories/2026-trade-pact">
+    <title>Bilateral Maritime Trade Accord Signed at Geneva Summit</title>
+    <link>https://rdf-herald.example.org/stories/2026-trade-pact</link>
+    <description>Trade delegates finalized tariff exemptions for renewable energy components following six months of multilateral negotiations in Geneva. Harbor customs protocols take effect next month.</description>
+    <dc:date>2026-10-21T07:00:00Z</dc:date>
+    <dc:creator>Geneva Bureau</dc:creator>
+  </item>
+  <item rdf:about="https://rdf-herald.example.org/stories/2026-monetary-council">
+    <title>Central Bank Governor Holds Benchmarks Steady at Autumn Review</title>
+    <link>https://rdf-herald.example.org/stories/2026-monetary-council</link>
+    <description>The governing council voted unanimously to maintain baseline interest rates while noting cooling headline inflation figures across core industrial sectors.</description>
+    <dc:date>2026-10-21T06:30:00Z</dc:date>
+    <dc:creator>Finance Desk</dc:creator>
+  </item>
+</rdf:RDF>

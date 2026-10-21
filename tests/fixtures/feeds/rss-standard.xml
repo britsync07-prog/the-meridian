@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>The Standard Gazette</title>
+    <link>https://www.standard-gazette.co.uk</link>
+    <description>Daily broadsheet reporting and comprehensive analysis.</description>
+    <language>en-gb</language>
+    <lastBuildDate>Wed, 21 Oct 2026 08:30:00 GMT</lastBuildDate>
+    <item>
+      <title>Treasury Unveils Autumn Fiscal Framework Ahead of Parliamentary Debate</title>
+      <link>https://www.standard-gazette.co.uk/news/treasury-fiscal-framework-2026</link>
+      <guid isPermaLink="false">standard-gazette-20261021-1001</guid>
+      <pubDate>Wed, 21 Oct 2026 08:00:00 GMT</pubDate>
+      <dc:creator>Eleanor Vance</dc:creator>
+      <description>The Chancellor announced new capital investment guidelines today in Westminster, outlining multi-year infrastructure allocations for regional transit. Ministers pledged that public borrowing targets would remain within statutory ceilings.</description>
+      <enclosure url="https://images.standard-gazette.co.uk/2026/treasury-steps.jpg" length="124500" type="image/jpeg" />
+      <media:credit>PA Media</media:credit>
+    </item>
+    <item>
+      <title>Met Office Issues Amber Weather Alert Across Scottish Highlands</title>
+      <link>https://www.standard-gazette.co.uk/news/highlands-amber-weather-warning</link>
+      <guid isPermaLink="false">standard-gazette-20261021-1002</guid>
+      <pubDate>Wed, 21 Oct 2026 07:15:00 GMT</pubDate>
+      <dc:creator>Alistair Campbell</dc:creator>
+      <description>Severe gales and persistent rainfall are forecast to disrupt travel networks across northern Scotland through Thursday evening. Transport authorities advised motorists to avoid unnecessary journeys on exposed mountain passes.</description>
+      <media:content url="https://images.standard-gazette.co.uk/2026/scottish-pass.jpg" medium="image" width="1200" height="800">
+        <media:credit>Reuters</media:credit>
+      </media:content>
+    </item>
+  </channel>
+</rss>

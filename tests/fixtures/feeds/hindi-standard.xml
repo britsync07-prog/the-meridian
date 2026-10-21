@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>दैनिक जागरण राष्ट्रीय संस्करण</title>
+    <link>https://hindi.meridian.org</link>
+    <description>ताज़ा और निष्पक्ष राष्ट्रीय समाचार।</description>
+    <language>hi</language>
+    <lastBuildDate>Wed, 21 Oct 2026 08:30:00 GMT</lastBuildDate>
+    <item>
+      <title>सुप्रीम कोर्ट ने पर्यावरण संरक्षण नियमों पर सभी राज्यों से मांगा विस्तृत ब्योरा</title>
+      <link>https://hindi.meridian.org/national/sc-environmental-guidelines-2026</link>
+      <guid isPermaLink="false">hindi-news-20261021-01</guid>
+      <pubDate>Wed, 21 Oct 2026 08:00:00 GMT</pubDate>
+      <dc:creator>विशेष संवाददाता</dc:creator>
+      <description>शीर्ष अदालत ने नदी संरक्षण और औद्योगिक कचरा प्रबंधन पर कड़े दिशा-निर्देश जारी किए हैं। मुख्य न्यायाधीश की अध्यक्षता वाली पीठ ने राज्यों को चार सप्ताह के भीतर हलफनामा दाखिल करने का आदेश दिया।</description>
+      <media:content url="https://images.hindi.meridian.org/2026/supreme-court.jpg" medium="image">
+        <media:credit>पीटीआई</media:credit>
+      </media:content>
+    </item>
+    <item>
+      <title>भारतीय अंतरिक्ष अनुसंधान संगठन ने नए मौसम उपग्रह प्रक्षेपण की घोषणा की</title>
+      <link>https://hindi.meridian.org/science/isro-satellite-launch-2026</link>
+      <guid isPermaLink="false">hindi-news-20261021-02</guid>
+      <pubDate>Wed, 21 Oct 2026 07:30:00 GMT</pubDate>
+      <dc:creator>विज्ञान डेस्क</dc:creator>
+      <description>इसरो के वैज्ञानिकों ने श्रीहरिकोटा से आगामी मिशन के लिए उल्टी गिनती शुरू कर दी है। यह उपग्रह चक्रवातों और मानसून की पूर्व चेतावनी प्रणाली को और अधिक सक्षम बनाएगा।</description>
+      <media:content url="https://images.hindi.meridian.org/2026/isro-launch.jpg" medium="image">
+        <media:credit>इसरो</media:credit>
+      </media:content>
+    </item>
+  </channel>
+</rss>
