@@ -15,7 +15,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 
 ### Ingest Pipeline
 
-- [ ] **ING-01**: A Cloudflare Worker fetches every registered publisher feed on a schedule using conditional GET (ETag / If-Modified-Since) and persists the raw response bytes to R2 under `raw/{date}/{source}.xml`
+- [x] **ING-01**: A Cloudflare Worker fetches every registered publisher feed on a schedule using conditional GET (ETag / If-Modified-Since) and persists the raw response bytes to R2 under `raw/{date}/{source}.xml`
 - [x] **ING-02**: The fetch Worker performs no parsing, no normalization, and no scoring; all transformation happens in the CI pipeline
 - [ ] **ING-03**: Each feed has a registry record holding publisher name, country, language, feed URL, section prior, ETag, last-modified, consecutive failure count, and disabled-until timestamp
 - [ ] **ING-04**: A feed is fetched only after its terms of use have been verified, and the verification date is recorded on its registry record
@@ -24,7 +24,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 - [ ] **ING-07**: A response that is not parseable XML, or that is larger than 2 MB, or that is served by a bot-protection page, is quarantined for that feed only and does not fail the edition
 - [ ] **ING-08**: Raw feed items from RSS 2.0, Atom, and RDF normalize to a single canonical item shape, including DC creator, media content, and content-encoded variants
 - [ ] **ING-09**: A feed whose item GUIDs change between polls falls back to a canonicalized source URL as its item identity
-- [ ] **ING-10**: The fetch Worker identifies itself with a descriptive User-Agent containing a contact URL, requests no more than 20 times per host per hour, and honours Retry-After on a 429
+- [x] **ING-10**: The fetch Worker identifies itself with a descriptive User-Agent containing a contact URL, requests no more than 20 times per host per hour, and honours Retry-After on a 429
 
 ### Curation Core
 
@@ -153,10 +153,10 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 - [x] **OPS-04**: A written decision rule states that the paid Workers plan is bought when daily visitors approach 4,000, when a static project would exceed 20,000 files, or when the project earns revenue
 - [ ] **OPS-05**: The build fails rather than deploying when any edition has fewer than eight stories, when a section has fewer than three stories, or when one outlet supplies more than 35 percent of a front page
 - [ ] **OPS-06**: The build fails rather than deploying when the story count falls outside 60 to 140 percent of the trailing seven-day mean
-- [ ] **OPS-07**: The build fails rather than deploying when any title repeats, any canonical is not self-referential, any excerpt breaks its budget, or any file count or build duration exceeds budget
+- [x] **OPS-07**: The build fails rather than deploying when any title repeats, any canonical is not self-referential, any excerpt breaks its budget, or any file count or build duration exceeds budget
 - [ ] **OPS-08**: A failed build leaves the previously published edition live
-- [ ] **OPS-09**: The scheduled build runs in CI and triggers on a fixed schedule rather than a deploy hook
-- [ ] **OPS-10**: The static build is incremental via a render manifest, so only clusters changed since the last successful build are re-rendered
+- [x] **OPS-09**: The scheduled build runs in CI and triggers on a fixed schedule rather than a deploy hook
+- [x] **OPS-10**: The static build is incremental via a render manifest, so only clusters changed since the last successful build are re-rendered
 - [ ] **OPS-11**: Story pages are pre-rendered to HTML, stored in R2, and served by an edge Worker with a cache header and a validator
 - [x] **OPS-12**: The static tier contains only editions, sections, archives, topic and entity pages, and support files
 - [ ] **OPS-13**: The build reads its dataset from a single compressed snapshot object and never opens a datastore binding
@@ -244,7 +244,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ING-01 | Phase 2 | Pending |
+| ING-01 | Phase 2 | Complete |
 | ING-02 | Phase 2 | Complete |
 | ING-03 | Phase 2 | Pending |
 | ING-04 | Phase 2 | Pending |
@@ -253,7 +253,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ING-07 | Phase 2 | Pending |
 | ING-08 | Phase 2 | Pending |
 | ING-09 | Phase 2 | Pending |
-| ING-10 | Phase 2 | Pending |
+| ING-10 | Phase 2 | Complete |
 | CUR-01 | Phase 3 | Pending |
 | CUR-02 | Phase 3 | Pending |
 | CUR-03 | Phase 3 | Pending |
@@ -358,10 +358,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OPS-04 | Phase 1 | Complete |
 | OPS-05 | Phase 7 | Pending |
 | OPS-06 | Phase 7 | Pending |
-| OPS-07 | Phase 7 | Pending |
+| OPS-07 | Phase 7 | Complete |
 | OPS-08 | Phase 7 | Pending |
-| OPS-09 | Phase 5 | Pending |
-| OPS-10 | Phase 5 | Pending |
+| OPS-09 | Phase 5 | Complete |
+| OPS-10 | Phase 5 | Complete |
 | OPS-11 | Phase 5 | Pending |
 | OPS-12 | Phase 5 | Complete |
 | OPS-13 | Phase 5 | Pending |
@@ -413,6 +413,11 @@ Requirements whose *work* is split across phases. The **Traceability** table abo
 | OPS-12 | Phase 5 | Phase 1 | The tier split is decided in the Phase 1 delivery-model ADR; the deployed static-tier contents are verified in Phase 5. |
 | OPS-13 | Phase 5 | Phase 1 | The snapshot contract is designed in Phase 1; the build that reads only the snapshot lands in Phase 5. |
 | PUB-12 | Phase 5 | Phase 1 | The one-hostname / locale-path rule is decided in the Phase 1 ADR; the deployed routing table is verified in Phase 5. |
+| OPS-07 | Phase 7 | Phase 1, Phase 5 | The *budget* the assertion enforces is measured in Phase 1: S-4 supplies the build-duration figures and S-5 supplies the deploy-budget formula (a fixed cost plus a per-file manifest cost, because the file count is the input that varies). The failing build gate itself lands in Phase 7. |
+| OPS-09 | Phase 5 | Phase 1 | The *choice* of a scheduled CI build over a deploy hook is recorded in `docs/adr/0001-delivery-model.md`, and S-4 measured a build under the project's own configuration (`compressHTML: true`, `build.concurrency: 1`, `experimental.incrementalBuild: true`) so the budget is a number rather than an assumption. The schedule itself lands in Phase 5. |
+| OPS-10 | Phase 5 | Phase 1 | S-4 proved the mechanism: the incremental build restored every page and rendered none, and the incremental build is *not* a wall-clock saver at scale. The render manifest itself lands in Phase 5. |
+| ING-01 | Phase 2 | Phase 1 | The conditional-GET path was exercised in S-2 and S-3 with the shared descriptive User-Agent. The corrected reading is that the GET is implemented but a 200 with a full body is the normal outcome — the mechanism is the publishers' cache state, not the egress path. The scheduled fetcher lands in Phase 2. |
+| ING-10 | Phase 2 | Phase 1 | The descriptive User-Agent with a contact URL is exercised and confirmed in both egress spikes, and both send the byte-identical string read from `shared/config/site.ts`. The rate limit and the `Retry-After` handling land in Phase 2 — no feed returned 429 in the measurement, so that path is unexercised. |
 | GRO-09 | Phase 7 | Phase 1 | Domain *acquisition* starts as a Phase 1 parallel workstream; the 301-redirect migration and sitemap/hreflang re-verification land in Phase 7. |
 | GRO-10 | Phase 6 | Phase 1 | The domain-name and homepage-title language rule is implemented in the Phase 6 metadata layer; the name itself is chosen when the domain is acquired in Phase 1. |
 

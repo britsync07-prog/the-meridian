@@ -79,7 +79,7 @@ Plans:
 - [x] 01-05-PLAN.md — The coded excerpt budget, the shared metadata and typographic fallback templates, and the image and domain ADRs
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 01-06-PLAN.md — Spikes S-1 through S-5, executed and recorded with the decision each one drove
+- [x] 01-06-PLAN.md — Spikes S-1 through S-5, executed and recorded with the decision each one drove
 **UI hint**: no
 **Work items**:
 - Repo scaffold: one `package.json`, one lockfile, no workspace protocol; `shared/types.ts`, `shared/sections.ts`, `shared/taxonomy.ts`, `shared/templates/*` (pure functions returning HTML strings, shared by every rendering tier), `shared/db/*.sql`.
@@ -236,7 +236,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Free-Tier Contract & Architecture Decisions | 0/TBD | Not started | - |
+| 1. Foundation, Free-Tier Contract & Architecture Decisions | 6/6 | Complete | 2026-10-21 |
 | 2. Feed Acquisition, Raw Capture & Normalization | 0/TBD | Not started | - |
 | 3. Curation Core: Clustering, Ranking & Enrichment | 0/TBD | Not started | - |
 | 4. Broadsheet Design System & Astro Shell | 0/TBD | Not started | - |

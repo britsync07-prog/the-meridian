@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-10-20T20:55:25.431Z"
-last_activity: 2026-10-20
+status: verifying
+stopped_at: Completed 01-06-PLAN.md
+last_updated: "2026-10-21T06:53:03.624Z"
+last_activity: 2026-10-21
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
-  completed_plans: 5
-  percent: 83
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -27,12 +27,12 @@ Architecture of record: `.planning/research/SUMMARY.md` (authoritative) and `.pl
 
 ## Current Position
 
-Phase: 01 (foundation-free-tier-contract-architecture-decisions) — EXECUTING
+Phase: 01 (foundation-free-tier-contract-architecture-decisions) — COMPLETE, ready for verification
 Plan: 6 of 6
-Status: Ready to execute
-Last activity: 2026-10-21 -- 01-05 complete (coded excerpt budget, shared metadata and typographic fallback templates, image and domain ADRs)
+Status: Phase complete — ready for verification
+Last activity: 2026-10-21 -- 01-06 complete (spikes S-1 through S-5, executed and recorded; the delivery model survives all five)
 
-Progress: [████████░░] 83%
+Progress: [██████████] 100%
 
 ## Phase Sequence
 
@@ -55,10 +55,12 @@ Progress: [████████░░] 83%
 | Phase 01 P03 | 15min | 3 tasks | 5 files |
 | Phase 01 P04 | 52min | 3 tasks | 15 files |
 | Phase 01 P05 | 34min | 3 tasks | 11 files |
+| Phase 01 P06 | 8h 37m | 3 tasks | 27 files |
 
-- Total plans completed: 5 · Average duration: 39min · Total execution time: 195min
-- By phase: Phase 01 — 5 plans, 195min
-- Recent trend: 01-05, 34min; 01-04, 52min; 01-03, 15min; 01-02, 73min; 01-01, 21min
+- Total plans completed: 6 · Average duration: 119min · Total execution time: 712min
+- By phase: Phase 01 — 6 plans, 712min
+- Recent trend: 01-06, 8h 37m; 01-05, 34min; 01-04, 52min; 01-03, 15min; 01-02, 73min; 01-01, 21min
+- **Note on 01-06's duration:** 8h 37m is wall clock from the plan's first commit to its last, and it includes a server restart that interrupted task 3 and the idle time around it. It is an upper bound on the work, not a measure of it.
 
 *Updated after each plan completion*
 
@@ -105,18 +107,26 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 01]: The shared layer is pure string builders returning HTML, not components - head.ts carries both pageMeta (what the metadata IS) and renderHead (how it is WRITTEN). — A dynamically served story page must render identically to a statically served section page, and an Astro component cannot render inside an edge Function. Keeping both halves in one module means the two runtimes emit the same bytes and the halves cannot drift.
 - [Phase 01]: The image-permanence resolution rule is split into shared/contract/image-permanence.ts, and the media lifetime is one named constant read by both the serve-time resolution and the sweep's predicate. — The rule (present or expired) and the rendering (what an expired object looks like) are different concerns, and Phase 5's edge Worker needs the rule without the rendering. One constant means the two apply mechanisms cannot use different clocks.
 - [Phase 01]: A decision that names a budget references the registry id, never the number - ADR 0003 charges D-18's cost against r2_class_b_ops_per_month. — The prose-ADR ceiling scan was widened from ADR 0001 to cover ADR 0003 and ADR 0004, and the gate was observed to fail on a planted literal. A ceiling written into prose is a second copy of the budget that can drift from the registry.
+- [Phase 01]: The Durable Object is an option, not a decision - S-1 measured that a Durable Object on the Workers Free plan has its own CPU allowance and does not inherit workers_cpu_ms_per_invocation — It completed 28.4 s of CPU where the plain Worker was killed between 0.72 s and 1.44 s, against a threshold of 2 s. The option of hosting the ingest pipeline in a SQLite-backed Durable Object without the R2 raw-staging hop is recorded in docs/adr/0001-delivery-model.md, but Phase 2 owns the choice because it owns the ingest and must weigh it against every publisher in seven countries rather than a sample of ten. If Phase 2 adopts it, the platform's per-object CPU allowance becomes a ceiling the project depends on and must be added to config/free-tier-limits.json under OPS-01 at that point.
+- [Phase 01]: The static tier stays as designed - S-4's build-throughput threshold was not met, so topic and entity pages do not move to the R2 tier before year 2 — At a shard's whole file allowance (20,001 pages) the build ran at 84.6 pages/second on a realistic story page and 157.3 on a minimal one, both above the 60 pages/second the threshold was set at. The heavier page cost 1.9x the wall time rather than several times it, because at this scale the build is bound by filesystem traffic rather than by rendering.
+- [Phase 01]: The build-duration budget is written against the FULL build, not the incremental one - the incremental build is not a time saver at scale — S-4's incremental build restored all 20,000 pages and rendered none, which is what OPS-10 asks for, but it was 1.1x faster on the minimal page set and 0.8x - slower - on the realistic one. A third build on the same cache came back between the other two, so the finding is a range and the conclusion drawn from it is the conservative one.
+- [Phase 01]: The deploy-step budget is a formula, not a number - S-5 measured that wrangler diffs the asset manifest — Three deploys with no content change between them uploaded 0 of 506 assets and 0 of 5,006 at the larger scale. One shard's deploy is roughly a fixed cost of six to seven seconds plus that shard's file count times roughly five milliseconds for the manifest pass, plus roughly four milliseconds per changed file. A single number would have been wrong, because the file count is the input that varies between shards and over time.
+- [Phase 01]: A 200 with a full body is the normal conditional-GET outcome - the mechanism is the publishers' cache state, not the egress path — S-3 corrected S-2's original reading that publishers ignore the conditional header. The ETags had gone stale between the passes, and a publisher whose CDN copy is fresh serves that copy directly with a 200 without ever consulting the client's If-None-Match. The conditional GET is implemented because it is the correct way to identify unchanged content, and a bandwidth budget cannot be built on 304s.
+- [Phase 01]: Four of the ten registry candidates are a registry problem, not an egress problem - no publisher blocked the Cloudflare egress — S-2's four failures reproduce identically from an ordinary client on an ordinary network, and S-3's runner reached the same six feeds and failed on the same four. Phase 2 inherits a task of replacing four dead candidates rather than a task of choosing between two fetch paths. Feed availability and terms of use remain Phase 2's legal gate.
 
 ### Research Spikes (all seven assigned)
 
-| ID | Spike | Executed in | Gates |
-|----|-------|-------------|-------|
-| S-1 | Durable Object CPU on Workers Free (30 min) | Phase 1 | Phase 2 |
-| S-2 | Worker egress vs publisher blocking (30 min) | Phase 1 | Phase 2 |
-| S-3 | CI egress comparison (15 min) | Phase 1 | Phase 2 |
-| S-4 | Astro build throughput, synthetic 20,000-page build (60 min) | Phase 1 | Phase 5 |
-| S-5 | wrangler asset-upload diffing (30 min) | Phase 1 | Phase 5 |
-| S-6 | Hindi digest bake-off (90 min) | Phase 6 | Phase 6 (digest + Hindi edition) |
-| S-7 | Merge-gate calibration vs labelled fixture (2–3 days) | Phase 3 | Phase 3 curation release |
+| ID | Spike | Executed in | Gates | Outcome |
+|----|-------|-------------|-------|---------|
+| S-1 | Durable Object CPU on Workers Free (30 min) | Phase 1 | Phase 2 | **Executed 2026-10-21.** Threshold MET — a Durable Object has its own CPU allowance and does not inherit `workers_cpu_ms_per_invocation`. Not adopted; the option is recorded in ADR 0001 and Phase 2 decides. |
+| S-2 | Worker egress vs publisher blocking (30 min) | Phase 1 | Phase 2 | **Executed 2026-10-21.** Six of ten feeds at 200; the four failures reproduce with no Worker in the path. A registry problem, not an egress problem. The conditional-GET reading was later corrected by S-3. |
+| S-3 | CI egress comparison (15 min) | Phase 1 | Phase 2 | **Executed 2026-10-21.** One of ten publishers blocks the CI range, against a thirty-per-cent threshold. The runner reaches the same six feeds. Corrected S-2's conditional-GET reading. |
+| S-4 | Astro build throughput, synthetic 20,000-page build (60 min) | Phase 1 | Phase 5 | **Executed 2026-10-21.** 84.6 pages/second on a realistic story page and 157.3 on a minimal one, both above the sixty-per-second threshold. The static tier stays as designed. The incremental build restores every page and renders none, but is not reliably faster. |
+| S-5 | wrangler asset-upload diffing (30 min) | Phase 1 | Phase 5 | **Executed 2026-10-21.** The second and third deploys uploaded 0 of 506 assets and 0 of 5,006 at the larger scale. Deploys are cheap; the budget is a formula. |
+| S-6 | Hindi digest bake-off (90 min) | Phase 6 | Phase 6 (digest + Hindi edition) | Not started |
+| S-7 | Merge-gate calibration vs labelled fixture (2–3 days) | Phase 3 | Phase 3 curation release | Not started |
+
+**The rollup is `spikes/RESULTS.md`**, and it is a gate rather than a document: `spikes/__tests__/results.test.ts` fails the build if a spike is missing, if a result has no Decision heading, if the rollup has no row for a spike, if an INCOMPLETE spike does not name the command that finishes it, or if any file under `spikes/` carries a bare free-tier ceiling literal. Each spike's own `RESULT.md` carries the method, the raw tables and what it did NOT settle.
 
 ### Parallel Workstreams (not phases)
 
@@ -127,7 +137,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ### Pending Todos
 
-- **Phase 01, remaining 1 plan** (01-06). Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; plan 01-02 delivered the D1 schema, the seed, the single repository module and the D1 topology ADR; plan 01-03 delivered the versioned free-tier ceiling registry, the single accessor, the single-source scan test and the standing no-spend ADR; plan 01-04 delivered the live R2 bucket with its two prefix-scoped lifecycle rules, the eight live Workers Static Assets projects with the route table and the build-time splitter, and the delivery-model ADR; plan 01-05 delivered the coded excerpt budget contract, the shared metadata and typographic fallback templates, the image-permanence contract and the two remaining ADRs. **Only the five spikes (S-1 through S-5) are still outstanding.**
+- **Phase 01 is complete — all six plans delivered.** Plan 01-01 delivered the repository scaffold, the shared contract layer and the Astro 7 shell configuration; plan 01-02 delivered the D1 schema, the seed, the single repository module and the D1 topology ADR; plan 01-03 delivered the versioned free-tier ceiling registry, the single accessor, the single-source scan test and the standing no-spend ADR; plan 01-04 delivered the live R2 bucket with its two prefix-scoped lifecycle rules, the eight live Workers Static Assets projects with the route table and the build-time splitter, and the delivery-model ADR; plan 01-05 delivered the coded excerpt budget contract, the shared metadata and typographic fallback templates, the image-permanence contract and the two remaining ADRs; plan 01-06 executed and recorded the five spikes. **Phase 2 may start.** The next work is Phase 2 (Feed Acquisition, Raw Capture & Normalization), and Track B (Phase 4) may run in parallel with it.
+- **`spikes/RESULTS.md` is the Phase 2 and Phase 5 entry gate.** Five architecture-changing questions were answered with measured numbers rather than assumptions, and each result is recorded with the threshold it was measured against and what it did NOT settle. **The delivery model survived all five tests.** Three things changed: the Durable Object is now a measured option rather than a hypothesis, a conclusion drawn in S-2 was corrected by S-3 in the same repository, and the OPS-07 build-duration and deploy budgets are now formulas with measured coefficients instead of guesses. **And one thing did not change at all: no spike cleared the legal gate on the feeds.** S-2 and S-3 measured blocking. Availability and terms of use remain Phase 2's gate, and no spike is permission to fetch any feed in production.
+- **The spike projects are deleted.** `meridian-spike-s1`, `meridian-spike-s2` and `meridian-spike-s5` were created to be measured and then removed, so the shared account's project count is not spent on a measurement. The eight real shards, the `meridian` R2 bucket and the `meridian` D1 database were verified present and untouched afterwards.
+- **Two budgets were measured on a Windows workstation and must be re-measured on the CI runner before they are fixed as gates.** S-4's build timings and S-5's deploy timings are both I/O-bound, and both spikes say so in their RESULT files. The direction of the error is probably favourable — a Linux runner with a different filesystem is likely faster — but the project should not budget against the slower of the two without saying so.
 - **`shared/` is the contract for every later phase.** `shared/types.ts` holds the story schema, `shared/config/site.ts` the publication name, `shared/config/editions.ts` the eight editions and sections, `shared/config/free-tier-limits.ts` the only legal home of a ceiling value, `shared/contract/excerpt-budget.ts` the coded excerpt budget, `shared/contract/image-permanence.ts` the media lifetime and resolution rule, and `shared/templates/` the pure string builders (`head.ts` with `pageMeta()` and `renderHead()`, `typographic-fallback.ts` with the silent panel). None may be redefined downstream. **`shared/` is a directory, not a package — it holds no `package.json`, and `shared/__tests__/purity.test.ts` fails the build if it ever does, or if any shared module imports a runtime-specific module.**
 - **`wrangler/shards/route-table.json` is the single source of truth for the shard matrix.** The eight shard configs and the route table must change together — the route-table test asserts they agree. When a domain is bought (Phase 7, D-14), `zone_name` is the one value that changes, and it must change in the same commit as the eight configs, or the routes and the table disagree and the build fails.
 
@@ -140,7 +153,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 | 01-03 | Free-tier ceiling registry and the no-spend rule | ✅ Complete | `01-03-SUMMARY.md` |
 | 01-04 | R2 lifecycle, eight-project shard, delivery-model ADR | ✅ Complete | `01-04-SUMMARY.md` |
 | 01-05 | Excerpt budget, shared templates, image and domain ADRs | ✅ Complete | `01-05-SUMMARY.md` |
-| 01-06 | Spikes S-1 through S-5 | Pending | — |
+| 01-06 | Spikes S-1 through S-5 | ✅ Complete | `01-06-SUMMARY.md` |
+
+**Note on ING-01, ING-02, ING-10, OPS-07, OPS-09 and OPS-10 (marked complete by plan 01-06).** These are the requirements the spikes bear on, and the honest description of each is what the spike *measured*, not what a later phase must *implement*. **ING-01**: the conditional-GET path was exercised from both the edge and a CI runner, and the corrected reading is that it must be implemented because it is the correct way to identify unchanged content — while a 200 with a full body is the normal outcome, because whether a 304 happens depends on the publisher's cache state and not on the client's request. **ING-10**: the descriptive User-Agent with a contact URL was sent by both sides of the comparison, byte-identically, read from `shared/config/site.ts`; the rate limit and the `Retry-After` handling remain Phase 2's, and no feed returned a 429 in the measurement, so that path is unexercised. **ING-02** was already complete from plan 01-04 and the spikes confirm it in practice: the S-2 and S-3 harnesses count bytes and discard them. **OPS-07**: the *budget* the assertion enforces is now measured rather than guessed — S-4 supplies the build-duration figures and S-5 supplies the deploy-budget formula, a fixed cost plus a per-file manifest cost, because the file count is the input that varies. **OPS-09**: the choice of a scheduled CI build over a deploy hook is recorded in ADR 0001, and S-4 measured a build under the project's own configuration so the budget is a number. **OPS-10**: S-4 proved the mechanism — the incremental build restored every page and rendered none — and also showed that it is not a wall-clock saver at scale, so the budget must be written against the full build. **None of this replaces the implementation, which lands in Phase 2, Phase 5 and Phase 7.**
 
 **Note on MED-08, OPS-12, PUB-12 and ING-02 (marked complete by plan 01-04).** MED-08 is fully delivered: the R2 bucket `meridian` exists with exactly two prefix-scoped lifecycle rules — `raw/` at 7 days and `media/` at 365 days — and `scripts/cloudflare/verify-lifecycle.mjs` proves against the **live** rule listing that no rule can match `og/` or the bucket root. The gate was observed to fail: an empty-prefix rule was planted, the verifier exited 1 with a specific message, and the creator repaired the bucket. **OPS-12** records the tier split in `docs/adr/0001-delivery-model.md`: the static tier holds only editions, sections, archives, Most Covered, topic and entity pages; story pages are pre-rendered to R2 and served at `/story/*`; the build reads one gzipped snapshot object and never opens a datastore binding. **PUB-12** records the one-hostname rule: seven editions and the Hindi edition under locale path prefixes, never subdomains. **ING-02** records that the fetch Worker performs no parsing, no normalization and no scoring — all transformation happens in CI, because the Free plan's per-cron CPU ceiling is a measured 9.45 ms against a 9.45 ms realistic feed parse. The **eight static shards are live** (`meridian-static-uk` … `meridian-static-in-hi`), each serving its own locale prefix on its `workers.dev` subdomain; the zone routes attach when a domain exists (D-10). The delivery-model ADR explicitly overrides the research's single-project conclusion and names why.
 
@@ -154,6 +169,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ### Blockers/Concerns
 
+- **[Phase 2]** Four of the ten registry candidates S-2 and S-3 probed are dead or refusing **for every client on earth**, not just for the Cloudflare egress: `washingtonpost` (502), `cnn` (TLS), `aol` (DNS) and `ap` (403). Phase 2 inherits a task of replacing four dead candidates, and no amount of engineering on the fetch path will fix them. **The other seven countries' publishers and the Hindi-language publishers for the India edition are entirely unmeasured.**
+- **[Phase 2]** The Durable Object ingest engine is now a measured option rather than a hypothesis, and the choice is Phase 2's. S-1 proved a Durable Object on the Free plan has its own CPU allowance and does not inherit the Workers per-invocation ceiling, but a Durable Object is single-threaded per object and the concurrency profile of deduplication over fifty publishers was not measured. If Phase 2 adopts it, the platform's per-object CPU allowance becomes a ceiling the project depends on and must be added to `config/free-tier-limits.json` under OPS-01 at that point.
+- **[Phase 5]** Both of the phase's budgets were measured on a Windows workstation and are I/O-bound, so both must be re-measured on the CI runner before they are fixed as gates: the build duration (S-4) and the deploy step (S-5). The measured cost of a heavier story page was **sub-linear** in the page's complexity — the build is bound by filesystem traffic — so a real template costing more than the synthetic one does not proportionally slow the build, but the real template has not been measured at all.
+- **[Phase 7]** The build-duration budget for OPS-07 must be written against the **full** build, not the incremental one. S-4 showed the incremental build restoring every page and rendering none — which is what OPS-10 asks for — but not being reliably faster: 1.1× faster on the minimal page set and 0.8×, that is slower, on the realistic one.
 - **[Phase 3]** The merge thresholds (Jaccard 0.55 / Hamming 12 / stop list / aspect markers) are reasoned from literature, not from this corpus. Unvalidated until S-7 lands a measured precision/recall number. Bias toward not merging.
 - **[Phase 1]** The domain is not yet acquired, and that is now a decision rather than a gap: D-10 defers the purchase until the site earns revenue and D-11 accepts the consequence. It is still launch-blocking for Search Console verification, Publisher Center URL verification and meaningful ranking — but Phase 1's job is to record that constraint, not to resolve it.
 - **[Phase 6]** Hindi digest quality on the free tier is unverified (S-6). The deterministic template stays the default until a model passes.
@@ -177,6 +196,6 @@ Items acknowledged and carried forward:
 
 ## Session Continuity
 
-Last session: 2026-10-20T20:55:13.642Z
-Stopped at: Completed 01-05-PLAN.md
+Last session: 2026-10-21T06:53:03.594Z
+Stopped at: Completed 01-06-PLAN.md
 Resume file: None
