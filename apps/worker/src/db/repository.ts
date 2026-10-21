@@ -61,11 +61,75 @@ export interface ClusterScoreUpdate {
 
 /** One row of `story_sources` — one outlet's coverage of a cluster. */
 export interface StorySourceRow {
+  story_id: number;
   source_id: number;
   rank: number;
   headline: string;
   url: string;
   published_at: string;
+}
+
+/**
+ * One row of `stories` — a raw story mention awaiting clustering (CUR-01).
+ *
+ * The field names mirror the D1 columns exactly. `external_guid` is the
+ * feed's own item identity; `slug` is the original item's slug and is never
+ * published. `cluster_id = 0` is the "not yet clustered" sentinel.
+ */
+export interface StoryRow {
+  id: number;
+  cluster_id: number;
+  source_id: number;
+  external_guid: string;
+  url: string;
+  slug: string;
+  headline: string;
+  excerpt: string | null;
+  published_at: string;
+  fetched_at: string;
+  simhash: number;
+  band0: number;
+  band1: number;
+  band2: number;
+  band3: number;
+  language: string;
+  country_code: string;
+  is_primary: number;
+}
+
+/** One row of `sections` — the eight broadsheet desks. */
+export interface SectionRow {
+  id: number;
+  slug: string;
+  name: string;
+  sort_order: number;
+}
+
+/** One row of `editions` — one country's front page. */
+export interface EditionRow {
+  id: number;
+  slug: string;
+  name: string;
+  country_code: string;
+  language: string;
+}
+
+/**
+ * The LSH fingerprint written onto a story row so a later story can find it.
+ *
+ * The four 16-bit bands together carry all 64 bits of the SimHash, so the
+ * fingerprint is fully recoverable from them. The `simhash` column itself is
+ * deliberately left alone: a 64-bit integer cannot round-trip through a JSON
+ * number without precision loss (D1 hands back a lossy double, and a strict
+ * SQLite binding refuses the value outright), and a fingerprint that is
+ * silently truncated is worse than one that is stored in four lossless
+ * quarters.
+ */
+export interface StoryFingerprint {
+  band0: number;
+  band1: number;
+  band2: number;
+  band3: number;
 }
 
 /** The values a new raw mention needs. */
@@ -174,6 +238,104 @@ export interface Repository {
     topicIds: readonly number[],
     entityIds: readonly { entityId: number; isPrimary: boolean }[],
   ): Promise<void>;
+  /** Retrieve unclustered stories ordered by published_at ASC (CUR-01). */
+  listUnclusteredStories(limit: number): Promise<StoryRow[]>;
+  /** Retrieve one raw story by its id, or null. */
+  findStoryById(storyId: number): Promise<StoryRow | null>;
+  /** Retrieve one source by its id, or null. */
+  findSourceById(sourceId: number): Promise<SourceRow | null>;
+  /** The eight broadsheet desks, in display order. */
+  listSections(): Promise<SectionRow[]>;
+  /** The editions, in display order. */
+  listEditions(): Promise<EditionRow[]>;
+  /**
+   * Candidate stories published inside the merge window, regardless of LSH band.
+   *
+   * The band lookup (`findLshCandidates`) is an index probe whose recall on
+   * paraphrased headlines is near zero — measured in plan 03-05, 0 of 92
+   * labelled same-event pairs collide on any of the four 16-bit bands. This
+   * query is the time-windowed path that guarantees recall inside the merge
+   * window; it is driven by `idx_stories_published` and bounded by the window.
+   */
+  findRecentCandidateStories(
+    sinceIso: string,
+    language: string,
+    limit: number,
+  ): Promise<LshCandidateRow[]>;
+  /** Write the LSH fingerprint onto a story row so a later story can find it. */
+  updateStoryFingerprint(storyId: number, fingerprint: StoryFingerprint): Promise<void>;
+  /** Resolve gazetteer entity slugs to their D1 row ids (CUR-12). */
+  findEntityIdsBySlugs(slugs: readonly string[]): Promise<Map<string, number>>;
+  /** Create a new cluster and link the initial story (CUR-01, CON-15). */
+  createClusterWithStory(
+    cluster: {
+      slug: string;
+      canonicalHeadline: string;
+      canonicalExcerpt: string | null;
+      primarySectionId: number;
+      sectionConfidence: number;
+      sectionMethod: string;
+      publishedAt: string;
+      outletCount: number;
+      mentionCount: number;
+      trendingScore: number;
+    },
+    storyId: number,
+    sourceId: number,
+    headline: string,
+    url: string,
+    publishedAt: string,
+  ): Promise<number>;
+  /** Add a story to an existing cluster, bumping member counts and updating earliest published_at (CUR-01, CON-15). */
+  addStoryToCluster(
+    clusterId: number,
+    storyId: number,
+    sourceId: number,
+    headline: string,
+    url: string,
+    publishedAt: string,
+    isPrimary: boolean,
+  ): Promise<void>;
+  /** Update cluster metadata, canonical text, member counts, score and editorial rank (CUR-01, CON-15, CUR-10). */
+  updateClusterCuration(
+    clusterId: number,
+    updates: {
+      canonicalHeadline?: string;
+      canonicalExcerpt?: string | null;
+      publishedAt: string;
+      outletCount: number;
+      mentionCount: number;
+      trendingScore: number;
+      editorialRank: number | null;
+      updatedAt?: string;
+    },
+  ): Promise<void>;
+  /** Record an administrative split of a story from an existing cluster into a new cluster with a dated correction (CUR-02, CUR-03, D-18, D-19). */
+  recordClusterSplit(
+    oldClusterId: number,
+    newCluster: {
+      slug: string;
+      canonicalHeadline: string;
+      canonicalExcerpt: string | null;
+      publishedAt: string;
+      outletCount: number;
+      mentionCount: number;
+      trendingScore: number;
+    },
+    storyId: number,
+    outletName: string,
+    correctionNote: string,
+    todayIso: string,
+    oldClusterUpdates: {
+      promotedStoryId: number;
+      canonicalHeadline: string;
+      canonicalExcerpt: string | null;
+      publishedAt: string;
+      outletCount: number;
+      mentionCount: number;
+      trendingScore: number;
+    },
+  ): Promise<{ newClusterId: number; correctionId: number }>;
 }
 
 /**
@@ -332,7 +494,7 @@ export function createRepository(env: MeridianEnv): Repository {
     async listStoriesForCluster(clusterId: number): Promise<StorySourceRow[]> {
       const result = await db
         .prepare(
-          `SELECT source_id, rank, headline, url, published_at
+          `SELECT story_id, source_id, rank, headline, url, published_at
              FROM story_sources
             WHERE cluster_id = ?
             ORDER BY rank ASC`,
@@ -644,23 +806,29 @@ export function createRepository(env: MeridianEnv): Repository {
         );
       }
 
-      // 4. Insert or update story_topics
+      // 4. Insert or update story_topics.
+      //    `story_topics.story_id` references `stories(id)`, so the join rows
+      //    are written for every member story of the cluster — a cluster id is
+      //    not a story id. The `WHERE true` keeps SQLite's parser from
+      //    reading the trailing ON CONFLICT as part of the SELECT.
       const topicStmt = db.prepare(
         `INSERT INTO story_topics (
            story_id, topic_id, weight
-         ) VALUES (?, ?, ?)
+         )
+         SELECT id, ?, ? FROM stories WHERE true AND cluster_id = ?
          ON CONFLICT(story_id, topic_id) DO UPDATE SET
            weight = excluded.weight`,
       );
       for (const topicId of topicIds) {
-        statements.push(topicStmt.bind(clusterId, topicId, 1.0));
+        statements.push(topicStmt.bind(topicId, 1.0, clusterId));
       }
 
       // 5. Insert or update story_entities
       const entityStmt = db.prepare(
         `INSERT INTO story_entities (
            story_id, entity_id, weight, is_primary
-         ) VALUES (?, ?, ?, ?)
+         )
+         SELECT id, ?, ?, ? FROM stories WHERE true AND cluster_id = ?
          ON CONFLICT(story_id, entity_id) DO UPDATE SET
            weight = excluded.weight,
            is_primary = excluded.is_primary`,
@@ -668,10 +836,10 @@ export function createRepository(env: MeridianEnv): Repository {
       for (const ent of entityIds) {
         statements.push(
           entityStmt.bind(
-            clusterId,
             ent.entityId,
             1.0,
             ent.isPrimary ? 1 : 0,
+            clusterId,
           ),
         );
       }
@@ -681,6 +849,515 @@ export function createRepository(env: MeridianEnv): Repository {
         const chunk = statements.slice(i, i + CHUNK_SIZE);
         await db.batch(chunk as any);
       }
+    },
+
+    async listUnclusteredStories(limit: number): Promise<StoryRow[]> {
+      const rows = await db
+        .prepare(
+          `SELECT id, cluster_id, source_id, external_guid, url, slug,
+                  headline, excerpt, published_at, fetched_at,
+                  simhash, band0, band1, band2, band3,
+                  language, country_code, is_primary
+             FROM stories
+            WHERE cluster_id = 0
+            ORDER BY published_at ASC
+            LIMIT ?`,
+        )
+        .bind(limit)
+        .all<StoryRow>();
+      return rows.results ?? [];
+    },
+
+    async findStoryById(storyId: number): Promise<StoryRow | null> {
+      const row = await db
+        .prepare(
+          `SELECT id, cluster_id, source_id, external_guid, url, slug,
+                  headline, excerpt, published_at, fetched_at,
+                  simhash, band0, band1, band2, band3,
+                  language, country_code, is_primary
+             FROM stories
+            WHERE id = ?`,
+        )
+        .bind(storyId)
+        .first<StoryRow>();
+      return row ?? null;
+    },
+
+    async findSourceById(sourceId: number): Promise<SourceRow | null> {
+      const row = await db
+        .prepare(
+          `SELECT id, slug, name, feed_url, country_code, language,
+                  etag, last_modified, disabled_until, terms_status
+             FROM sources
+            WHERE id = ?`,
+        )
+        .bind(sourceId)
+        .first<SourceRow>();
+      return row ?? null;
+    },
+
+    async listSections(): Promise<SectionRow[]> {
+      const result = await db
+        .prepare(
+          `SELECT id, slug, name, sort_order
+             FROM sections
+            ORDER BY sort_order ASC`,
+        )
+        .all<SectionRow>();
+      return result.results ?? [];
+    },
+
+    async listEditions(): Promise<EditionRow[]> {
+      const result = await db
+        .prepare(
+          `SELECT id, slug, name, country_code, language
+             FROM editions
+            ORDER BY sort_order ASC`,
+        )
+        .all<EditionRow>();
+      return result.results ?? [];
+    },
+
+    async findRecentCandidateStories(
+      sinceIso: string,
+      language: string,
+      limit: number,
+    ): Promise<LshCandidateRow[]> {
+      // Driven by `idx_stories_published` (published_at DESC): the window
+      // bounds the scan to the merge window's worth of rows, not the table.
+      const result = await db
+        .prepare(
+          `SELECT id, cluster_id, headline, excerpt, published_at, simhash, language, country_code, is_primary
+             FROM stories
+            WHERE published_at >= ?
+              AND language = ?
+            ORDER BY published_at DESC
+            LIMIT ?`,
+        )
+        .bind(sinceIso, language, limit)
+        .all<LshCandidateRow>();
+      return result.results ?? [];
+    },
+
+    async updateStoryFingerprint(
+      storyId: number,
+      fingerprint: StoryFingerprint,
+    ): Promise<void> {
+      await db
+        .prepare(
+          `UPDATE stories
+              SET band0 = ?,
+                  band1 = ?,
+                  band2 = ?,
+                  band3 = ?
+            WHERE id = ?`,
+        )
+        .bind(
+          fingerprint.band0,
+          fingerprint.band1,
+          fingerprint.band2,
+          fingerprint.band3,
+          storyId,
+        )
+        .run();
+    },
+
+    async findEntityIdsBySlugs(slugs: readonly string[]): Promise<Map<string, number>> {
+      const resolved = new Map<string, number>();
+      if (slugs.length === 0) return resolved;
+
+      // The IN list is built from placeholders only; no value is interpolated.
+      const placeholders = slugs.map(() => '?').join(', ');
+      const rows = await db
+        .prepare(
+          `SELECT id, slug
+             FROM entities
+            WHERE slug IN (${placeholders})`,
+        )
+        .bind(...slugs)
+        .all<{ id: number; slug: string }>();
+
+      for (const row of rows.results ?? []) {
+        resolved.set(row.slug, row.id);
+      }
+      return resolved;
+    },
+
+    async createClusterWithStory(
+      cluster: {
+        slug: string;
+        canonicalHeadline: string;
+        canonicalExcerpt: string | null;
+        primarySectionId: number;
+        sectionConfidence: number;
+        sectionMethod: string;
+        publishedAt: string;
+        outletCount: number;
+        mentionCount: number;
+        trendingScore: number;
+      },
+      storyId: number,
+      sourceId: number,
+      headline: string,
+      url: string,
+      publishedAt: string,
+    ): Promise<number> {
+      // 1. Insert cluster
+      const clusterResult = await db
+        .prepare(
+          `INSERT INTO clusters (
+             slug, canonical_headline, canonical_excerpt, primary_section_id,
+             section_confidence, section_method, published_at, first_seen_at, last_seen_at,
+             outlet_count, mention_count, trending_score
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), ?, ?, ?)`,
+        )
+        .bind(
+          cluster.slug,
+          cluster.canonicalHeadline,
+          cluster.canonicalExcerpt,
+          cluster.primarySectionId,
+          cluster.sectionConfidence,
+          cluster.sectionMethod,
+          cluster.publishedAt,
+          cluster.outletCount,
+          cluster.mentionCount,
+          cluster.trendingScore,
+        )
+        .run();
+
+      const newClusterId = Number(clusterResult.meta.last_row_id);
+
+      // 2. Link story and insert story_sources
+      await db.batch([
+        db
+          .prepare(
+            `UPDATE stories
+                SET cluster_id = ?,
+                    is_primary = 1
+              WHERE id = ?`,
+          )
+          .bind(newClusterId, storyId),
+        db
+          .prepare(
+            `INSERT INTO story_sources (
+               cluster_id, story_id, source_id, rank, headline, url, published_at
+             ) VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(cluster_id, story_id) DO UPDATE SET
+               rank = excluded.rank,
+               headline = excluded.headline,
+               url = excluded.url`,
+          )
+          .bind(newClusterId, storyId, sourceId, 0, headline, url, publishedAt),
+      ]);
+
+      return newClusterId;
+    },
+
+    async addStoryToCluster(
+      clusterId: number,
+      storyId: number,
+      sourceId: number,
+      headline: string,
+      url: string,
+      publishedAt: string,
+      isPrimary: boolean,
+    ): Promise<void> {
+      await db.batch([
+        db
+          .prepare(
+            `UPDATE stories
+                SET cluster_id = ?,
+                    is_primary = ?
+              WHERE id = ?`,
+          )
+          .bind(clusterId, isPrimary ? 1 : 0, storyId),
+        db
+          .prepare(
+            `INSERT INTO story_sources (
+               cluster_id, story_id, source_id, rank, headline, url, published_at
+             ) VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(cluster_id, story_id) DO UPDATE SET
+               headline = excluded.headline,
+               url = excluded.url,
+               published_at = excluded.published_at`,
+          )
+          .bind(clusterId, storyId, sourceId, 0, headline, url, publishedAt),
+        // CON-15: the cluster's publication time is the EARLIEST member's, so
+        // adding a member can only ever pull it backwards. The counts are
+        // recomputed from `story_sources`, which is the member list of record.
+        db
+          .prepare(
+            `UPDATE clusters
+                SET outlet_count = (
+                      SELECT COUNT(DISTINCT source_id) FROM story_sources WHERE cluster_id = ?
+                    ),
+                    mention_count = (
+                      SELECT COUNT(*) FROM story_sources WHERE cluster_id = ?
+                    ),
+                    published_at = MIN(published_at, ?),
+                    last_seen_at = datetime('now'),
+                    updated_at = datetime('now')
+              WHERE id = ?`,
+          )
+          .bind(clusterId, clusterId, publishedAt, clusterId),
+      ]);
+    },
+
+    async updateClusterCuration(
+      clusterId: number,
+      updates: {
+        canonicalHeadline?: string;
+        canonicalExcerpt?: string | null;
+        publishedAt: string;
+        outletCount: number;
+        mentionCount: number;
+        trendingScore: number;
+        editorialRank: number | null;
+        updatedAt?: string;
+      },
+    ): Promise<void> {
+      await db
+        .prepare(
+          `UPDATE clusters
+              SET canonical_headline = COALESCE(?, canonical_headline),
+                  canonical_excerpt = COALESCE(?, canonical_excerpt),
+                  published_at = MIN(published_at, ?),
+                  outlet_count = ?,
+                  mention_count = ?,
+                  trending_score = ?,
+                  editorial_rank = ?,
+                  last_seen_at = datetime('now'),
+                  updated_at = COALESCE(?, datetime('now'))
+            WHERE id = ?`,
+        )
+        .bind(
+          updates.canonicalHeadline ?? null,
+          updates.canonicalExcerpt ?? null,
+          updates.publishedAt,
+          updates.outletCount,
+          updates.mentionCount,
+          updates.trendingScore,
+          updates.editorialRank,
+          updates.updatedAt ?? null,
+          clusterId,
+        )
+        .run();
+    },
+
+    async recordClusterSplit(
+      oldClusterId: number,
+      newCluster: {
+        slug: string;
+        canonicalHeadline: string;
+        canonicalExcerpt: string | null;
+        publishedAt: string;
+        outletCount: number;
+        mentionCount: number;
+        trendingScore: number;
+      },
+      storyId: number,
+      outletName: string,
+      correctionNote: string,
+      todayIso: string,
+      oldClusterUpdates: {
+        promotedStoryId: number;
+        canonicalHeadline: string;
+        canonicalExcerpt: string | null;
+        publishedAt: string;
+        outletCount: number;
+        mentionCount: number;
+        trendingScore: number;
+      },
+    ): Promise<{ newClusterId: number; correctionId: number }> {
+      // 1. Fetch old cluster (slug + desk assignment) and the detached story
+      const oldCluster = await db
+        .prepare(
+          `SELECT slug, primary_section_id, section_confidence, section_method
+             FROM clusters
+            WHERE id = ?`,
+        )
+        .bind(oldClusterId)
+        .first<{
+          slug: string;
+          primary_section_id: number | null;
+          section_confidence: number;
+          section_method: string;
+        }>();
+
+      const story = await db
+        .prepare(
+          `SELECT id, source_id, headline, url, published_at, excerpt
+             FROM stories
+            WHERE id = ?`,
+        )
+        .bind(storyId)
+        .first<{
+          id: number;
+          source_id: number;
+          headline: string;
+          url: string;
+          published_at: string;
+          excerpt: string | null;
+        }>();
+
+      if (!oldCluster || !story) {
+        throw new Error(`Cluster ${oldClusterId} or Story ${storyId} not found`);
+      }
+
+      // 2. Insert the new cluster. The desk assignment is inherited from the
+      //    cluster the story came out of: a split never re-classifies a story,
+      //    it only separates it from the wrong neighbours.
+      const newClusterRes = await db
+        .prepare(
+          `INSERT INTO clusters (
+             slug, canonical_headline, canonical_excerpt, primary_section_id,
+             section_confidence, section_method, published_at, first_seen_at, last_seen_at,
+             outlet_count, mention_count, trending_score
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), ?, ?, ?)`,
+        )
+        .bind(
+          newCluster.slug,
+          newCluster.canonicalHeadline,
+          newCluster.canonicalExcerpt,
+          oldCluster.primary_section_id,
+          oldCluster.section_confidence,
+          oldCluster.section_method,
+          newCluster.publishedAt,
+          newCluster.outletCount,
+          newCluster.mentionCount,
+          newCluster.trendingScore,
+        )
+        .run();
+
+      const newClusterId = Number(newClusterRes.meta.last_row_id);
+
+      // 3. Move the story, migrate its attribution row, and promote a new
+      //    primary on the old cluster so the published headline still has an
+      //    owner. `story_sources` is the member list of record: the detached
+      //    story's row moves across, nothing is lost (CUR-02).
+      await db.batch([
+        db
+          .prepare(
+            `UPDATE stories
+                SET cluster_id = ?,
+                    is_primary = 1
+              WHERE id = ?`,
+          )
+          .bind(newClusterId, storyId),
+        db
+          .prepare(
+            `DELETE FROM story_sources
+              WHERE cluster_id = ? AND story_id = ?`,
+          )
+          .bind(oldClusterId, storyId),
+        db
+          .prepare(
+            `INSERT INTO story_sources (
+               cluster_id, story_id, source_id, rank, headline, url, published_at
+             ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            newClusterId,
+            story.id,
+            story.source_id,
+            0,
+            story.headline,
+            story.url,
+            story.published_at,
+          ),
+        db
+          .prepare(
+            `UPDATE stories
+                SET is_primary = 0
+              WHERE cluster_id = ?`,
+          )
+          .bind(oldClusterId),
+        db
+          .prepare(
+            `UPDATE stories
+                SET is_primary = 1
+              WHERE id = ?`,
+          )
+          .bind(oldClusterUpdates.promotedStoryId),
+        // Re-rank the remaining members: rank 0 is the primary source, and the
+        // rest follow in publication order.
+        db
+          .prepare(
+            `UPDATE story_sources
+                SET rank = (
+                      SELECT COUNT(*) - 1
+                        FROM story_sources AS earlier
+                       WHERE earlier.cluster_id = story_sources.cluster_id
+                         AND (
+                              earlier.published_at < story_sources.published_at
+                              OR (
+                                   earlier.published_at = story_sources.published_at
+                                   AND earlier.story_id <= story_sources.story_id
+                                 )
+                            )
+                    )
+              WHERE cluster_id = ?`,
+          )
+          .bind(oldClusterId),
+      ]);
+
+      // 4. Recalculate the old cluster's metrics from what is left of it.
+      //    The counts and the publication time come from the surviving member
+      //    rows; the canonical text and the score come from the caller, which
+      //    owns the ranking rules. A cluster that drops below two distinct
+      //    outlets loses its Editor's Picks rank (CUR-10).
+      await db
+        .prepare(
+          `UPDATE clusters
+              SET canonical_headline = COALESCE(?, canonical_headline),
+                  canonical_excerpt = COALESCE(?, canonical_excerpt),
+                  outlet_count = ?,
+                  mention_count = ?,
+                  published_at = COALESCE(
+                      (SELECT MIN(published_at) FROM story_sources WHERE cluster_id = ?),
+                      published_at
+                    ),
+                  trending_score = ?,
+                  editorial_rank = CASE WHEN ? < 2 THEN NULL ELSE editorial_rank END,
+                  last_seen_at = datetime('now'),
+                  updated_at = datetime('now')
+            WHERE id = ?`,
+        )
+        .bind(
+          oldClusterUpdates.canonicalHeadline,
+          oldClusterUpdates.canonicalExcerpt,
+          oldClusterUpdates.outletCount,
+          oldClusterUpdates.mentionCount,
+          oldClusterId,
+          oldClusterUpdates.trendingScore,
+          oldClusterUpdates.outletCount,
+          oldClusterId,
+        )
+        .run();
+
+      // 5. Insert the correction record. The note is published on the OLD
+      //    cluster's permanent URL: that is the page that was wrong.
+      const corrRes = await db
+        .prepare(
+          `INSERT INTO corrections (
+             story_slug, reported_at, report_detail, status, resolution,
+             correction_note, resolved_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          oldCluster.slug,
+          todayIso,
+          `Administrative split of story ${storyId} from cluster ${oldClusterId}`,
+          'resolved',
+          `Detached coverage from ${outletName} into independent story cluster ${newCluster.slug}`,
+          correctionNote,
+          todayIso,
+        )
+        .run();
+
+      const correctionId = Number(corrRes.meta.last_row_id);
+
+      return { newClusterId, correctionId };
     },
   };
 }

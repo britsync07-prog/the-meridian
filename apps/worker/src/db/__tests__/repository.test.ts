@@ -190,21 +190,33 @@ describe('createRepository', () => {
     const repository = createRepository(stubEnv());
     expect(Object.keys(repository).sort()).toEqual(
       [
+        'addStoryToCluster',
         'assignClusterTaxonomy',
         'batchInsertStories',
         'batchUpdateTrendingScores',
         'countRows',
         'countTables',
+        'createClusterWithStory',
         'findClusterBySlug',
+        'findEntityIdsBySlugs',
         'findLshCandidates',
+        'findRecentCandidateStories',
+        'findSourceById',
+        'findStoryById',
         'insertStory',
         'listActiveSources',
+        'listEditions',
         'listProminentClusters',
+        'listSections',
         'listStoriesForCluster',
+        'listUnclusteredStories',
+        'recordClusterSplit',
         'recordFeedFetch',
         'syncSources',
         'syncTaxonomyAndEntities',
+        'updateClusterCuration',
         'updateSourceHealth',
+        'updateStoryFingerprint',
       ].sort(),
     );
   });
@@ -676,20 +688,324 @@ describe('createRepository', () => {
       0.9,
     ]);
 
-    // Statement 4 & 5: INSERT INTO story_topics
+    // Statement 4 & 5: INSERT INTO story_topics.
+    // The join rows are keyed by the member STORIES of the cluster, because
+    // `story_topics.story_id` references `stories(id)`.
     expect(executedStatements[4].sql).toMatch(/INSERT INTO story_topics/i);
-    expect(executedStatements[4].bindings).toEqual([101, 10, 1.0]);
-    expect(executedStatements[5].bindings).toEqual([101, 11, 1.0]);
+    expect(executedStatements[4].bindings).toEqual([10, 1.0, 101]);
+    expect(executedStatements[5].bindings).toEqual([11, 1.0, 101]);
 
     // Statement 6 & 7: INSERT INTO story_entities
     expect(executedStatements[6].sql).toMatch(/INSERT INTO story_entities/i);
-    expect(executedStatements[6].bindings).toEqual([101, 201, 1.0, 1]);
-    expect(executedStatements[7].bindings).toEqual([101, 202, 1.0, 0]);
+    expect(executedStatements[6].bindings).toEqual([201, 1.0, 1, 101]);
+    expect(executedStatements[7].bindings).toEqual([202, 1.0, 0, 101]);
   });
 
   it('refuses to count a table that is not on the allow-list', async () => {
     const repository = createRepository(stubEnv());
     await expect(repository.countRows('sources; DROP TABLE sources')).rejects.toThrow(/allow-list/i);
     await expect(repository.countRows('sqlite_master')).rejects.toThrow(/allow-list/i);
+  });
+});
+
+describe('the curation repository methods (03-05)', () => {
+  /** A mock binding that captures the statement that was prepared. */
+  function captureDb(results: unknown[] = []) {
+    const captured: { sql: string; bindings: unknown[] }[] = [];
+    const mockDb = {
+      prepare(sql: string) {
+        let bindings: unknown[] = [];
+        const statement = {
+          bind(...values: unknown[]) {
+            bindings = values;
+            return statement;
+          },
+          async all<T = unknown>() {
+            captured.push({ sql, bindings });
+            return { results, success: true, meta: { changes: 0 } };
+          },
+          async first<T = unknown>() {
+            captured.push({ sql, bindings });
+            return (results[0] as T) ?? null;
+          },
+          async run() {
+            captured.push({ sql, bindings });
+            return { success: true, meta: { changes: 1, last_row_id: 7 } };
+          },
+        };
+        return statement;
+      },
+      batch: async (statements: unknown[]) => {
+        for (const statement of statements as Array<{ run(): Promise<unknown> }>) {
+          await statement.run();
+        }
+        return [];
+      },
+    };
+    return { mockDb, captured };
+  }
+
+  it('listUnclusteredStories selects only real columns and orders by publication time', async () => {
+    const { mockDb, captured } = captureDb([]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.listUnclusteredStories(50);
+
+    expect(captured[0].sql).toMatch(/FROM stories/i);
+    expect(captured[0].sql).toMatch(/WHERE cluster_id = 0/i);
+    expect(captured[0].sql).toMatch(/ORDER BY published_at ASC/i);
+    expect(captured[0].sql).toMatch(/LIMIT \?/i);
+    expect(captured[0].bindings).toEqual([50]);
+    // The projection must name columns the schema actually has.
+    for (const column of [
+      'external_guid',
+      'slug',
+      'fetched_at',
+      'band0',
+      'band1',
+      'band2',
+      'band3',
+      'is_primary',
+    ]) {
+      expect(captured[0].sql).toMatch(new RegExp(column, 'i'));
+    }
+    for (const column of ['external_id', 'canonical_url', 'word_count', 'char_count']) {
+      expect(captured[0].sql).not.toMatch(new RegExp(`\\b${column}\\b`, 'i'));
+    }
+  });
+
+  it('findStoryById and findSourceById read one row each', async () => {
+    const { mockDb, captured } = captureDb([{ id: 42, slug: 'bbc-news' }]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.findStoryById(42);
+    await repository.findSourceById(7);
+
+    expect(captured[0].sql).toMatch(/FROM stories/i);
+    expect(captured[0].sql).toMatch(/WHERE id = \?/i);
+    expect(captured[0].bindings).toEqual([42]);
+    expect(captured[1].sql).toMatch(/FROM sources/i);
+    expect(captured[1].bindings).toEqual([7]);
+  });
+
+  it('listSections and listEditions read the reference tables in display order', async () => {
+    const { mockDb, captured } = captureDb([]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.listSections();
+    await repository.listEditions();
+
+    expect(captured[0].sql).toMatch(/FROM sections/i);
+    expect(captured[0].sql).toMatch(/ORDER BY sort_order ASC/i);
+    expect(captured[1].sql).toMatch(/FROM editions/i);
+  });
+
+  it('findRecentCandidateStories reads the merge window, not the table', async () => {
+    const { mockDb, captured } = captureDb([]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.findRecentCandidateStories('2026-10-20T18:00:00.000Z', 'en', 200);
+
+    expect(captured[0].sql).toMatch(/FROM stories/i);
+    expect(captured[0].sql).toMatch(/WHERE published_at >= \?/i);
+    expect(captured[0].sql).toMatch(/AND language = \?/i);
+    expect(captured[0].sql).toMatch(/LIMIT \?/i);
+    expect(captured[0].bindings).toEqual(['2026-10-20T18:00:00.000Z', 'en', 200]);
+  });
+
+  it('updateStoryFingerprint writes the four LSH bands', async () => {
+    const { mockDb, captured } = captureDb([]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.updateStoryFingerprint(9, {
+      band0: 11,
+      band1: 22,
+      band2: 33,
+      band3: 44,
+    });
+
+    expect(captured[0].sql).toMatch(/UPDATE stories/i);
+    expect(captured[0].sql).toMatch(/band0 = \?/i);
+    expect(captured[0].sql).not.toMatch(/simhash/i);
+    expect(captured[0].bindings).toEqual([11, 22, 33, 44, 9]);
+  });
+
+  it('findEntityIdsBySlugs binds one placeholder per slug', async () => {
+    const { mockDb, captured } = captureDb([
+      { id: 3, slug: 'keir-starmer' },
+      { id: 9, slug: 'isro' },
+    ]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    const resolved = await repository.findEntityIdsBySlugs(['keir-starmer', 'isro']);
+
+    expect(captured[0].sql).toMatch(/FROM entities/i);
+    expect(captured[0].sql).toMatch(/WHERE slug IN \(\?, \?\)/i);
+    expect(captured[0].bindings).toEqual(['keir-starmer', 'isro']);
+    expect(resolved.get('keir-starmer')).toBe(3);
+    expect(resolved.get('isro')).toBe(9);
+  });
+
+  it('createClusterWithStory stamps the first-seen and last-seen times', async () => {
+    const { mockDb, captured } = captureDb([]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    const clusterId = await repository.createClusterWithStory(
+      {
+        slug: 'story-abc-def',
+        canonicalHeadline: 'A headline',
+        canonicalExcerpt: null,
+        primarySectionId: 3,
+        sectionConfidence: 0.8,
+        sectionMethod: 'lexicon',
+        publishedAt: '2026-10-21T09:00:00.000Z',
+        outletCount: 1,
+        mentionCount: 1,
+        trendingScore: 4.2,
+      },
+      12,
+      5,
+      'A headline',
+      'https://example.com/a',
+      '2026-10-21T09:00:00.000Z',
+    );
+
+    expect(clusterId).toBe(7);
+    expect(captured[0].sql).toMatch(/INSERT INTO clusters/i);
+    expect(captured[0].sql).toMatch(/first_seen_at/i);
+    expect(captured[0].sql).toMatch(/last_seen_at/i);
+    expect(captured[0].bindings).toContain('story-abc-def');
+    expect(captured[0].bindings).toContain('2026-10-21T09:00:00.000Z');
+  });
+
+  it('addStoryToCluster recomputes the member counts and keeps the earliest publication time', async () => {
+    const { mockDb, captured } = captureDb([]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.addStoryToCluster(
+      3,
+      12,
+      5,
+      'A headline',
+      'https://example.com/a',
+      '2026-10-21T09:00:00.000Z',
+      false,
+    );
+
+    const clusterUpdate = captured.find((c) => /UPDATE clusters/i.test(c.sql));
+    expect(clusterUpdate).toBeDefined();
+    expect(clusterUpdate!.sql).toMatch(/COUNT\(DISTINCT source_id\)/i);
+    expect(clusterUpdate!.sql).toMatch(/published_at = MIN\(published_at, \?\)/i);
+    expect(clusterUpdate!.bindings).toEqual([3, 3, '2026-10-21T09:00:00.000Z', 3]);
+  });
+
+  it('updateClusterCuration writes the editorial rank as well as the score', async () => {
+    const { mockDb, captured } = captureDb([]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.updateClusterCuration(3, {
+      canonicalHeadline: 'A headline',
+      publishedAt: '2026-10-21T09:00:00.000Z',
+      outletCount: 2,
+      mentionCount: 2,
+      trendingScore: 6.5,
+      editorialRank: 1,
+    });
+
+    expect(captured[0].sql).toMatch(/editorial_rank = \?/i);
+    expect(captured[0].sql).toMatch(/published_at = MIN\(published_at, \?\)/i);
+    expect(captured[0].bindings).toEqual([
+      'A headline',
+      null,
+      '2026-10-21T09:00:00.000Z',
+      2,
+      2,
+      6.5,
+      1,
+      null,
+      3,
+    ]);
+  });
+
+  it('recordClusterSplit moves the attribution row, re-measures the old cluster and writes the correction', async () => {
+    const { mockDb, captured } = captureDb([
+      {
+        slug: 'story-original',
+        primary_section_id: 4,
+        section_confidence: 0.7,
+        section_method: 'lexicon',
+      },
+    ]);
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    const result = await repository.recordClusterSplit(
+      3,
+      {
+        slug: 'story-new-one',
+        canonicalHeadline: 'The detached headline',
+        canonicalExcerpt: null,
+        publishedAt: '2026-10-21T10:00:00.000Z',
+        outletCount: 1,
+        mentionCount: 1,
+        trendingScore: 4.1,
+      },
+      12,
+      'The Guardian',
+      'Correction (2026-10-21): An earlier version of this story incorrectly grouped coverage from The Guardian.',
+      '2026-10-21T12:00:00.000Z',
+      {
+        promotedStoryId: 13,
+        canonicalHeadline: 'The surviving headline',
+        canonicalExcerpt: null,
+        publishedAt: '2026-10-21T09:00:00.000Z',
+        outletCount: 1,
+        mentionCount: 1,
+        trendingScore: 4.0,
+      },
+    );
+
+    expect(result.newClusterId).toBe(7);
+    expect(result.correctionId).toBe(7);
+
+    // The desk is inherited, never re-classified.
+    const insert = captured.find((c) => /INSERT INTO clusters/i.test(c.sql));
+    expect(insert!.bindings).toContain(4);
+    expect(insert!.bindings).toContain('lexicon');
+
+    // The attribution row moves rather than being copied.
+    expect(captured.some((c) => /DELETE FROM story_sources/i.test(c.sql))).toBe(true);
+    expect(captured.some((c) => /INSERT INTO story_sources/i.test(c.sql))).toBe(true);
+
+    // The old cluster is re-measured, and drops its Editor's Pick below two outlets.
+    const update = captured.find((c) => /UPDATE clusters/i.test(c.sql));
+    expect(update!.sql).toMatch(/CASE WHEN \? < 2 THEN NULL ELSE editorial_rank END/i);
+    expect(update!.sql).toMatch(/MIN\(published_at\)/i);
+    expect(update!.bindings).toContain('The surviving headline');
+
+    // The correction note is published on the old cluster's URL.
+    const correction = captured.find((c) => /INSERT INTO corrections/i.test(c.sql));
+    expect(correction).toBeDefined();
+    expect(correction!.bindings).toContain('story-original');
+    expect(correction!.bindings).toContain('resolved');
   });
 });

@@ -20,7 +20,8 @@
     "shards:split": "node scripts/shards/split-output.mjs",
     "shards:deploy": "node scripts/shards/deploy-all.mjs",
     "build:spike:s4": "node spikes/s-4-astro-throughput/generate.mjs",
-    "ingest:local": "tsx scripts/ingest/run-local.ts"
+    "ingest:local": "tsx scripts/ingest/run-local.ts",
+    "cluster:split": "tsx scripts/curation/split-cluster.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "4.3.3",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261019.1",
     "@types/node": "24.19.2",
+    "tsx": "4.22.4",
     "typescript": "5.9.3",
     "vitest": "5.0.5",
     "wrangler": "4.151.3"
