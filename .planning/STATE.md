@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: executing
 stopped_at: Completed 01-06-PLAN.md
-last_updated: "2026-10-21T06:53:03.624Z"
+last_updated: "2026-10-21T20:59:56.859Z"
 last_activity: 2026-10-21
 progress:
   total_phases: 7
-  completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 3
+  total_plans: 16
+  completed_plans: 16
   percent: 100
 ---
 
@@ -22,15 +22,15 @@ See: `.planning/PROJECT.md` (updated 2026-10-20, after research synthesis — 25
 Architecture of record: `.planning/research/SUMMARY.md` (authoritative) and `.planning/research/ARCHITECTURE.md`
 
 **Core value:** Cross-outlet curation that turns many publishers' raw feeds into one genuinely useful daily paper per country, published with the speed, freshness, and discoverability that earns sustained organic search traffic.
-**Current focus:** Phase 01 — Foundation, Free-Tier Contract & Architecture Decisions (plans 01-01 through 01-05 of 01-06 complete)
+**Current focus:** Phase 03 — curation-core-clustering-ranking-enrichment
 **Success target:** 1,000+ daily visitors and 10,000+ indexed pages within six months of launch.
 
 ## Current Position
 
-Phase: 01 (foundation-free-tier-contract-architecture-decisions) — COMPLETE, ready for verification
-Plan: 6 of 6
+Phase: 03 (curation-core-clustering-ranking-enrichment) — COMPLETE, ready for verification
+Plan: 5 of 5
 Status: Phase complete — ready for verification
-Last activity: 2026-10-21 -- 01-06 complete (spikes S-1 through S-5, executed and recorded; the delivery model survives all five)
+Last activity: 2026-10-22 -- 03-05 complete (reversible cluster split with dated corrections, and the end-to-end curation pipeline)
 
 Progress: [██████████] 100%
 
@@ -63,6 +63,7 @@ Progress: [██████████] 100%
 - **Note on 01-06's duration:** 8h 37m is wall clock from the plan's first commit to its last, and it includes a server restart that interrupted task 3 and the idle time around it. It is an upper bound on the work, not a measure of it.
 
 *Updated after each plan completion*
+| Phase 03 P05 | 32min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 01]: The deploy-step budget is a formula, not a number - S-5 measured that wrangler diffs the asset manifest — Three deploys with no content change between them uploaded 0 of 506 assets and 0 of 5,006 at the larger scale. One shard's deploy is roughly a fixed cost of six to seven seconds plus that shard's file count times roughly five milliseconds for the manifest pass, plus roughly four milliseconds per changed file. A single number would have been wrong, because the file count is the input that varies between shards and over time.
 - [Phase 01]: A 200 with a full body is the normal conditional-GET outcome - the mechanism is the publishers' cache state, not the egress path — S-3 corrected S-2's original reading that publishers ignore the conditional header. The ETags had gone stale between the passes, and a publisher whose CDN copy is fresh serves that copy directly with a 200 without ever consulting the client's If-None-Match. The conditional GET is implemented because it is the correct way to identify unchanged content, and a bandwidth budget cannot be built on 304s.
 - [Phase 01]: Four of the ten registry candidates are a registry problem, not an egress problem - no publisher blocked the Cloudflare egress — S-2's four failures reproduce identically from an ordinary client on an ordinary network, and S-3's runner reached the same six feeds and failed on the same four. Phase 2 inherits a task of replacing four dead candidates rather than a task of choosing between two fetch paths. Feed availability and terms of use remain Phase 2's legal gate.
+- [Phase 03]: The four 16-bit LSH bands cannot find paraphrased headlines, so the pipeline draws its candidates from the band probe and a merge-window scan together — Measured on the labelled fixture: 0 of the 92 same-event pairs collide on any of the four bands, with a median Hamming distance of 26 bits, and random fixture pairs collide at 1 in 1209. A band is 16 bits wide, so two paraphrases must agree on 16 specific bits. A pipeline built on the band probe alone would never have merged anything and the product would have been a single-outlet feed. The windowed scan is index-driven and bounded by the merge window, costing about 0.3 percent of the daily D1 row-read budget. The band definition itself is a Phase 3 design question that plan 03-05 did not reopen.
+- [Phase 03]: A cluster split never removes a stories row, and the dated correction note names the outlet — The split moves the row's cluster_id and migrates its story_sources row, so it can be undone and it does not depend on the 30-day raw-mention prune that Phase 1's open foreign-key blocker breaks. The note is published to a reader on a permanent URL, so it names the outlet rather than a source id. Plan 03-05 also found a second schema-level conflict for the same gap-closure pass: stories.cluster_id references clusters(id) while the project's convention is cluster_id = 0 for not-yet-clustered.
 
 ### Research Spikes (all seven assigned)
 
@@ -143,6 +146,22 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - **Two budgets were measured on a Windows workstation and must be re-measured on the CI runner before they are fixed as gates.** S-4's build timings and S-5's deploy timings are both I/O-bound, and both spikes say so in their RESULT files. The direction of the error is probably favourable — a Linux runner with a different filesystem is likely faster — but the project should not budget against the slower of the two without saying so.
 - **`shared/` is the contract for every later phase.** `shared/types.ts` holds the story schema, `shared/config/site.ts` the publication name, `shared/config/editions.ts` the eight editions and sections, `shared/config/free-tier-limits.ts` the only legal home of a ceiling value, `shared/contract/excerpt-budget.ts` the coded excerpt budget, `shared/contract/image-permanence.ts` the media lifetime and resolution rule, and `shared/templates/` the pure string builders (`head.ts` with `pageMeta()` and `renderHead()`, `typographic-fallback.ts` with the silent panel). None may be redefined downstream. **`shared/` is a directory, not a package — it holds no `package.json`, and `shared/__tests__/purity.test.ts` fails the build if it ever does, or if any shared module imports a runtime-specific module.**
 - **`wrangler/shards/route-table.json` is the single source of truth for the shard matrix.** The eight shard configs and the route table must change together — the route-table test asserts they agree. When a domain is bought (Phase 7, D-14), `zone_name` is the one value that changes, and it must change in the same commit as the eight configs, or the routes and the table disagree and the build fails.
+
+### Phase 03 Progress
+
+| Plan | Scope | Status | Summary |
+|------|-------|--------|---------|
+| 03-01 | Stoplist, SimHash-64 fingerprinting, LSH bands, anti-merge guards | ✅ Complete | `03-01-SUMMARY.md` |
+| 03-02 | Labelled 200-pair benchmark, D1 candidate query, two-gate clustering engine | ✅ Complete | `03-02-SUMMARY.md` |
+| 03-03 | Broadsheet trending score, 18-hour recency decay, Editor's Picks gate | ✅ Complete | `03-03-SUMMARY.md` |
+| 03-04 | Four-stage section resolver, bilingual gazetteer, cross-country edition flagging | ✅ Complete | `03-04-SUMMARY.md` |
+| 03-05 | Reversible cluster split with dated corrections, end-to-end curation pipeline | ✅ Complete | `03-05-SUMMARY.md` |
+
+**Note on CUR-11 (the one requirement Phase 3 does not fully deliver).** CUR-11 asks for every cluster to carry **topics** and named entities, each decision recording its method and confidence. The entity half is delivered and tested — the pipeline resolves gazetteer slugs to row ids and writes `story_entities` rows for the member stories. **The topic half is not implemented: there is no topic matcher in `config/lexicon.ts`, only `SECTION_KEYWORDS`, so the pipeline passes an empty topic list.** This is a phase-level gap, not a 03-05 gap: no plan in Phase 3 specified topic tagging, and the roadmap's Phase 3 exit criteria do list topics. It is recorded here and in `03-05-SUMMARY.md` so the phase verifier sees it rather than inferring it.
+
+**Note on the LSH bands (measured in plan 03-05).** The four 16-bit bands that the schema indexes cannot match paraphrased headlines: **0 of the 92 labelled same-event pairs** collide on any band, with a median Hamming distance of 26 bits, and random fixture pairs collide at 1 in 1,209. A band is 16 bits wide, so two paraphrases must agree on 16 specific bits — which a distance of 26 makes vanishingly unlikely. The band indexes remain in the schema and the band probe remains the first query the pipeline issues, but **the pipeline also scans the merge window**, which is what gives it recall. The window is driven by `idx_stories_published` and holds a day's worth of rows, so it costs about 0.3% of the daily D1 row-read budget. **If the recall is ever to be restored without the window, the fix belongs in the band definition — more, narrower bands — and therefore in the schema that carries them.**
+
+**Note on the cluster split and Phase 1's open foreign-key blocker.** The split **never removes a `stories` row**: it moves the row's `cluster_id` and migrates its `story_sources` row, so a split can be undone and it does not depend on the 30-day raw-mention prune that the four `NO ACTION` foreign keys to `stories(id)` break. Plan 03-05 also surfaced a **second** schema-level conflict for the same gap-closure pass: `stories.cluster_id` references `clusters(id)`, while the project's convention is `cluster_id = 0` for "not yet clustered" — a cluster that does not exist. The local ingest runner works around it with `PRAGMA foreign_keys = OFF`; on D1 the same insert would be refused if foreign keys are enforced.
 
 ### Phase 01 Progress
 
@@ -196,6 +215,6 @@ Items acknowledged and carried forward:
 
 ## Session Continuity
 
-Last session: 2026-10-21T06:53:03.594Z
+Last session: 2026-10-21T20:57:40.639Z
 Stopped at: Completed 01-06-PLAN.md
 Resume file: None

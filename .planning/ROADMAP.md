@@ -57,6 +57,7 @@ Seven spikes are concrete work items, not research topics. Each has an owner pha
 ## Phase Details
 
 ### Phase 1: Foundation, Free-Tier Contract & Architecture Decisions
+
 **Goal**: The delivery model, the shared data contract and the free-tier budget are decided, recorded and testable before any feature code exists, and the five architecture-changing spikes have been run.
 **Depends on**: Nothing (first phase)
 **Requirements**: OPS-01, OPS-04, OPS-14, MED-08, OPS-12, PUB-12, ING-02
@@ -66,6 +67,7 @@ Seven spikes are concrete work items, not research topics. Each has an owner pha
   3. The R2 lifecycle rules are scoped to the two growing prefixes only — `raw/` and `media/` — and the live rule listing shows no rule that can match the `og/` prefix or the bucket root.
   4. The written paid-plan decision rule names all three triggers (daily visitors approaching 4,000, a static project exceeding 20,000 files, any revenue) and lives in the same versioned file the audit Worker reads, so the rule and the budget can never drift apart.
   5. Spikes S-1, S-2, S-3, S-4 and S-5 have each been executed and their outcomes recorded, with the decision each one drove and the resulting change, if any, to the delivery model.
+
 **Plans**: 6 plans
 
 Plans:
@@ -80,6 +82,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [x] 01-06-PLAN.md — Spikes S-1 through S-5, executed and recorded with the decision each one drove
+
 **UI hint**: no
 **Work items**:
 - Repo scaffold: one `package.json`, one lockfile, no workspace protocol; `shared/types.ts`, `shared/sections.ts`, `shared/taxonomy.ts`, `shared/templates/*` (pure functions returning HTML strings, shared by every rendering tier), `shared/db/*.sql`.
@@ -91,9 +94,11 @@ Plans:
 - The excerpt budget written as a coded, tested rule in the normaliser contract (implementation and test land in Phase 2).
 - **Spikes S-1, S-2, S-3, S-4, S-5.**
 - **Parallel workstreams started here:** domain acquisition (deferred past launch by D-10; the accepted consequences are recorded in ADR 0004), and Track E taxonomy curation (the 30-outlet starter source registry and the eight-section lexicon seed).
+
 **Research flag**: YES, for spikes, not literature.
 
 ### Phase 2: Feed Acquisition, Raw Capture & Normalization
+
 **Goal**: Publisher feeds are fetched politely, captured raw, and turned into canonical story items under a hard excerpt budget, with one bad feed never able to affect another.
 **Depends on**: Phase 1
 **Requirements**: ING-01, ING-02, ING-03, ING-04, ING-06, ING-07, ING-08, ING-09, ING-10, CON-01, CON-02, CON-03, CON-04, CON-05
@@ -103,7 +108,14 @@ Plans:
   3. Every stored excerpt is at most 50 words, 320 characters, 2 sentences and 30% of the source article's visible text, truncated at a word boundary with a visible ellipsis, quoted verbatim or omitted and never paraphrased, synonymized or translated. A source article under 160 words publishes no excerpt, and a unit test fails the build on any violation.
   4. A feed whose item GUIDs change between polls is re-identified by its canonicalized source URL and produces no duplicate item. A feed that returns a non-XML body or exceeds 2 MB is quarantined for that feed only and reported with the reason, while every other feed continues to publish.
   5. Every feed is fetched only after its terms of use have been verified, with the verification date on its registry record. The fetch identifies itself with a descriptive User-Agent containing a contact URL, never exceeds 20 requests per host per hour, and honours `Retry-After` on a 429.
+
 **Plans**: TBD
+- [x] 02-01-PLAN.md
+- [x] 02-02-PLAN.md
+- [x] 02-03-PLAN.md
+- [x] 02-04-PLAN.md
+- [x] 02-05-PLAN.md
+
 **UI hint**: no
 **Work items**:
 - Source registry with per-outlet metadata, section priors, ETag, last-modified, consecutive-failure count, disabled-until timestamp and the terms-of-use verification ledger (launch-blocking legal gate).
@@ -111,9 +123,11 @@ Plans:
 - The CI transform stage: parse (`fast-xml-parser` with `ignoreAttributes:false`, `attributeNamePrefix:'@_'`, `trimValues:true`), normalize to `RawItem` across RSS 2.0, Atom and RDF including `dc:creator`, `media:content` and `content:encoded`, enforce the excerpt budget, write unclustered `stories` rows to D1.
 - The per-feed health model: `last_success_at`, `last_item_at`, GUID-stability flag, parse errors in 24 h, content type, bytes, consecutive failures, disabled-until, plus a freshness SLA per feed so a feed that stops producing is a **failure, not "no news"**.
 - The quarantine path for malformed, oversized and bot-protection responses.
+
 **Research flag**: YES, empirical and per publisher. Feed availability, bot protection, datacenter-IP blocking, GUID stability and terms of use must be measured per feed, not assumed.
 
 ### Phase 3: Curation Core: Clustering, Ranking & Enrichment
+
 **Goal**: Stories about the same event collapse into one entry listing every outlet that covered it, ranked by coverage and recency, and tagged well enough to place them in editions, sections, topics and entity pages.
 **Depends on**: Phase 2
 **Requirements**: CUR-01, CUR-02, CUR-03, CUR-04, CUR-05, CUR-06, CUR-07, CUR-10, CUR-11, CUR-12, CUR-13, CUR-14, CUR-15, CON-15
@@ -123,7 +137,16 @@ Plans:
   3. Two items whose entity sets are disjoint are never merged, and headline similarity is never considered without a shared non-generic entity and a close time window.
   4. A cluster's trending score decays with an 18-hour half-life and weights five distinct outlets above one outlet mentioned five times. The same score yields the same ordering for every reader of a given build, and a cluster with a coverage count of 1 is excluded from Editor's Picks.
   5. Every cluster carries topics, named entities and exactly one of the eight sections, every tagging and section decision records the method and confidence used, and model-extracted entities never generate entity pages.
-**Plans**: TBD
+
+**Plans**: 5 plans
+
+Plans:
+- [x] 03-01-PLAN.md — SimHash-64 fingerprinting, 4x16-bit LSH bands and the five anti-merge guards
+- [x] 03-02-PLAN.md — Labelled 200-pair merge benchmark and the two-gate clustering engine
+- [x] 03-03-PLAN.md — Broadsheet trending score, 18-hour recency decay and the Editor's Picks gate
+- [x] 03-04-PLAN.md — Four-stage section resolver, bilingual entity gazetteer and cross-country edition flagging
+- [x] 03-05-PLAN.md — Reversible cluster split with dated corrections, and the end-to-end curation pipeline
+
 **UI hint**: no
 **Work items**:
 - Fingerprinting: normalized token set, SimHash-64, four 16-bit LSH bands with the four band indexes.
@@ -135,9 +158,11 @@ Plans:
 - Trending score (`3.0*log2(1+distinct_outlets) + 1.0*log2(1+mentions) + 5.0*recency_decay(18h) + 0.8*min(1, distinct_sections-1)`), Most Covered ordering and Editor's Picks rank.
 - The labelled fixture (200 to 300 real headline pairs: same-event, different-event, related-but-distinct), re-labelled monthly.
 - **Spike S-7.**
+
 **Research flag**: YES, the highest-value research in the project. The deliverable is a measured precision and recall number.
 
 ### Phase 4: Broadsheet Design System & Astro Shell
+
 **Goal**: The visual language of a printed broadsheet (paper-white, ink-black, one accent, rules not cards) exists as a token set, a component library and an Astro shell that meets WCAG 2.2 AA and Core Web Vitals, and it is ready before any real content arrives.
 **Depends on**: Phase 1. **Runs in parallel with Phases 2 and 3 and must not be sequenced after Phase 3.**
 **Requirements**: DSN-01, DSN-02, DSN-03, DSN-04, DSN-05, DSN-06, DSN-07, DSN-08, DSN-09, DSN-10, DSN-11, DSN-12, DSN-13
@@ -147,6 +172,7 @@ Plans:
   3. Headlines and bylines keep their inter-word spacing in the built HTML, and a build that would strip it fails a visual-regression check rather than shipping silently.
   4. The page theme is locked so no section inverts against it. Grouping uses rules, dividers and negative space rather than card containers. The type scale, spacing and hairline rules all come from one token set shared by every template, and the news serif and the matching Devanagari serif are self-hosted under the SIL Open Font License.
   5. A Lighthouse run against the shell reports LCP under 2.5 s, INP under 200 ms and CLS under 0.1, the layout is usable with `prefers-reduced-motion: reduce`, and every page uses semantic landmarks with an unbroken `h1` to `h3` hierarchy and `time` elements for story times.
+
 **Plans**: TBD
 **UI hint**: yes - this phase defines the design system, the layout primitives, the theme and the responsive behaviour for every page that follows.
 **Work items**:
@@ -156,9 +182,11 @@ Plans:
 - Accessibility baseline: skip-to-content link, focus visible, focus not obscured by the sticky masthead (SC 2.4.11), contrast in both themes, semantic landmarks, `h1` to `h3` hierarchy, `prefers-reduced-motion`, 360 px usability with a one-column collapse at 640 px.
 - The Astro shell: routing table, layouts, shared template layer, `compressHTML: true` with a visual check on every inline-element template, the Rust-compiler-safe markup rules (no unclosed tags, no block elements inside `<p>`), `experimental.incrementalBuild` with `build.concurrency: 1`.
 - Design decisions governed by the `design-taste-frontend` skill (design variance 7, motion intensity 3, visual density 7).
+
 **Research flag**: NO, well-documented patterns. The one item worth checking is Devanagari font availability and licensing.
 
 ### Phase 5: Publication Surface: Editions, Story Tier & Media
+
 **Goal**: The paper itself is published: seven edition front pages, 56 section pages, archives, topic and entity pages, and exactly one permanent, edition-agnostic story URL per story, with images served locally from a single hostname.
 **Depends on**: Phases 2, 3, 4
 **Requirements**: PUB-01, PUB-02, PUB-03, PUB-04, PUB-05, PUB-06, PUB-07, PUB-08, PUB-09, PUB-10, PUB-11, PUB-12, PUB-13, PUB-14, PUB-15, PUB-16, PUB-17, PUB-18, MED-01, MED-02, MED-03, MED-04, MED-05, MED-06, MED-07, MED-09, CUR-08, CUR-09, CON-06, CON-07, CON-08, CON-10, OPS-09, OPS-10, OPS-11, OPS-12, OPS-13
@@ -168,6 +196,7 @@ Plans:
   3. A story's image is fetched, resized and stored exactly once, keyed by a hash of its source URL, with 1000 px and 400 px WebP variants and a 1200 by 630 JPEG Open Graph image, served from a custom media host with a one-year immutable cache and never from the default R2 development domain. An image that cannot be fetched renders a typographic fallback and never fails the build.
   4. An archive, section or topic page with no qualifying content returns 404 rather than a 200 with an empty list. A topic page appears only at five or more stories and an entity page only for a gazetteer-matched entity. Every indexable URL is reachable within three clicks of a front page through ordinary anchor links, no listing uses infinite scroll or auto-refresh, and the front page's content and ordering are identical for every visitor within a build cycle.
   5. The build re-renders only the clusters changed since the last successful build, reads its dataset from a single compressed snapshot object and never opens a datastore binding, runs in CI on a fixed schedule rather than a deploy hook, and the deployed static tier contains only editions, sections, archives, topic and entity pages and support files.
+
 **Plans**: TBD
 **UI hint**: yes - front pages, section pages, archives, topic and entity pages, the story page, the image treatment and the internal-link layout are all designed and rendered in this phase.
 **Work items**:
@@ -179,9 +208,11 @@ Plans:
 - Image discipline: explicit `width` and `height` on every `<img>`, `loading="lazy"` plus `decoding="async"` below the fold, `loading="eager"` plus `fetchpriority="high"` and preload for the lead image, `srcset` across variants, a visible "Photo: {Publisher}" credit, and alt text derived from the headline.
 - Automatic internal links between stories, topics, entities and editions, generated from the cluster graph.
 - The single-hostname routing table: all editions at locale path prefixes (`/uk/`, `/us/`, `/au/`, `/ca/`, `/ie/`, `/nz/`, `/in/`, `/in-hi/`), never subdomains.
+
 **Research flag**: NO, standard patterns. This phase needs measurement (the file manifest, the build duration), not research.
 
 ### Phase 6: Digest, Trust Layer & SEO/Discovery
+
 **Goal**: Every edition carries genuinely original prose and a complete, honest trust layer, and the whole site becomes technically compliant, discoverable and eligible for Google News.
 **Depends on**: Phase 5 (the MDX trust layer may start as soon as the Phase 4 shell exists)
 **Requirements**: CON-09, CON-11, CON-12, CON-13, CON-14, SEO-01, SEO-02, SEO-03, SEO-04, SEO-05, SEO-06, SEO-07, SEO-08, SEO-09, SEO-10, SEO-11, SEO-12, SEO-13, SEO-14, SEO-15, SEO-16, SEO-17, SEO-18, TRS-01, TRS-02, TRS-03, TRS-04, TRS-05, TRS-06, TRS-07, TRS-08, TRS-09, TRS-10, ING-05, GRO-10
@@ -191,6 +222,7 @@ Plans:
   3. Every page emits a self-referential canonical and no page ever emits a canonical pointing to a publisher's domain. Publisher attribution links are normal followed links carrying `rel="noopener"` and never `nofollow` or `sponsored`. Every page declares a correct `lang` attribute, including `en-IN` and `hi-IN`.
   4. The news sitemap covers only the last 48 hours, holds at most 1,000 entries per file, and carries correct publication name, language, publication date and title. A stable sitemap index references per-edition, per-year, topic and original-content sitemaps with `<lastmod>` tracking real data changes. robots.txt allows Googlebot-News, references the index, and disallows paginated and query-string variants without using `noindex`.
   5. hreflang is emitted only between the India English and India Hindi editions, as a bidirectional self-including set with `x-default` pointing at the global front page. An India English story with no genuine Hindi counterpart declares no `hi-IN` alternate. All editions share one site name matching `<news:name>` exactly, and the domain name and homepage title contain no language they are not written in.
+
 **Plans**: TBD
 **UI hint**: yes - the trust layer adds a new family of pages (About, Editorial Policy, Methodology, Corrections, Sources, Privacy, byline) and the digest page plus the visible automation-disclosure component must match the Phase 4 design system exactly.
 **Work items**:
@@ -205,9 +237,11 @@ Plans:
 - Publisher Center configuration (name, favicon, headquarters, contact, URL verification) and the News Showcase panel. Configuration, not an enrolment or approval gate.
 - Open Graph and Twitter card tags on story and section pages pointing at their dynamic image.
 - **Spike S-6** (entry gate for the Hindi digest).
+
 **Research flag**: PARTIAL. A written hreflang specification before implementation (a specification task, not more research), plus the Hindi digest bake-off.
 
 ### Phase 7: Operational Hardening, Rollout & Measurement
+
 **Goal**: The daily paper survives feed deaths, build failures and its own growth, and its health is measured rather than assumed.
 **Depends on**: Phases 5, 6
 **Requirements**: OPS-02, OPS-03, OPS-05, OPS-06, OPS-07, OPS-08, OPS-15, OPS-16, OPS-17, OPS-18, OPS-19, OPS-20, OPS-21, OPS-22, OPS-23, GRO-01, GRO-02, GRO-03, GRO-04, GRO-05, GRO-06, GRO-07, GRO-08, GRO-09
@@ -217,6 +251,7 @@ Plans:
   3. The site never returns a 5xx or a 429 to Googlebot, edge routing fails open on quota exhaustion so the site degrades rather than erroring, and a second overlapping build is refused by a build-in-progress guard.
   4. New pages are published at a rate of 50 to 500 per day and the rate is tracked daily. The index rate is tracked weekly against a target of at least 60% indexed by week 8. The Search Console manual actions report is reviewed weekly and is empty.
   5. Traffic is measured in Cloudflare Web Analytics and Google Search Console, and the custom-domain migration from the build subdomain uses 301 redirects with the sitemap and hreflang sets re-verified afterwards. A subscriber receives exactly one email per day for their edition, with the 300 per day cap monitored and the overflow policy decided before 250 subscribers, the signup form submitting server-side and sitting outside the critical rendering path. Each edition shows live weather with a visible "as of" timestamp and provider attribution that never fails the build. A reader can flag a source or report a factual error from a story page into a queue that produces a dated correction note.
+
 **Plans**: TBD
 **UI hint**: yes - the newsletter signup form, the weather panel, the "flag source" and "report an error" controls on the story page, and the internal usage-report page are new reader-facing surfaces.
 **Work items**:
@@ -228,6 +263,7 @@ Plans:
 - The newsletter (Brevo): edition-scoped signup, one subscriber to one edition to one email per day, the 300 per day cap monitored from day one, an overflow policy decided before 250 subscribers.
 - The weather panel (Open-Meteo): edition centroids and major cities, cached, with a visible "as of HH:MM" timestamp, source attribution and CC BY 4.0 attribution in the footer.
 - The rollout: a controlled publication rate of 50 to 500 pages per day with indexation monitoring, and the expectation-setting frame on leading indicators rather than calendar dates.
+
 **Research flag**: NO, standard observability and SRE patterns.
 
 ## Progress
@@ -237,8 +273,8 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation, Free-Tier Contract & Architecture Decisions | 6/6 | Complete | 2026-10-21 |
-| 2. Feed Acquisition, Raw Capture & Normalization | 0/TBD | Not started | - |
-| 3. Curation Core: Clustering, Ranking & Enrichment | 0/TBD | Not started | - |
+| 2. Feed Acquisition, Raw Capture & Normalization | 5/5 | In Progress | - |
+| 3. Curation Core: Clustering, Ranking & Enrichment | 5/5 | Complete | 2026-10-22 |
 | 4. Broadsheet Design System & Astro Shell | 0/TBD | Not started | - |
 | 5. Publication Surface: Editions, Story Tier & Media | 0/TBD | Not started | - |
 | 6. Digest, Trust Layer & SEO/Discovery | 0/TBD | Not started | - |

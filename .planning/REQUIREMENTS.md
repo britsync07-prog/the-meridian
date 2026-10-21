@@ -28,21 +28,21 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 
 ### Curation Core
 
-- [ ] **CUR-01**: Items describing the same event collapse into one cluster that lists every outlet that covered it
-- [ ] **CUR-02**: Cluster membership is stored per contributing item, so any merge can be split without losing the original outlet list
-- [ ] **CUR-03**: A split of a wrongly merged cluster publishes a dated correction note on the affected story URL
-- [ ] **CUR-04**: The merge rule requires agreement on a shared non-generic entity and a close time window before it will consider headline similarity
-- [ ] **CUR-05**: Two items whose entity sets are disjoint are never merged
-- [ ] **CUR-06**: The merge rule is validated against a hand-labelled fixture of at least 200 real headline pairs, with precision and recall measured and recorded
-- [ ] **CUR-07**: Every cluster carries a trending score that decays with an 18-hour half-life and weights distinct outlets three times more heavily than repeat mentions from one outlet
+- [x] **CUR-01**: Items describing the same event collapse into one cluster that lists every outlet that covered it
+- [x] **CUR-02**: Cluster membership is stored per contributing item, so any merge can be split without losing the original outlet list
+- [x] **CUR-03**: A split of a wrongly merged cluster publishes a dated correction note on the affected story URL
+- [x] **CUR-04**: The merge rule requires agreement on a shared non-generic entity and a close time window before it will consider headline similarity
+- [x] **CUR-05**: Two items whose entity sets are disjoint are never merged
+- [x] **CUR-06**: The merge rule is validated against a hand-labelled fixture of at least 200 real headline pairs, with precision and recall measured and recorded
+- [x] **CUR-07**: Every cluster carries a trending score that decays with an 18-hour half-life and weights distinct outlets three times more heavily than repeat mentions from one outlet
 - [ ] **CUR-08**: An edition front page shows a "Most Covered" ranking ordered by the trending score
 - [ ] **CUR-09**: An edition front page shows "Editor's Picks" selected by published, rules-based criteria
-- [ ] **CUR-10**: A cluster with a coverage count of 1 is excluded from Editor's Picks
+- [x] **CUR-10**: A cluster with a coverage count of 1 is excluded from Editor's Picks
 - [ ] **CUR-11**: Every cluster is tagged with topics and named entities, and each tagging decision records the method and confidence used
-- [ ] **CUR-12**: Named entities are matched against a curated per-country gazetteer before any model-based extraction runs, and model-extracted entities are not used to generate entity pages
-- [ ] **CUR-13**: A cluster is flagged for additional editions when its outlet country, entity country, or gazetteer match indicates relevance beyond its primary edition
-- [ ] **CUR-14**: A cluster is assigned to one of the eight sections, and every assignment records whether it came from the feed source, a section lexicon, or a model tie-break, along with a confidence value
-- [ ] **CUR-15**: The system ships a topic lexicon, an entity gazetteer, and a generic-token stop list per country, in English and Devanagari
+- [x] **CUR-12**: Named entities are matched against a curated per-country gazetteer before any model-based extraction runs, and model-extracted entities are not used to generate entity pages
+- [x] **CUR-13**: A cluster is flagged for additional editions when its outlet country, entity country, or gazetteer match indicates relevance beyond its primary edition
+- [x] **CUR-14**: A cluster is assigned to one of the eight sections, and every assignment records whether it came from the feed source, a section lexicon, or a model tie-break, along with a confidence value
+- [x] **CUR-15**: The system ships a topic lexicon, an entity gazetteer, and a generic-token stop list per country, in English and Devanagari
 
 ### Content Model
 
@@ -60,7 +60,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase.
 - [ ] **CON-12**: A digest reproduces no source headline verbatim, and at least 60 percent of its sentences appear in no source headline or excerpt
 - [ ] **CON-13**: A digest that fails the validation gate in CON-12 is not published
 - [ ] **CON-14**: Every digest, and every page containing automatically generated text, shows a visible notice that it was produced automatically
-- [ ] **CON-15**: A cluster's publication date is the earliest publication time among its members, and its modified date reflects a real change to the cluster
+- [x] **CON-15**: A cluster's publication date is the earliest publication time among its members, and its modified date reflects a real change to the cluster
 
 ### Publication Surface
 
@@ -254,21 +254,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ING-08 | Phase 2 | Pending |
 | ING-09 | Phase 2 | Pending |
 | ING-10 | Phase 2 | Complete |
-| CUR-01 | Phase 3 | Pending |
-| CUR-02 | Phase 3 | Pending |
-| CUR-03 | Phase 3 | Pending |
-| CUR-04 | Phase 3 | Pending |
-| CUR-05 | Phase 3 | Pending |
-| CUR-06 | Phase 3 | Pending |
-| CUR-07 | Phase 3 | Pending |
+| CUR-01 | Phase 3 | Complete |
+| CUR-02 | Phase 3 | Complete |
+| CUR-03 | Phase 3 | Complete |
+| CUR-04 | Phase 3 | Complete |
+| CUR-05 | Phase 3 | Complete |
+| CUR-06 | Phase 3 | Complete |
+| CUR-07 | Phase 3 | Complete |
 | CUR-08 | Phase 5 | Pending |
 | CUR-09 | Phase 5 | Pending |
-| CUR-10 | Phase 3 | Pending |
+| CUR-10 | Phase 3 | Complete |
 | CUR-11 | Phase 3 | Pending |
-| CUR-12 | Phase 3 | Pending |
-| CUR-13 | Phase 3 | Pending |
-| CUR-14 | Phase 3 | Pending |
-| CUR-15 | Phase 3 | Pending |
+| CUR-12 | Phase 3 | Complete |
+| CUR-13 | Phase 3 | Complete |
+| CUR-14 | Phase 3 | Complete |
+| CUR-15 | Phase 3 | Complete |
 | CON-01 | Phase 2 | Complete |
 | CON-02 | Phase 2 | Complete |
 | CON-03 | Phase 2 | Complete |
@@ -283,7 +283,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CON-12 | Phase 6 | Pending |
 | CON-13 | Phase 6 | Pending |
 | CON-14 | Phase 6 | Pending |
-| CON-15 | Phase 3 | Pending |
+| CON-15 | Phase 3 | Complete |
 | PUB-01 | Phase 5 | Pending |
 | PUB-02 | Phase 5 | Pending |
 | PUB-03 | Phase 5 | Pending |
@@ -409,6 +409,8 @@ Requirements whose *work* is split across phases. The **Traceability** table abo
 | CON-10 | Phase 5 | Phase 1 | The attribution-link policy (`rel="noopener"`, never `nofollow`/`sponsored`) is decided in the Phase 1 ADR and rendered by the Phase 5 story page. |
 | CON-07 | Phase 5 | Phase 7 | The at-least-4-of-6 value-element gate ships with the Phase 5 story renderer; Phase 7 extends it into the consolidated build-assertion suite (OPS-05/06/07). |
 | CUR-08, CUR-09 | Phase 5 | Phase 3 | The trending score and the Editor's Picks selection rule are Phase 3; the front-page modules that display them are Phase 5. |
+| CUR-03 | Phase 3 | Phase 5 | The dated correction note, its exact wording and the URL it belongs to are produced by the Phase 3 split workflow and recorded in the `corrections` table; the page that *displays* the note on the story URL is the Phase 5 story renderer. |
+| CUR-11 | Phase 3 | — | **Not delivered.** The entity half is delivered and tested — the pipeline resolves gazetteer slugs to row ids and writes `story_entities` rows with a primary flag. The **topic half is not implemented**: there is no topic matcher in `config/lexicon.ts` (only `SECTION_KEYWORDS`), so the pipeline attaches no topics. No plan in Phase 3 specified topic tagging, and the roadmap's Phase 3 exit criteria do list topics, so this is a phase-level gap carried by the phase verifier rather than by any one plan. |
 | MED-08 | Phase 1 | Phase 5 | The R2 lifecycle rule is configured in Phase 1 (PROJECT.md requires it in the first phase); the `media/` prefix it scopes is populated from Phase 5. |
 | OPS-12 | Phase 5 | Phase 1 | The tier split is decided in the Phase 1 delivery-model ADR; the deployed static-tier contents are verified in Phase 5. |
 | OPS-13 | Phase 5 | Phase 1 | The snapshot contract is designed in Phase 1; the build that reads only the snapshot lands in Phase 5. |
