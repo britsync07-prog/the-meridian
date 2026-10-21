@@ -19,7 +19,8 @@
     "r2:lifecycle:verify": "node scripts/cloudflare/verify-lifecycle.mjs",
     "shards:split": "node scripts/shards/split-output.mjs",
     "shards:deploy": "node scripts/shards/deploy-all.mjs",
-    "build:spike:s4": "node spikes/s-4-astro-throughput/generate.mjs"
+    "build:spike:s4": "node spikes/s-4-astro-throughput/generate.mjs",
+    "ingest:local": "tsx scripts/ingest/run-local.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "4.3.3",

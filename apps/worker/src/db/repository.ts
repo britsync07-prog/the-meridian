@@ -81,6 +81,20 @@ export interface StoryInsert {
   isPrimary: boolean;
 }
 
+/** The values a normalized raw story needs for bulk insertion (Phase 2 ingest). */
+export interface RawStoryInsert {
+  sourceId: number;
+  externalGuid: string;
+  headline: string;
+  excerpt: string | null;
+  url: string;
+  slug: string;
+  language: string;
+  publishedAt: string;
+  fetchedAt: string;
+  countryCode: string;
+}
+
 /* ──────────────────────────── The public surface ─────────────────────────── */
 
 export interface Repository {
@@ -88,6 +102,8 @@ export interface Repository {
   listActiveSources(): Promise<SourceRow[]>;
   /** Record one raw mention. */
   insertStory(row: StoryInsert): Promise<void>;
+  /** Bulk insert normalized raw stories, ignoring duplicate external GUIDs. */
+  batchInsertStories(stories: readonly RawStoryInsert[]): Promise<number>;
   /** The cluster with this slug, or null. */
   findClusterBySlug(slug: string): Promise<ClusterRow | null>;
   /** The outlets that covered a cluster, in display order. */
@@ -202,6 +218,58 @@ export function createRepository(env: MeridianEnv): Repository {
           row.isPrimary ? 1 : 0,
         )
         .run();
+    },
+
+    async batchInsertStories(stories: readonly RawStoryInsert[]): Promise<number> {
+      if (stories.length === 0) return 0;
+
+      const statement = db.prepare(
+        `INSERT INTO stories (
+           cluster_id, source_id, external_guid, headline, excerpt, url, slug, language,
+           published_at, fetched_at, simhash, band0, band1, band2, band3, country_code, is_primary
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(source_id, external_guid) DO NOTHING`,
+      );
+
+      const CHUNK_SIZE = 50;
+      let totalInserted = 0;
+
+      for (let i = 0; i < stories.length; i += CHUNK_SIZE) {
+        const chunk = stories.slice(i, i + CHUNK_SIZE);
+        const batch = chunk.map((story) =>
+          statement.bind(
+            0,
+            story.sourceId,
+            story.externalGuid,
+            story.headline,
+            story.excerpt,
+            story.url,
+            story.slug,
+            story.language,
+            story.publishedAt,
+            story.fetchedAt,
+            0,
+            0,
+            0,
+            0,
+            0,
+            story.countryCode,
+            0,
+          ),
+        );
+
+        const results = await db.batch(batch);
+        for (const res of results) {
+          const changes = (res as any)?.meta?.changes ?? (res as any)?.changes;
+          if (typeof changes === 'number') {
+            totalInserted += changes;
+          } else {
+            totalInserted += 1;
+          }
+        }
+      }
+
+      return totalInserted;
     },
 
     async findClusterBySlug(slug: string): Promise<ClusterRow | null> {

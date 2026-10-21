@@ -190,6 +190,7 @@ describe('createRepository', () => {
     const repository = createRepository(stubEnv());
     expect(Object.keys(repository).sort()).toEqual(
       [
+        'batchInsertStories',
         'countRows',
         'countTables',
         'findClusterBySlug',
@@ -202,6 +203,55 @@ describe('createRepository', () => {
         'updateSourceHealth',
       ].sort(),
     );
+  });
+
+  it('batchInsertStories executes chunked parameterized batch insertion for raw stories', async () => {
+    const executedBatches: { sql: string; bindings: unknown[] }[][] = [];
+    const batchMock = async (statements: unknown[]) => {
+      executedBatches.push(statements as { sql: string; bindings: unknown[] }[]);
+      return statements.map(() => ({ meta: { changes: 1 } }));
+    };
+
+    const mockDb = {
+      prepare(sql: string) {
+        return {
+          sql,
+          bind(...bindings: unknown[]) {
+            return { sql, bindings };
+          },
+        };
+      },
+      batch: batchMock,
+    };
+
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] })
+    );
+
+    const testStories = Array.from({ length: 55 }, (_, i) => ({
+      sourceId: 10,
+      externalGuid: `guid-${i}`,
+      headline: `Headline ${i}`,
+      excerpt: `Excerpt ${i}`,
+      url: `https://example.com/story-${i}`,
+      slug: `story-${i}`,
+      language: 'en',
+      publishedAt: '2026-10-21T10:00:00.000Z',
+      fetchedAt: '2026-10-21T10:05:00.000Z',
+      countryCode: 'GB',
+    }));
+
+    const insertedCount = await repository.batchInsertStories(testStories);
+    expect(insertedCount).toBe(55);
+    // Chunk size is 50 -> 55 items chunked into 2 batches (50 + 5)
+    expect(executedBatches.length).toBe(2);
+    expect(executedBatches[0].length).toBe(50);
+    expect(executedBatches[1].length).toBe(5);
+    expect(executedBatches[0][0].sql).toMatch(/INSERT INTO stories/i);
+    expect(executedBatches[0][0].sql).toMatch(/ON CONFLICT\(source_id, external_guid\) DO NOTHING/i);
+    expect(executedBatches[0][0].bindings[1]).toBe(10);
+    expect(executedBatches[0][0].bindings[2]).toBe('guid-0');
+    expect(executedBatches[0][0].bindings[3]).toBe('Headline 0');
   });
 
   it('syncSources prepares and executes batch upsert for sources', async () => {
