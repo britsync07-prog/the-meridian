@@ -236,8 +236,9 @@ None - no external service configuration required. The three spike projects were
 
 Every file, commit and claim in this summary was verified against the working tree.
 
-- **Files:** all 18 created files and 3 modified files exist on disk.
-- **Commits:** all seven commits exist in `git log` — `f04b2f4`, `d466f39`, `3b1ad10`, `90ce549`, `883a37d`, `6c86663`, `b1dad7d`.
+- **Files:** all 18 created files and 3 modified files exist on disk. `missing_count=0`.
+- **Commits:** all seven commits exist in `git log` — `f04b2f4`, `d466f39`, `3b1ad10`, `90ce549`, `883a37d`, `6c86663`, `b1dad7d`. The plan-metadata commit is `f19f904`.
+- **No file was deleted** by any commit in this plan (`git diff --diff-filter=D` over the plan's whole range is empty).
 - **`npm test -- --run` (full suite):** exits 0 — 12 test files, 134 tests, all passing. The suite was 123 tests across 11 files before this plan.
 - **`npm test -- --run spikes/__tests__/results.test.ts`:** exits 0 — 11 tests.
 - **`npm run typecheck`:** exits 0.
