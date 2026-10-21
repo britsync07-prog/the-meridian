@@ -107,21 +107,23 @@ function extractNumberedCategory(text: string, category: string): string | null 
     one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10',
     i: '1', ii: '2', iii: '3', iv: '4', v: '5', vi: '6',
     एक: '1', दो: '2', तीन: '3', चार: '4', पांच: '5',
+    पहला: '1', पहले: '1', दूसरा: '2', दूसरे: '2', तीसरा: '3', तीसरे: '3',
+    opening: '1', initial: '1', final: 'final',
   };
 
   let regex: RegExp;
   if (category === 'day') {
-    regex = /\b(?:day|दिन)\s*(\d+|one|two|three|four|five|six|seven|eight|nine|ten|एक|दो|तीन|चार|पांच)\b/iu;
+    regex = /(?<![\p{L}\p{N}])(?:day|दिन)\s*(\d+|one|two|three|four|five|six|seven|eight|nine|ten|एक|दो|तीन|चार|पांच)(?![\p{L}\p{N}])/iu;
   } else if (category === 'part') {
-    regex = /\b(?:part|भाग)\s*(\d+|one|two|three|four|five|i|ii|iii|iv|v|vi|एक|दो|तीन|चार)\b/iu;
+    regex = /(?<![\p{L}\p{N}])(?:part|भाग)\s*(\d+|one|two|three|four|five|i|ii|iii|iv|v|vi|एक|दो|तीन|चार)(?![\p{L}\p{N}])/iu;
   } else if (category === 'stage') {
-    regex = /\b(?:stage|चरण)\s*(\d+|one|two|three|four|five|एक|दो|तीन|चार)\b/iu;
+    regex = /(?<![\p{L}\p{N}])(?:(?:stage|चरण)\s*(\d+|one|two|three|four|five|opening|initial|final|पहला|दूसरा|तीसरा|एक|दो|तीन|चार)|(पहला|पहले|दूसरा|दूसरे|तीसरा|तीसरे|opening|initial|final)\s+(?:stage|चरण))(?![\p{L}\p{N}])/iu;
   } else if (category === 'game') {
-    regex = /\bgame\s*(\d+|one|two|three|four|five|six|seven)\b/iu;
+    regex = /(?<![\p{L}\p{N}])game\s*(\d+|one|two|three|four|five|six|seven)(?![\p{L}\p{N}])/iu;
   } else if (category === 'leg') {
-    regex = /\b(?:leg\s*(\d+|one|two)|(first|second|1st|2nd)\s+leg)\b/iu;
+    regex = /(?<![\p{L}\p{N}])(?:leg\s*(\d+|one|two)|(first|second|1st|2nd)\s+leg)(?![\p{L}\p{N}])/iu;
   } else if (category === 'test') {
-    regex = /\b(?:test\s*(\d+|one|two|three|four|five)|(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th)\s+test)\b/iu;
+    regex = /(?<![\p{L}\p{N}])(?:test\s*(\d+|one|two|three|four|five)|(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th)\s+test)(?![\p{L}\p{N}])/iu;
   } else {
     return null;
   }
@@ -137,26 +139,32 @@ function extractNumberedCategory(text: string, category: string): string | null 
  * Helper to extract tournament stages (Round 1, Round of 16, Quarter-final, Semi-final, Final).
  */
 function extractTournamentRound(text: string): string | null {
-  if (/\b(?:quarter-?finals?|quarters?)\b/iu.test(text)) {
+  if (/(?<![\p{L}\p{N}])(?:quarter-?finals?|quarters?|क्वार्टर\s*फाइनल)(?![\p{L}\p{N}])/iu.test(text)) {
     return 'quarter_final';
   }
-  if (/\b(?:semi-?finals?|semis?)\b/iu.test(text)) {
+  if (/(?<![\p{L}\p{N}])(?:semi-?finals?|semis?|सेमी\s*फाइनल)(?![\p{L}\p{N}])/iu.test(text)) {
     return 'semi_final';
   }
-  if (/\b(?:round\s*of\s*64|r64)\b/iu.test(text)) {
+  if (/(?<![\p{L}\p{N}])(?:preliminary\s+finals?|prelims?)(?![\p{L}\p{N}])/iu.test(text)) {
+    return 'preliminary_final';
+  }
+  if (/(?<![\p{L}\p{N}])(?:round\s*of\s*64|r64)(?![\p{L}\p{N}])/iu.test(text)) {
     return 'round_of_64';
   }
-  if (/\b(?:round\s*of\s*32|r32)\b/iu.test(text)) {
+  if (/(?<![\p{L}\p{N}])(?:round\s*of\s*32|r32)(?![\p{L}\p{N}])/iu.test(text)) {
     return 'round_of_32';
   }
-  if (/\b(?:round\s*of\s*16|r16|last\s*16)\b/iu.test(text)) {
+  if (/(?<![\p{L}\p{N}])(?:round\s*of\s*16|r16|last\s*16)(?![\p{L}\p{N}])/iu.test(text)) {
     return 'round_of_16';
   }
-  const roundNumMatch = text.match(/\bround\s*(\d+)\b/iu);
+  if (/(?<![\p{L}\p{N}])(?:league\s+stage|लीग\s+चरण)(?![\p{L}\p{N}])/iu.test(text)) {
+    return 'league_stage';
+  }
+  const roundNumMatch = text.match(/(?<![\p{L}\p{N}])round\s*(\d+)(?![\p{L}\p{N}])/iu);
   if (roundNumMatch) {
     return `round_${roundNumMatch[1]}`;
   }
-  const ordinalRoundMatch = text.match(/\b(first|second|third|fourth|1st|2nd|3rd|4th)\s+round\b/iu);
+  const ordinalRoundMatch = text.match(/(?<![\p{L}\p{N}])(first|second|third|fourth|1st|2nd|3rd|4th)\s+round(?![\p{L}\p{N}])/iu);
   if (ordinalRoundMatch) {
     const map: Record<string, string> = {
       first: '1', '1st': '1',
@@ -166,7 +174,7 @@ function extractTournamentRound(text: string): string | null {
     };
     return `round_${map[ordinalRoundMatch[1].toLowerCase()] || ordinalRoundMatch[1]}`;
   }
-  if (/\b(?:grand\s+final|cup\s+final|world\s+cup\s+final|tournament\s+final|reaches?\s+final|into\s+final|clashes?\s+in\s+final)\b/iu.test(text)) {
+  if (/(?<![\p{L}\p{N}])(?:grand\s+final|cup\s+final|world\s+cup\s+final|tournament\s+final|in\s+final|into\s+final|reaches?\s+final|clashes?\s+in\s+final|\bfinal\b)(?![\p{L}\p{N}])/iu.test(text)) {
     return 'final';
   }
 
@@ -201,37 +209,39 @@ export function checkOrdinalAndRoundConflict(headlineA: string, headlineB: strin
  * Rejects items differing in temporal aspects (e.g. morning vs evening, Friday vs Saturday).
  */
 export function checkAspectMarkerConflict(headlineA: string, headlineB: string): boolean {
+  const ub = (pattern: string) => new RegExp(`(?<![\\p{L}\\p{N}])${pattern}(?![\\p{L}\\p{N}])`, 'iu');
+
   const aspectDimensions = [
     // Time of day
     {
       name: 'time_of_day',
       markers: [
-        { key: 'morning', regex: /\b(?:morning|सुबह)\b/iu },
-        { key: 'afternoon', regex: /\b(?:afternoon|दोपहर)\b/iu },
-        { key: 'evening', regex: /\b(?:evening|शाम)\b/iu },
-        { key: 'night', regex: /\b(?:night|tonight|रात)\b/iu },
+        { key: 'morning', regex: ub('(?:morning|सुबह)') },
+        { key: 'afternoon', regex: ub('(?:afternoon|दोपहर)') },
+        { key: 'evening', regex: ub('(?:evening|शाम)') },
+        { key: 'night', regex: ub('(?:night|tonight|रात)') },
       ],
     },
     // Days of the week
     {
       name: 'day_of_week',
       markers: [
-        { key: 'mon', regex: /\b(?:monday|सोमवार)\b/iu },
-        { key: 'tue', regex: /\b(?:tuesday|मंगलवार)\b/iu },
-        { key: 'wed', regex: /\b(?:wednesday|बुधवार)\b/iu },
-        { key: 'thu', regex: /\b(?:thursday|गुरुवार)\b/iu },
-        { key: 'fri', regex: /\b(?:friday|शुक्रवार)\b/iu },
-        { key: 'sat', regex: /\b(?:saturday|शनिवार)\b/iu },
-        { key: 'sun', regex: /\b(?:sunday|रविवार)\b/iu },
+        { key: 'mon', regex: ub('(?:monday|सोमवार)') },
+        { key: 'tue', regex: ub('(?:tuesday|मंगलवार)') },
+        { key: 'wed', regex: ub('(?:wednesday|बुधवार)') },
+        { key: 'thu', regex: ub('(?:thursday|गुरुवार)') },
+        { key: 'fri', regex: ub('(?:friday|शुक्रवार)') },
+        { key: 'sat', regex: ub('(?:saturday|शनिवार)') },
+        { key: 'sun', regex: ub('(?:sunday|रविवार)') },
       ],
     },
     // Relative days
     {
       name: 'relative_day',
       markers: [
-        { key: 'yesterday', regex: /\b(?:yesterday|बीते कल)\b/iu },
-        { key: 'today', regex: /\b(?:today|आज)\b/iu },
-        { key: 'tomorrow', regex: /\b(?:tomorrow)\b/iu },
+        { key: 'yesterday', regex: ub('(?:yesterday|बीते कल)') },
+        { key: 'today', regex: ub('(?:today|आज)') },
+        { key: 'tomorrow', regex: ub('(?:tomorrow)') },
       ],
     },
   ];
