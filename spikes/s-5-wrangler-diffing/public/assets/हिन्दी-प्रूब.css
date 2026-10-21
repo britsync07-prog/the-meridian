@@ -1,0 +1,5 @@
+/* S-5 probe: a non-ASCII path, because the upload manifest has to carry
+   non-ASCII names intact. */
+.हिन्दी-प्रूब {
+  display: block;
+}

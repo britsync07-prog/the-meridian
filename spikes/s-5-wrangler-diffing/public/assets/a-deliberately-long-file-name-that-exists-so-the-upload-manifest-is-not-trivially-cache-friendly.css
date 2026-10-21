@@ -1,0 +1,5 @@
+/* S-5 probe: a long file name, so the upload manifest is exercised against a
+   path shape the short names do not cover. */
+.probe-long-name {
+  display: block;
+}

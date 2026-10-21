@@ -1,0 +1,4 @@
+S-5 probe: a nested asset, so the upload manifest carries a directory level
+that a flat asset set does not.
+
+This file's bytes never change between the two deploys.
