@@ -233,3 +233,23 @@ The plan was written against an unverified implementation. Sixteen defects were 
 
 - `475e747` — `feat(curation): reversible cluster split with dated correction notes (CUR-02, CUR-03)`
 - `4558ec6` — `feat(curation): end-to-end curation pipeline orchestrator (CUR-01..CUR-15, CON-15)`
+- `9295d63` — `docs(curation): add 03-05-SUMMARY.md`
+
+## Self-Check: PASSED
+
+Every file this plan claims to have created exists, and every commit it claims to have made is in the history:
+
+| Claim | Check | Result |
+|---|---|---|
+| `src/curation/split.ts` | file present | ✅ |
+| `src/curation/pipeline.ts` | file present | ✅ |
+| `scripts/curation/split-cluster.ts` | file present | ✅ |
+| `apps/worker/src/db/repository.ts` | file present, purity scan green | ✅ |
+| `tests/curation/split.test.ts` | file present, 11 tests green | ✅ |
+| `tests/curation/split-cli.test.ts` | file present, 2 tests green | ✅ |
+| `tests/curation/curation-pipeline.test.ts` | file present, 11 tests green | ✅ |
+| `tests/curation/d1-harness.ts` | file present | ✅ |
+| `475e747`, `4558ec6`, `9295d63` | in `git log --all` | ✅ |
+| `package.json` `cluster:split` script | present and executable | ✅ |
+
+**Nothing is missing.** The working tree is clean and the whole repository is green: 349 tests across 34 files, `npm run typecheck` clean, `npm run build` clean.
