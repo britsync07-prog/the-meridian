@@ -94,3 +94,34 @@ export interface PageMeta {
   htmlLang: string;
   alternates: HreflangAlternate[];
 }
+
+/** One record in the canonical feed source registry. */
+export interface SourceRegistryEntry {
+  slug: string;
+  name: string;
+  homepageUrl: string;
+  feedUrl: string;
+  countryCode: 'GB' | 'US' | 'AU' | 'CA' | 'IE' | 'NZ' | 'IN';
+  language: 'en' | 'hi';
+  defaultSection?: SectionId;
+  sectionPrior: Partial<Record<SectionId, number>>;
+  freshnessSlaHours: number; // 24 for wire/daily, 48 for regional
+  isActive: boolean;
+  termsStatus: 'verified' | 'unverified' | 'refused';
+  termsVerifiedAt: string | null; // ISO YYYY-MM-DD
+  verifiedBy: string | null;      // Auditor name or id
+  termsUrl: string | null;        // Canonical terms URL
+}
+
+/** Operational log of a feed fetch attempt. */
+export interface FeedFetchLog {
+  sourceId: number;
+  fetchedAt: string;
+  httpStatus: number | null;
+  bytes: number | null;
+  itemCount: number | null;
+  newItems: number | null;
+  durationMs: number | null;
+  error: string | null;
+}
+

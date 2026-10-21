@@ -9,6 +9,7 @@ export default defineConfig({
       'apps/**/*.test.ts',
       'scripts/**/*.test.ts',
       'spikes/**/*.test.ts',
+      'tests/**/*.test.ts',
     ],
     // `include` must never reach into build output or dependency trees.
     exclude: [
