@@ -20,6 +20,7 @@ export interface RawItem {
   author: string | null;
   publishedAt: string;
   imageUrl: string | null;
+  imageCredit?: string | null;
   sectionHint: SectionId | null;
 }
 

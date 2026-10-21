@@ -19,11 +19,14 @@
     }
   },
   "include": [
+    "src/**/*",
     "shared/**/*",
+    "config/**/*",
     "apps/site/src/**/*",
     "apps/worker/src/**/*",
     "scripts/**/*",
     "spikes/**/*",
+    "tests/**/*",
     "vitest.config.ts"
   ]
 }
