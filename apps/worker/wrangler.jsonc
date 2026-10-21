@@ -16,5 +16,18 @@
   ],
   "r2_buckets": [
     { "binding": "R2", "bucket_name": "meridian" }
+  ],
+  "triggers": {
+    "crons": [
+      "0,15,30,45 * * * *",
+      "5,20,35,50 * * * *",
+      "10,25,40,55 * * * *"
+    ]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "placeholder-kv-feed-state"
+    }
   ]
 }

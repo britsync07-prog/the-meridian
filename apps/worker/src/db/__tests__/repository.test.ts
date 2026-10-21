@@ -92,6 +92,7 @@ function stubEnv(overrides: Partial<MeridianEnv> = {}): MeridianEnv {
   return {
     DB: { __dbId: '11111111-2222-3333-4444-555555555555' } as MeridianEnv['DB'],
     R2: {} as MeridianEnv['R2'],
+    KV: {} as MeridianEnv['KV'],
     ...overrides,
   };
 }
@@ -224,10 +225,9 @@ describe('createRepository', () => {
       batch: batchMock,
     };
 
-    const repository = createRepository({
-      DB: mockDb as unknown as MeridianEnv['DB'],
-      R2: {} as MeridianEnv['R2'],
-    });
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] })
+    );
 
     await repository.syncSources([
       {
@@ -273,10 +273,9 @@ describe('createRepository', () => {
       },
     };
 
-    const repository = createRepository({
-      DB: mockDb as unknown as MeridianEnv['DB'],
-      R2: {} as MeridianEnv['R2'],
-    });
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] })
+    );
 
     await repository.recordFeedFetch({
       sourceId: 42,
@@ -320,10 +319,9 @@ describe('createRepository', () => {
       },
     };
 
-    const repository = createRepository({
-      DB: mockDb as unknown as MeridianEnv['DB'],
-      R2: {} as MeridianEnv['R2'],
-    });
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] })
+    );
 
     await repository.updateSourceHealth(99, {
       status: 503,

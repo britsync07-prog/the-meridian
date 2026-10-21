@@ -39,6 +39,8 @@ export interface MeridianEnv {
   DB: D1Binding;
   /** The R2 binding. Created in plan 01-04. */
   R2: R2Bucket;
+  /** The KV binding for feed polling state (ETag, Last-Modified, etc). */
+  KV: KVNamespace;
   /**
    * An optional Worker text variable that overrides the binding's database
    * id. This is what makes "point the project at a different database" a
