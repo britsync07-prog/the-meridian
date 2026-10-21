@@ -147,4 +147,93 @@ describe('Bilingual Entity Gazetteer & Lexicons (CUR-12, CUR-15, Task 1)', () =>
       expect(slugs).toContain('united-nations');
     });
   });
+
+  describe('Cross-Country Edition Flagging (CUR-13, Task 3)', () => {
+    it('flags edition based on outlet country with reason "source"', () => {
+      const flags = determineEditionFlags({
+        outletCountries: ['GB'],
+        matchedEntities: [],
+      });
+
+      expect(flags).toHaveLength(1);
+      expect(flags[0]).toEqual({
+        editionId: 'uk',
+        reason: 'source',
+        confidence: 1.0,
+      });
+    });
+
+    it('flags edition based on matched entity country with reason "entity"', () => {
+      const usEntity = GAZETTEER_ENTITIES.find((e) => e.slug === 'joe-biden')!;
+      expect(usEntity).toBeDefined();
+
+      const flags = determineEditionFlags({
+        outletCountries: [],
+        matchedEntities: [usEntity],
+      });
+
+      expect(flags).toHaveLength(1);
+      expect(flags[0]).toEqual({
+        editionId: 'us',
+        reason: 'entity',
+        confidence: 0.9,
+      });
+    });
+
+    it('flags all 7 English editions when cluster mentions supranational entity', () => {
+      const unEntity = GAZETTEER_ENTITIES.find((e) => e.slug === 'united-nations')!;
+      expect(unEntity.isSupranational).toBe(true);
+
+      const flags = determineEditionFlags({
+        outletCountries: [],
+        matchedEntities: [unEntity],
+      });
+
+      expect(flags).toHaveLength(7);
+      const editionIds = flags.map((f) => f.editionId).sort();
+      expect(editionIds).toEqual(['au', 'ca', 'ie', 'in', 'nz', 'uk', 'us']);
+      for (const flag of flags) {
+        expect(flag.reason).toBe('gazetteer');
+        expect(flag.confidence).toBe(0.85);
+      }
+    });
+
+    it('flags all 7 English editions when cluster is marked wire breaking', () => {
+      const flags = determineEditionFlags({
+        outletCountries: [],
+        matchedEntities: [],
+        isWireBreaking: true,
+      });
+
+      expect(flags).toHaveLength(7);
+      for (const flag of flags) {
+        expect(flag.reason).toBe('wire');
+        expect(flag.confidence).toBe(0.95);
+      }
+    });
+
+    it('prioritizes source reason (conf 1.0) over supranational gazetteer reason (conf 0.85)', () => {
+      const unEntity = GAZETTEER_ENTITIES.find((e) => e.slug === 'united-nations')!;
+
+      const flags = determineEditionFlags({
+        outletCountries: ['GB'], // 'uk' will have 'source'
+        matchedEntities: [unEntity], // all 7 will have 'gazetteer'
+      });
+
+      expect(flags).toHaveLength(7);
+      const ukFlag = flags.find((f) => f.editionId === 'uk');
+      expect(ukFlag).toEqual({
+        editionId: 'uk',
+        reason: 'source',
+        confidence: 1.0,
+      });
+
+      const usFlag = flags.find((f) => f.editionId === 'us');
+      expect(usFlag).toEqual({
+        editionId: 'us',
+        reason: 'gazetteer',
+        confidence: 0.85,
+      });
+    });
+  });
 });

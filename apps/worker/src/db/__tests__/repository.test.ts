@@ -190,6 +190,7 @@ describe('createRepository', () => {
     const repository = createRepository(stubEnv());
     expect(Object.keys(repository).sort()).toEqual(
       [
+        'assignClusterTaxonomy',
         'batchInsertStories',
         'batchUpdateTrendingScores',
         'countRows',
@@ -202,6 +203,7 @@ describe('createRepository', () => {
         'listStoriesForCluster',
         'recordFeedFetch',
         'syncSources',
+        'syncTaxonomyAndEntities',
         'updateSourceHealth',
       ].sort(),
     );
@@ -534,6 +536,155 @@ describe('createRepository', () => {
 
     await repository.batchUpdateTrendingScores([]);
     expect(batchCalled).toBe(false);
+  });
+
+  it('syncTaxonomyAndEntities prepares batch upserts for topics and entities', async () => {
+    const executedStatements: { sql: string; bindings: unknown[] }[] = [];
+    const batchMock = async (statements: unknown[]) => {
+      for (const s of statements as { sql: string; bindings: unknown[] }[]) {
+        executedStatements.push(s);
+      }
+      return [];
+    };
+
+    const mockDb = {
+      prepare(sql: string) {
+        return {
+          sql,
+          bind(...bindings: unknown[]) {
+            return { sql, bindings };
+          },
+        };
+      },
+      batch: batchMock,
+    };
+
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.syncTaxonomyAndEntities(
+      [
+        { slug: 'uk-general-election', name: 'UK General Election' },
+      ],
+      [
+        {
+          slug: 'keir-starmer',
+          name: 'Keir Starmer',
+          entityType: 'person',
+          countryCode: 'GB',
+        },
+      ],
+    );
+
+    expect(executedStatements.length).toBe(2);
+
+    // Topic statement check
+    expect(executedStatements[0].sql).toMatch(/INSERT INTO topics/i);
+    expect(executedStatements[0].sql).toMatch(/ON CONFLICT\(slug\) DO UPDATE SET/i);
+    expect(executedStatements[0].bindings).toEqual([
+      'uk-general-election',
+      'UK General Election',
+      'topic',
+    ]);
+
+    // Entity statement check
+    expect(executedStatements[1].sql).toMatch(/INSERT INTO entities/i);
+    expect(executedStatements[1].sql).toMatch(/ON CONFLICT\(slug\) DO UPDATE SET/i);
+    expect(executedStatements[1].bindings).toEqual([
+      'keir-starmer',
+      'Keir Starmer',
+      'person',
+      'GB',
+    ]);
+  });
+
+  it('assignClusterTaxonomy batches updates across cluster, sections, editions, topics, and entities', async () => {
+    const executedStatements: { sql: string; bindings: unknown[] }[] = [];
+    const batchMock = async (statements: unknown[]) => {
+      for (const s of statements as { sql: string; bindings: unknown[] }[]) {
+        executedStatements.push(s);
+      }
+      return [];
+    };
+
+    const mockDb = {
+      prepare(sql: string) {
+        return {
+          sql,
+          bind(...bindings: unknown[]) {
+            return { sql, bindings };
+          },
+        };
+      },
+      batch: batchMock,
+    };
+
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.assignClusterTaxonomy(
+      101,
+      { sectionId: 1, confidence: 0.95, method: 'lexicon' },
+      [
+        {
+          editionId: 2,
+          publishedAt: '2026-10-21T10:00:00.000Z',
+          reason: 'source',
+          confidence: 1.0,
+        },
+        {
+          editionId: 3,
+          publishedAt: '2026-10-21T10:00:00.000Z',
+          reason: 'entity',
+          confidence: 0.9,
+        },
+      ],
+      [10, 11],
+      [
+        { entityId: 201, isPrimary: true },
+        { entityId: 202, isPrimary: false },
+      ],
+    );
+
+    // Total statements: 1 (update clusters) + 1 (cluster_sections) + 2 (edition_clusters) + 2 (story_topics) + 2 (story_entities) = 8
+    expect(executedStatements.length).toBe(8);
+
+    // Statement 0: UPDATE clusters
+    expect(executedStatements[0].sql).toMatch(/UPDATE clusters/i);
+    expect(executedStatements[0].bindings).toEqual([1, 0.95, 'lexicon', 101]);
+
+    // Statement 1: INSERT INTO cluster_sections
+    expect(executedStatements[1].sql).toMatch(/INSERT INTO cluster_sections/i);
+    expect(executedStatements[1].bindings).toEqual([101, 1, 0.95, 'lexicon']);
+
+    // Statement 2 & 3: INSERT INTO edition_clusters
+    expect(executedStatements[2].sql).toMatch(/INSERT INTO edition_clusters/i);
+    expect(executedStatements[2].bindings).toEqual([
+      2,
+      101,
+      '2026-10-21T10:00:00.000Z',
+      'source',
+      1.0,
+    ]);
+    expect(executedStatements[3].bindings).toEqual([
+      3,
+      101,
+      '2026-10-21T10:00:00.000Z',
+      'entity',
+      0.9,
+    ]);
+
+    // Statement 4 & 5: INSERT INTO story_topics
+    expect(executedStatements[4].sql).toMatch(/INSERT INTO story_topics/i);
+    expect(executedStatements[4].bindings).toEqual([101, 10, 1.0]);
+    expect(executedStatements[5].bindings).toEqual([101, 11, 1.0]);
+
+    // Statement 6 & 7: INSERT INTO story_entities
+    expect(executedStatements[6].sql).toMatch(/INSERT INTO story_entities/i);
+    expect(executedStatements[6].bindings).toEqual([101, 201, 1.0, 1]);
+    expect(executedStatements[7].bindings).toEqual([101, 202, 1.0, 0]);
   });
 
   it('refuses to count a table that is not on the allow-list', async () => {

@@ -161,6 +161,19 @@ export interface Repository {
   ): Promise<LshCandidateRow[]>;
   /** Update trending scores, editorial ranks, and score timestamps in batches (D-12, CUR-07, CUR-10). */
   batchUpdateTrendingScores(scoreUpdates: readonly ClusterScoreUpdate[]): Promise<void>;
+  /** Synchronize taxonomy topics and gazetteer entities into D1 (CUR-11, CUR-15). */
+  syncTaxonomyAndEntities(
+    topics: readonly { slug: string; name: string }[],
+    entities: readonly { slug: string; name: string; entityType: string; countryCode: string | null }[],
+  ): Promise<void>;
+  /** Assign section, cross-country editions, topics, and entities to a cluster (CUR-11, CUR-13, CUR-14). */
+  assignClusterTaxonomy(
+    clusterId: number,
+    sectionAssignment: { sectionId: number; confidence: number; method: string },
+    editionFlags: readonly { editionId: number; publishedAt: string; reason: string; confidence: number }[],
+    topicIds: readonly number[],
+    entityIds: readonly { entityId: number; isPrimary: boolean }[],
+  ): Promise<void>;
 }
 
 /**
@@ -516,6 +529,157 @@ export function createRepository(env: MeridianEnv): Repository {
           ),
         );
         await db.batch(batch);
+      }
+    },
+
+    async syncTaxonomyAndEntities(
+      topics: readonly { slug: string; name: string }[],
+      entities: readonly { slug: string; name: string; entityType: string; countryCode: string | null }[],
+    ): Promise<void> {
+      const statements: unknown[] = [];
+
+      const topicStmt = db.prepare(
+        `INSERT INTO topics (
+           slug, name, kind
+         ) VALUES (?, ?, ?)
+         ON CONFLICT(slug) DO UPDATE SET
+           name = excluded.name`,
+      );
+      for (const topic of topics) {
+        statements.push(topicStmt.bind(topic.slug, topic.name, 'topic'));
+      }
+
+      const entityStmt = db.prepare(
+        `INSERT INTO entities (
+           slug, name, type, country_code
+         ) VALUES (?, ?, ?, ?)
+         ON CONFLICT(slug) DO UPDATE SET
+           name = excluded.name,
+           type = excluded.type,
+           country_code = excluded.country_code`,
+      );
+      for (const entity of entities) {
+        statements.push(
+          entityStmt.bind(
+            entity.slug,
+            entity.name,
+            entity.entityType,
+            entity.countryCode,
+          ),
+        );
+      }
+
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < statements.length; i += CHUNK_SIZE) {
+        const chunk = statements.slice(i, i + CHUNK_SIZE);
+        await db.batch(chunk as any);
+      }
+    },
+
+    async assignClusterTaxonomy(
+      clusterId: number,
+      sectionAssignment: { sectionId: number; confidence: number; method: string },
+      editionFlags: readonly { editionId: number; publishedAt: string; reason: string; confidence: number }[],
+      topicIds: readonly number[],
+      entityIds: readonly { entityId: number; isPrimary: boolean }[],
+    ): Promise<void> {
+      const statements: unknown[] = [];
+
+      // 1. Update cluster desk assignment & audit logging
+      statements.push(
+        db
+          .prepare(
+            `UPDATE clusters
+                SET primary_section_id = ?,
+                    section_confidence = ?,
+                    section_method = ?
+              WHERE id = ?`,
+          )
+          .bind(
+            sectionAssignment.sectionId,
+            sectionAssignment.confidence,
+            sectionAssignment.method,
+            clusterId,
+          ),
+      );
+
+      // 2. Insert or update cluster_sections
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO cluster_sections (
+               cluster_id, section_id, confidence, method
+             ) VALUES (?, ?, ?, ?)
+             ON CONFLICT(cluster_id, section_id) DO UPDATE SET
+               confidence = excluded.confidence,
+               method = excluded.method`,
+          )
+          .bind(
+            clusterId,
+            sectionAssignment.sectionId,
+            sectionAssignment.confidence,
+            sectionAssignment.method,
+          ),
+      );
+
+      // 3. Insert or update edition_clusters
+      const editionStmt = db.prepare(
+        `INSERT INTO edition_clusters (
+           edition_id, cluster_id, published_at, reason, confidence
+         ) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(edition_id, cluster_id) DO UPDATE SET
+           published_at = excluded.published_at,
+           reason = excluded.reason,
+           confidence = excluded.confidence`,
+      );
+      for (const flag of editionFlags) {
+        statements.push(
+          editionStmt.bind(
+            flag.editionId,
+            clusterId,
+            flag.publishedAt,
+            flag.reason,
+            flag.confidence,
+          ),
+        );
+      }
+
+      // 4. Insert or update story_topics
+      const topicStmt = db.prepare(
+        `INSERT INTO story_topics (
+           story_id, topic_id, weight
+         ) VALUES (?, ?, ?)
+         ON CONFLICT(story_id, topic_id) DO UPDATE SET
+           weight = excluded.weight`,
+      );
+      for (const topicId of topicIds) {
+        statements.push(topicStmt.bind(clusterId, topicId, 1.0));
+      }
+
+      // 5. Insert or update story_entities
+      const entityStmt = db.prepare(
+        `INSERT INTO story_entities (
+           story_id, entity_id, weight, is_primary
+         ) VALUES (?, ?, ?, ?)
+         ON CONFLICT(story_id, entity_id) DO UPDATE SET
+           weight = excluded.weight,
+           is_primary = excluded.is_primary`,
+      );
+      for (const ent of entityIds) {
+        statements.push(
+          entityStmt.bind(
+            clusterId,
+            ent.entityId,
+            1.0,
+            ent.isPrimary ? 1 : 0,
+          ),
+        );
+      }
+
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < statements.length; i += CHUNK_SIZE) {
+        const chunk = statements.slice(i, i + CHUNK_SIZE);
+        await db.batch(chunk as any);
       }
     },
   };
