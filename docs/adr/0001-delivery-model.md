@@ -166,6 +166,102 @@ mechanisms together:
 
 ---
 
+## Spike outcomes that bear on this decision
+
+Five spikes were executed in Phase 1 against this decision. Their measured
+values are recorded in `spikes/RESULTS.md` and in each spike's own
+`RESULT.md`; this section records what each one did to the delivery model.
+The ceilings themselves are not restated here — they live in
+`config/free-tier-limits.json` and are referenced by their limit ids.
+
+### S-1 — the Durable Object CPU question (measured; delivery model unchanged)
+
+**Question.** Does a Durable Object on the Workers Free plan inherit the
+Workers per-invocation CPU ceiling, or does it have an allowance of its own?
+
+**What was measured.** A Durable Object does **not** inherit
+`workers_cpu_ms_per_invocation`. It has a separate and far larger per-request
+allowance, and the platform's own documentation on that point is the one the
+measurement agrees with. The spike ran a control arm — a plain Worker burning
+the same CPU with no Durable Object in the path — so that "the Durable Object
+survived" could not be confused with "this account is not on the plan the
+spike assumed". The measured values, the control arm and the exact error
+signatures are in `spikes/s-1-do-cpu/RESULT.md`.
+
+**What this does NOT do.** It does not adopt the Durable Object, and it does
+not change the delivery model. The fetch-only Worker to R2 to CI path remains
+the design of record.
+
+**The option it opens.** A SQLite-backed Durable Object is a viable host for
+the ingest pipeline — parsing, deduplication, clustering and scoring inside a
+single request — without the R2 raw-staging hop the current path needs. That
+is a material simplification of the pipeline, and it is now a **live option
+rather than a hypothetical one**.
+
+**Who decides.** Phase 2, which owns the ingest, and against the real feed set
+— every publisher in seven countries, not a sample of ten. A Durable Object is
+single-threaded per object, and the concurrency profile of that workload has
+not been measured. If Phase 2 adopts it, the platform's per-object CPU
+allowance becomes a ceiling the project depends on and must be added to
+`config/free-tier-limits.json` under OPS-01 at that point, not before.
+
+### S-2 and S-3 — the fetch path (measured; delivery model unchanged)
+
+**Question.** Do real publishers serve a Cloudflare Worker, and does a CI
+runner get blocked where the Worker does not?
+
+**What was measured.** No publisher in the sampled set blocked the Cloudflare
+egress. Both egress paths reached exactly the same publishers and failed on
+exactly the same ones, and those failures reproduce from an ordinary client
+on an ordinary network — so they are the publishers' own, not the egress
+path's. The Worker remains the preferred fetch path: it has a stable address,
+a per-host rate limit the project controls, and it is not shared with every
+other repository on a runner image. The conditional-GET path was exercised
+with the shared descriptive User-Agent, and the per-feed status table and the
+per-host backoff calibration are in `spikes/s-2-worker-egress/RESULT.md` and
+`spikes/s-3-ci-egress/RESULT.md`.
+
+**What this does NOT do.** It does not clear the legal gate. Feed
+availability and terms of use remain Phase 2's gate, and nothing in a spike is
+permission to fetch any feed in production.
+
+### S-4 — the build-throughput threshold (measured; delivery model unchanged)
+
+**Question.** Does the static tier's build throughput leave room for topic and
+entity pages to stay in the static tier, or must they move to the R2 tier
+before year 2?
+
+**What was measured.** A synthetic build at the size of one shard's entire
+file allowance completes well inside the CI budget, and the incremental build
+restores unchanged pages from the cache rather than re-rendering them. The
+measured rate, the full and incremental wall times and the page complexity the
+measurement used are in `spikes/s-4-astro-throughput/RESULT.md`.
+
+**What this does NOT do.** It does not move topic and entity pages. The
+threshold was not met, so the static tier stays as designed above. The
+measurement also bounds the claim in the other direction: it was taken on a
+synthetic page, and the cost of a build at this scale is dominated by writing
+the output files rather than by rendering them, which is why a heavier page
+does not slow the build proportionally. Phase 5 must re-measure against the
+real story template before relying on the number for a page set of that size.
+
+### S-5 — the asset-upload behaviour (measured; delivery model unchanged)
+
+**Question.** Does `wrangler deploy` re-upload unchanged assets on every
+deploy?
+
+**What was measured.** Two live deploys of an assets-only project with no
+content change between them, and the number of files that actually went over
+the wire on the second one. The counts, the wall times and the resulting
+deploy-step budget are in `spikes/s-5-wrangler-diffing/RESULT.md`.
+
+**Why it matters here.** The eight-shard model pays eight deploys per build,
+so the cost of a deploy is a per-build cost multiplied by the shard count.
+The measured budget feeds the OPS-07 assertion, which fails the build rather
+than deploying when a file count or a build duration exceeds budget.
+
+---
+
 ## Overrides
 
 **This ADR overrides `.planning/research/SUMMARY.md` section 1 and
