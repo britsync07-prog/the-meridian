@@ -20,6 +20,7 @@
  */
 
 import type { MeridianEnv } from './config';
+import type { FeedFetchLog, SourceRegistryEntry } from '../../../../shared/types';
 
 /* ───────────────────────────── Row shapes ────────────────────────────────── */
 
@@ -97,6 +98,21 @@ export interface Repository {
   countTables(): Promise<number>;
   /** How many rows a named table holds. Used by the verification scripts. */
   countRows(table: string): Promise<number>;
+  /** Synchronize the canonical source registry with the database. */
+  syncSources(sources: readonly SourceRegistryEntry[]): Promise<void>;
+  /** Record a feed fetch operation in the log. */
+  recordFeedFetch(log: FeedFetchLog): Promise<void>;
+  /** Update health metrics and backoff state for a source. */
+  updateSourceHealth(
+    sourceId: number,
+    update: {
+      status?: number;
+      error?: string | null;
+      consecutiveFailures: number;
+      disabledUntil?: string | null;
+      lastFetchedAt?: string;
+    },
+  ): Promise<void>;
 }
 
 /**
@@ -256,6 +272,100 @@ export function createRepository(env: MeridianEnv): Repository {
         .prepare(`SELECT COUNT(*) AS n FROM ${table}`)
         .first<{ n: number }>();
       return row?.n ?? 0;
+    },
+
+    async syncSources(sources: readonly SourceRegistryEntry[]): Promise<void> {
+      const statement = db.prepare(
+        `INSERT INTO sources (
+           slug, name, homepage_url, feed_url, country_code, language,
+           default_section, section_prior, freshness_sla_hours, is_active,
+           terms_status, terms_verified_at, terms_url
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(slug) DO UPDATE SET
+           name = excluded.name,
+           homepage_url = excluded.homepage_url,
+           feed_url = excluded.feed_url,
+           country_code = excluded.country_code,
+           language = excluded.language,
+           default_section = excluded.default_section,
+           section_prior = excluded.section_prior,
+           freshness_sla_hours = excluded.freshness_sla_hours,
+           is_active = excluded.is_active,
+           terms_status = excluded.terms_status,
+           terms_verified_at = excluded.terms_verified_at,
+           terms_url = excluded.terms_url`,
+      );
+
+      const batch = sources.map((s) =>
+        statement.bind(
+          s.slug,
+          s.name,
+          s.homepageUrl,
+          s.feedUrl,
+          s.countryCode,
+          s.language,
+          s.defaultSection ?? null,
+          JSON.stringify(s.sectionPrior ?? {}),
+          s.freshnessSlaHours,
+          s.isActive ? 1 : 0,
+          s.termsStatus,
+          s.termsVerifiedAt,
+          s.termsUrl,
+        ),
+      );
+
+      if (batch.length > 0) {
+        await db.batch(batch);
+      }
+    },
+
+    async recordFeedFetch(log: FeedFetchLog): Promise<void> {
+      await db
+        .prepare(
+          `INSERT INTO feed_fetches (
+             source_id, fetched_at, http_status, bytes, item_count, new_items, duration_ms, error
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          log.sourceId,
+          log.fetchedAt,
+          log.httpStatus,
+          log.bytes,
+          log.itemCount,
+          log.newItems,
+          log.durationMs,
+          log.error,
+        )
+        .run();
+    },
+
+    async updateSourceHealth(
+      sourceId: number,
+      update: {
+        status?: number;
+        error?: string | null;
+        consecutiveFailures: number;
+        disabledUntil?: string | null;
+        lastFetchedAt?: string;
+      },
+    ): Promise<void> {
+      await db
+        .prepare(
+          `UPDATE sources
+              SET last_status = ?,
+                  last_fetched_at = ?,
+                  consecutive_failures = ?,
+                  disabled_until = ?
+            WHERE id = ?`,
+        )
+        .bind(
+          update.status !== undefined ? String(update.status) : null,
+          update.lastFetchedAt ?? new Date().toISOString(),
+          update.consecutiveFailures,
+          update.disabledUntil ?? null,
+          sourceId,
+        )
+        .run();
     },
   };
 }

@@ -1,7 +1,7 @@
 import type { SourceRegistryEntry } from '../shared/types';
 
 /**
- * The canonical source registry for The Meridian.
+ * The canonical source registry.
  *
  * Requirements:
  * - ING-03: Every publisher feed has a typed registry record with outlet metadata,

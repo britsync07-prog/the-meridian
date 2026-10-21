@@ -185,7 +185,7 @@ describe('resolveDatabaseId', () => {
 });
 
 describe('createRepository', () => {
-  it('exposes exactly the seven documented methods', () => {
+  it('exposes exactly the documented repository methods', () => {
     const repository = createRepository(stubEnv());
     expect(Object.keys(repository).sort()).toEqual(
       [
@@ -196,8 +196,151 @@ describe('createRepository', () => {
         'listActiveSources',
         'listProminentClusters',
         'listStoriesForCluster',
+        'recordFeedFetch',
+        'syncSources',
+        'updateSourceHealth',
       ].sort(),
     );
+  });
+
+  it('syncSources prepares and executes batch upsert for sources', async () => {
+    const executedStatements: { sql: string; bindings: unknown[] }[] = [];
+    const batchMock = async (statements: unknown[]) => {
+      for (const s of statements as { sql: string; bindings: unknown[] }[]) {
+        executedStatements.push(s);
+      }
+      return [];
+    };
+
+    const mockDb = {
+      prepare(sql: string) {
+        return {
+          sql,
+          bind(...bindings: unknown[]) {
+            return { sql, bindings };
+          },
+        };
+      },
+      batch: batchMock,
+    };
+
+    const repository = createRepository({
+      DB: mockDb as unknown as MeridianEnv['DB'],
+      R2: {} as MeridianEnv['R2'],
+    });
+
+    await repository.syncSources([
+      {
+        slug: 'test-source',
+        name: 'Test Source',
+        homepageUrl: 'https://example.com',
+        feedUrl: 'https://example.com/feed.xml',
+        countryCode: 'GB',
+        language: 'en',
+        defaultSection: 'politics',
+        sectionPrior: { politics: 0.8 },
+        freshnessSlaHours: 24,
+        isActive: true,
+        termsStatus: 'verified',
+        termsVerifiedAt: '2026-10-21',
+        verifiedBy: 'auditor',
+        termsUrl: 'https://example.com/terms',
+      },
+    ]);
+
+    expect(executedStatements.length).toBe(1);
+    expect(executedStatements[0].sql).toMatch(/INSERT INTO sources/i);
+    expect(executedStatements[0].sql).toMatch(/ON CONFLICT\(slug\) DO UPDATE SET/i);
+    expect(executedStatements[0].bindings[0]).toBe('test-source');
+    expect(executedStatements[0].bindings[1]).toBe('Test Source');
+    expect(executedStatements[0].bindings[7]).toBe(JSON.stringify({ politics: 0.8 }));
+  });
+
+  it('recordFeedFetch executes parameterized INSERT into feed_fetches', async () => {
+    let captured: { sql: string; bindings: unknown[] } | null = null;
+    const mockDb = {
+      prepare(sql: string) {
+        return {
+          bind(...bindings: unknown[]) {
+            captured = { sql, bindings };
+            return {
+              async run() {
+                return { success: true };
+              },
+            };
+          },
+        };
+      },
+    };
+
+    const repository = createRepository({
+      DB: mockDb as unknown as MeridianEnv['DB'],
+      R2: {} as MeridianEnv['R2'],
+    });
+
+    await repository.recordFeedFetch({
+      sourceId: 42,
+      fetchedAt: '2026-10-21T12:00:00.000Z',
+      httpStatus: 200,
+      bytes: 12345,
+      itemCount: 20,
+      newItems: 5,
+      durationMs: 150,
+      error: null,
+    });
+
+    expect(captured).not.toBeNull();
+    expect(captured!.sql).toMatch(/INSERT INTO feed_fetches/i);
+    expect(captured!.bindings).toEqual([
+      42,
+      '2026-10-21T12:00:00.000Z',
+      200,
+      12345,
+      20,
+      5,
+      150,
+      null,
+    ]);
+  });
+
+  it('updateSourceHealth executes parameterized UPDATE on sources table', async () => {
+    let captured: { sql: string; bindings: unknown[] } | null = null;
+    const mockDb = {
+      prepare(sql: string) {
+        return {
+          bind(...bindings: unknown[]) {
+            captured = { sql, bindings };
+            return {
+              async run() {
+                return { success: true };
+              },
+            };
+          },
+        };
+      },
+    };
+
+    const repository = createRepository({
+      DB: mockDb as unknown as MeridianEnv['DB'],
+      R2: {} as MeridianEnv['R2'],
+    });
+
+    await repository.updateSourceHealth(99, {
+      status: 503,
+      consecutiveFailures: 3,
+      disabledUntil: '2026-10-21T13:00:00.000Z',
+      lastFetchedAt: '2026-10-21T12:30:00.000Z',
+    });
+
+    expect(captured).not.toBeNull();
+    expect(captured!.sql).toMatch(/UPDATE sources/i);
+    expect(captured!.bindings).toEqual([
+      '503',
+      '2026-10-21T12:30:00.000Z',
+      3,
+      '2026-10-21T13:00:00.000Z',
+      99,
+    ]);
   });
 
   it('refuses to count a table that is not on the allow-list', async () => {
