@@ -77,9 +77,20 @@ out, with no loop and no retry storm.
 | washingtonpost, cnn, aol | no | 502, 525, 530 | 9,698, 177, 192 | — |
 | ap | no | 403 | 3 | — |
 
-**Not one feed answered `304 Not Modified`.** The `independent` feed returned
-byte-for-byte the same ETag it returned in run 1 — so its content had not
-changed — and still answered 200 with the whole body.
+**Not one feed answered `304 Not Modified` in this run.** The `independent`
+feed returned byte-for-byte the same ETag it returned in run 1 — so its
+content had not changed — and still answered 200 with the whole body.
+
+> **Corrected after S-3.** This run was the basis for the original reading
+> that the publishers ignore the conditional header. That reading was wrong.
+> The ETags in this run had gone stale between the two passes, and — as the
+> response headers show — a publisher whose CDN copy is *fresh* serves that
+> copy directly with a 200 and never consults the client's `If-None-Match` at
+> all. A repeat of this pair of passes with the two passes seconds apart got a
+> `304` from one feed, and the CI runner got three `304`s from the same three
+> feeds. The mechanism is the publishers' cache state, not the egress path.
+> The corrected reading is in S-3's RESULT, and the conclusion below is the
+> corrected one.
 
 ### Run 3 — repeat of run 1
 
@@ -133,13 +144,15 @@ every other repository on a runner image.
   There were **no 429s and no `Retry-After` headers**, so the
   rate-limit-withdrawal path has not been exercised by this spike and must not
   be assumed to work.
-- **Conditional GET is exercised but does not save bandwidth.** ETags were
-  captured for four feeds and replayed with `If-None-Match`; every publisher
-  answered 200 with the full body. This was confirmed independently from a
-  plain client, so it is the publishers' behaviour and not the Worker's.
-  Phase 2 must still capture and replay ETags — it is the correct way to
-  identify unchanged content — but it must not build a bandwidth budget on
-  the assumption that these publishers honour the header.
+- **Conditional GET is exercised, and it works — inconsistently.** ETags were
+  captured for four feeds and replayed with `If-None-Match`. In this run no
+  feed answered 304; in a repeat of the same two passes seconds apart, one
+  did; from the CI runner, three did. The response headers explain it: a
+  publisher whose CDN copy is fresh serves that copy directly with a 200 and
+  never consults the client's conditional header. Phase 2 must implement the
+  conditional GET because it is the correct way to identify unchanged content,
+  and it must treat a 200 with a full body as the normal outcome — a
+  bandwidth budget cannot be built on 304s.
 - **ETag coverage is partial.** Four of the six healthy feeds returned an
   ETag. `bbc` and `nytimes` returned none, so their conditional path is a
   no-op and their full bodies are transferred on every poll.

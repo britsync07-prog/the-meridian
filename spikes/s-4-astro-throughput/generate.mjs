@@ -197,6 +197,16 @@ function renderEvidence(output) {
     .slice(-12);
 }
 
+/**
+ * The output buffer for the build.
+ *
+ * Astro prints one line per generated page, so a build of a shard's worth of
+ * pages produces more output than the default one-megabyte buffer can hold.
+ * When the buffer fills, the child process is killed and the run looks like a
+ * build failure when nothing was wrong with the build at all.
+ */
+const BUILD_OUTPUT_BUFFER_BYTES = 64 * 1024 * 1024;
+
 /** Run the Astro build against the scratch project and time it. */
 function buildScratch(scratchDir) {
   const startedAt = Date.now();
@@ -209,14 +219,17 @@ function buildScratch(scratchDir) {
       '--root',
       scratchDir,
     ],
-    { cwd: REPO_ROOT, encoding: 'utf8', shell: false, stdio: 'pipe' },
+    { cwd: REPO_ROOT, encoding: 'utf8', shell: false, stdio: 'pipe', maxBuffer: BUILD_OUTPUT_BUFFER_BYTES },
   );
 
   const elapsedMs = Date.now() - startedAt;
 
   if (result.status !== 0) {
     const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
-    throw new Error(`The scratch build failed with exit code ${result.status}:\n${output}`);
+    const tail = output.split(/\r?\n/).slice(-40).join('\n');
+    throw new Error(
+      `The scratch build failed with exit code ${result.status}:\n${tail}`,
+    );
   }
 
   return { elapsedMs, output: `${result.stdout ?? ''}\n${result.stderr ?? ''}` };
