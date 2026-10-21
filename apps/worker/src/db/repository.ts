@@ -51,6 +51,14 @@ export interface ClusterRow {
   editorial_rank: number | null;
 }
 
+/** The values needed to update a cluster's trending score and editorial rank (D-12, CUR-07, CUR-10). */
+export interface ClusterScoreUpdate {
+  clusterId: number;
+  trendingScore: number;
+  editorialRank: number | null;
+  scoreUpdatedAt: string;
+}
+
 /** One row of `story_sources` — one outlet's coverage of a cluster. */
 export interface StorySourceRow {
   source_id: number;
@@ -151,6 +159,8 @@ export interface Repository {
     sinceIso: string,
     language: string,
   ): Promise<LshCandidateRow[]>;
+  /** Update trending scores, editorial ranks, and score timestamps in batches (D-12, CUR-07, CUR-10). */
+  batchUpdateTrendingScores(scoreUpdates: readonly ClusterScoreUpdate[]): Promise<void>;
 }
 
 /**
@@ -479,6 +489,34 @@ export function createRepository(env: MeridianEnv): Repository {
         .bind(sinceIso, language, band0, band1, band2, band3)
         .all<LshCandidateRow>();
       return result.results ?? [];
+    },
+
+    async batchUpdateTrendingScores(
+      scoreUpdates: readonly ClusterScoreUpdate[],
+    ): Promise<void> {
+      if (scoreUpdates.length === 0) return;
+
+      const statement = db.prepare(
+        `UPDATE clusters
+            SET trending_score = ?,
+                editorial_rank = ?,
+                score_updated_at = ?
+          WHERE id = ?`,
+      );
+
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < scoreUpdates.length; i += CHUNK_SIZE) {
+        const chunk = scoreUpdates.slice(i, i + CHUNK_SIZE);
+        const batch = chunk.map((update) =>
+          statement.bind(
+            update.trendingScore,
+            update.editorialRank,
+            update.scoreUpdatedAt,
+            update.clusterId,
+          ),
+        );
+        await db.batch(batch);
+      }
     },
   };
 }

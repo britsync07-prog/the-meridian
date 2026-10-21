@@ -191,6 +191,7 @@ describe('createRepository', () => {
     expect(Object.keys(repository).sort()).toEqual(
       [
         'batchInsertStories',
+        'batchUpdateTrendingScores',
         'countRows',
         'countTables',
         'findClusterBySlug',
@@ -454,6 +455,85 @@ describe('createRepository', () => {
       3000,
       4000,
     ]);
+  });
+
+  it('batchUpdateTrendingScores updates clusters in chunks of 50 with explicit parameter binding', async () => {
+    const executedBatches: { sql: string; bindings: unknown[] }[][] = [];
+    const batchMock = async (statements: unknown[]) => {
+      executedBatches.push(statements as { sql: string; bindings: unknown[] }[]);
+      return [];
+    };
+
+    const mockDb = {
+      prepare(sql: string) {
+        return {
+          sql,
+          bind(...bindings: unknown[]) {
+            return { sql, bindings };
+          },
+        };
+      },
+      batch: batchMock,
+    };
+
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    // Create 55 score updates to test chunking (50 + 5)
+    const updates = Array.from({ length: 55 }, (_, i) => ({
+      clusterId: 100 + i,
+      trendingScore: 12.5 + i * 0.1,
+      editorialRank: i === 0 ? 1 : null,
+      scoreUpdatedAt: '2026-10-21T14:00:00.000Z',
+    }));
+
+    await repository.batchUpdateTrendingScores(updates);
+
+    expect(executedBatches.length).toBe(2);
+    expect(executedBatches[0].length).toBe(50);
+    expect(executedBatches[1].length).toBe(5);
+
+    // Verify first update statement in first batch
+    const firstStatement = executedBatches[0][0];
+    expect(firstStatement.sql).toMatch(/UPDATE clusters/i);
+    expect(firstStatement.sql).toMatch(/SET\s+trending_score = \?,\s+editorial_rank = \?,\s+score_updated_at = \?/i);
+    expect(firstStatement.sql).toMatch(/WHERE id = \?/i);
+    expect(firstStatement.bindings).toEqual([
+      12.5,
+      1,
+      '2026-10-21T14:00:00.000Z',
+      100,
+    ]);
+
+    // Verify last statement in second batch
+    const lastStatement = executedBatches[1][4];
+    expect(lastStatement.bindings).toEqual([
+      12.5 + 54 * 0.1,
+      null,
+      '2026-10-21T14:00:00.000Z',
+      154,
+    ]);
+  });
+
+  it('batchUpdateTrendingScores handles empty array safely without executing queries', async () => {
+    let batchCalled = false;
+    const mockDb = {
+      prepare() {
+        throw new Error('should not prepare for empty array');
+      },
+      batch: async () => {
+        batchCalled = true;
+        return [];
+      },
+    };
+
+    const repository = createRepository(
+      stubEnv({ DB: mockDb as unknown as MeridianEnv['DB'] }),
+    );
+
+    await repository.batchUpdateTrendingScores([]);
+    expect(batchCalled).toBe(false);
   });
 
   it('refuses to count a table that is not on the allow-list', async () => {
