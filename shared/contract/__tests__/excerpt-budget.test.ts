@@ -315,6 +315,21 @@ describe('applyExcerptBudget', () => {
     expect(result.rejection).toBeNull();
     expect(result.wordCount).toBe(0);
   });
+
+  it('correctly truncates Hindi candidate to two sentences on purna viram', () => {
+    const candidate = 'यह पहला वाक्य है। यह दूसरा वाक्य है। यह तीसरा वाक्य है।';
+    // 200 words of Hindi source
+    const hindiWords = Array.from({ length: 200 }, () => 'समाचार').join(' ');
+    const result = applyExcerptBudget({
+      candidate,
+      sourceVisibleText: hindiWords,
+      language: 'hi',
+    });
+
+    expect(result.sentenceCount).toBe(2);
+    expect(result.truncated).toBe(true);
+    expect(result.text?.startsWith('यह पहला वाक्य है। यह दूसरा वाक्य है।')).toBe(true);
+  });
 });
 
 /* ------------------------------------------------------------------------- */
@@ -359,6 +374,12 @@ describe('assertExcerptWithinBudget', () => {
 
   it('rejects an excerpt over a source that is too short to carry one', () => {
     expect(() => assertExcerptWithinBudget(phrase(40), sourceText(100))).toThrow(ExcerptBudgetError);
+  });
+
+  it('validates a compliant Hindi excerpt within budget', () => {
+    const hindiCandidate = 'भारत ने आज नया उपग्रह प्रक्षेपित किया। यह मिशन सफल रहा।';
+    const hindiSource = Array.from({ length: 200 }, () => 'समाचार').join(' ');
+    expect(() => assertExcerptWithinBudget(hindiCandidate, hindiSource, 'hi')).not.toThrow();
   });
 });
 

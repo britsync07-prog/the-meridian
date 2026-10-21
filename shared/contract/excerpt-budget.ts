@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 import type { StoryExcerpt } from '../types';
+import {
+  countSentencesUnicode,
+  countWordsUnicode,
+  getWordEndOffsets,
+} from './segmenter';
 
 /**
  * CON-01 through CON-05: the excerpt budget, as a coded contract.
@@ -77,6 +82,8 @@ export interface ExcerptInput {
   candidate: string;
   /** The publisher article's visible text. */
   sourceVisibleText: string;
+  /** Language for unicode segmentation: 'en' (default) or 'hi'. */
+  language?: 'en' | 'hi';
 }
 
 /** Why no excerpt can be published. */
@@ -120,31 +127,23 @@ export const EXCERPT_RESULT_SCHEMA = z.object({
 /* Measuring                                                                  */
 /* ------------------------------------------------------------------------- */
 
-/** Count the whitespace-separated words in a piece of text. */
-function countWords(text: string): number {
-  return text.split(/\s+/).filter((token) => token.length > 0).length;
+/** Count the words in a piece of text using unicode-aware segmentation. */
+function countWords(text: string, lang = 'en'): number {
+  return countWordsUnicode(text, lang);
 }
 
 /**
- * Count the sentences in a piece of text.
+ * Count the sentences in a piece of text using unicode-aware segmentation.
  *
- * A sentence boundary is a terminator followed by whitespace or by the end of
- * the text. A trailing fragment with no terminator is still a sentence — it
- * is the sentence that was cut off.
+ * Recognizes English terminators (. ! ?) and Hindi purna viram (।).
  */
-function countSentences(text: string): number {
-  const boundaries = [...text.matchAll(/[.!?](?=\s|$)/g)];
-  if (boundaries.length === 0) {
-    return /\S/.test(text) ? 1 : 0;
-  }
-  const last = boundaries[boundaries.length - 1];
-  const remainder = text.slice((last?.index ?? 0) + 1);
-  return boundaries.length + (/\S/.test(remainder) ? 1 : 0);
+function countSentences(text: string, lang = 'en'): number {
+  return countSentencesUnicode(text, lang);
 }
 
 /** The end offsets of every word in a piece of text. */
-function wordEndOffsets(text: string): number[] {
-  return [...text.matchAll(/\S+/g)].map((match) => (match.index ?? 0) + match[0].length);
+function wordEndOffsets(text: string, lang = 'en'): number[] {
+  return getWordEndOffsets(text, lang);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -163,8 +162,8 @@ interface Cut {
  * The cut lands immediately after the last surviving word, so the text is
  * always a verbatim prefix of what came in.
  */
-function cutToWords(text: string, maxWords: number): Cut {
-  const offsets = wordEndOffsets(text);
+function cutToWords(text: string, maxWords: number, lang = 'en'): Cut {
+  const offsets = wordEndOffsets(text, lang);
   if (offsets.length <= maxWords) {
     return { text, cut: false };
   }
@@ -182,8 +181,21 @@ function cutToWords(text: string, maxWords: number): Cut {
  * surviving sentence, so the surviving text keeps its own punctuation and
  * remains a verbatim prefix of what came in.
  */
-function cutToSentences(text: string, maxSentences: number): Cut {
-  const boundaries = [...text.matchAll(/[.!?](?=\s|$)/g)];
+function cutToSentences(text: string, maxSentences: number, lang = 'en'): Cut {
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter(lang, { granularity: 'sentence' });
+    const segments = [...segmenter.segment(text)].filter((s) => /[\p{L}\p{N}]/u.test(s.segment));
+    if (segments.length <= maxSentences) {
+      return { text, cut: false };
+    }
+    const lastAllowed = segments[maxSentences - 1];
+    if (!lastAllowed) {
+      return { text, cut: false };
+    }
+    const end = lastAllowed.index + lastAllowed.segment.replace(/\s+$/, '').length;
+    return { text: text.slice(0, end), cut: true };
+  }
+  const boundaries = [...text.matchAll(/[.!?।](?=\s|$)/gu)];
   if (boundaries.length < maxSentences) {
     return { text, cut: false };
   }
@@ -203,12 +215,12 @@ function cutToSentences(text: string, maxSentences: number): Cut {
  *
  * The cut lands immediately after the last whole word that fits.
  */
-function cutToChars(text: string, maxChars: number): Cut {
+function cutToChars(text: string, maxChars: number, lang = 'en'): Cut {
   if (text.length <= maxChars) {
     return { text, cut: false };
   }
   let end = 0;
-  for (const offset of wordEndOffsets(text)) {
+  for (const offset of wordEndOffsets(text, lang)) {
     if (offset > maxChars) {
       break;
     }
@@ -291,12 +303,13 @@ function nothingToQuote(truncated: boolean): ExcerptResult {
 export function applyExcerptBudget(input: ExcerptInput): ExcerptResult {
   const sourceText = input.sourceVisibleText ?? '';
   const candidate = input.candidate ?? '';
+  const lang = input.language ?? 'en';
 
   if (sourceText.trim().length === 0) {
     return refusal('source_absent');
   }
 
-  const sourceWordCount = countWords(sourceText);
+  const sourceWordCount = countWords(sourceText, lang);
   if (sourceWordCount < EXCERPT_BUDGET.minSourceWords) {
     return refusal('source_too_short');
   }
@@ -304,15 +317,15 @@ export function applyExcerptBudget(input: ExcerptInput): ExcerptResult {
   let body = candidate;
   let truncated = false;
 
-  const byWord = cutToWords(body, allowedWordCount(sourceWordCount));
+  const byWord = cutToWords(body, allowedWordCount(sourceWordCount), lang);
   body = byWord.text;
   truncated = truncated || byWord.cut;
 
-  const bySentence = cutToSentences(body, EXCERPT_BUDGET.maxSentences);
+  const bySentence = cutToSentences(body, EXCERPT_BUDGET.maxSentences, lang);
   body = bySentence.text;
   truncated = truncated || bySentence.cut;
 
-  const byChar = cutToChars(body, EXCERPT_BUDGET.maxChars);
+  const byChar = cutToChars(body, EXCERPT_BUDGET.maxChars, lang);
   body = byChar.text;
   truncated = truncated || byChar.cut;
 
@@ -348,9 +361,9 @@ export function applyExcerptBudget(input: ExcerptInput): ExcerptResult {
     throw new Error('The excerpt budget produced text that is not a verbatim prefix of the candidate.');
   }
 
-  const wordCount = countWords(text);
+  const wordCount = countWords(text, lang);
   const charCount = text.length;
-  const sentenceCount = countSentences(text);
+  const sentenceCount = countSentences(text, lang);
 
   return EXCERPT_RESULT_SCHEMA.parse({
     text,
@@ -386,9 +399,13 @@ export class ExcerptBudgetError extends Error {
  * to store. It throws with the FULL list of broken limits rather than the
  * first one, so a single failure tells the whole story.
  */
-export function assertExcerptWithinBudget(text: string, sourceVisibleText: string): void {
+export function assertExcerptWithinBudget(
+  text: string,
+  sourceVisibleText: string,
+  language: 'en' | 'hi' = 'en'
+): void {
   const violations: string[] = [];
-  const sourceWordCount = countWords(sourceVisibleText);
+  const sourceWordCount = countWords(sourceVisibleText, language);
 
   if (sourceWordCount < EXCERPT_BUDGET.minSourceWords) {
     violations.push(
@@ -396,7 +413,7 @@ export function assertExcerptWithinBudget(text: string, sourceVisibleText: strin
     );
   }
 
-  const wordCount = countWords(text);
+  const wordCount = countWords(text, language);
   if (wordCount > EXCERPT_BUDGET.maxWords) {
     violations.push(`the excerpt has ${wordCount} words, more than the ${EXCERPT_BUDGET.maxWords} allowed`);
   }
@@ -408,7 +425,7 @@ export function assertExcerptWithinBudget(text: string, sourceVisibleText: strin
     );
   }
 
-  const sentenceCount = countSentences(text);
+  const sentenceCount = countSentences(text, language);
   if (sentenceCount > EXCERPT_BUDGET.maxSentences) {
     violations.push(
       `the excerpt has ${sentenceCount} sentences, more than the ${EXCERPT_BUDGET.maxSentences} allowed`,
