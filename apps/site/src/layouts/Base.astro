@@ -1,17 +1,20 @@
 ---
-import { SITE_NAME } from '../../../../shared/config/site.ts';
-import '../styles/global.css';
+import { SITE_NAME, SITE_ORIGIN } from '../../../../shared/config/site.ts';
 
 interface Props {
   title?: string;
   description?: string;
   htmlLang?: string;
+  edition?: string;
+  date?: string;
 }
 
 const {
   title = SITE_NAME,
   description = 'A free, automatically-curated daily paper for seven countries.',
   htmlLang = 'en',
+  edition = 'UK',
+  date = new Date().toISOString().split('T')[0],
 } = Astro.props;
 ---
 
@@ -22,8 +25,33 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="preload" href="/fonts/PlayfairDisplay-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/NotoSerifDevanagari-Regular.woff2" as="font" type="font/woff2" crossorigin />
   </head>
-  <body>
-    <slot />
+  <body class="min-h-screen flex flex-col">
+    <!-- DSN-06: skip-to-content link, first Tab stop -->
+    <a href="#main-content" class="skip-to-content">Skip to content</a>
+
+    <!-- DSN-05: sticky masthead at 56px -->
+    <header class="masthead">
+      <div class="flex items-center gap-4">
+        <span class="text-edition font-semibold tracking-wide uppercase">
+          {edition}
+        </span>
+        <span class="font-masthead text-2xl font-bold italic">{SITE_NAME}</span>
+        <time datetime={date} class="text-muted text-sm">{date}</time>
+      </div>
+    </header>
+
+    <main id="main-content" class="container flex-grow">
+      <slot />
+    </main>
+
+    <!-- Print-style footer -->
+    <footer class="border-t hairline-md py-6 mt-auto">
+      <p class="text-center text-caption text-muted">
+        {SITE_NAME} &mdash; automatically curated daily paper. No human editor.
+      </p>
+    </footer>
   </body>
 </html>

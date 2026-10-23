@@ -3,7 +3,47 @@ import { SITE_NAME } from '../../../../shared/config/site.ts';
 import Base from '../layouts/Base.astro';
 ---
 
-<Base>
-  <h1>{SITE_NAME}</h1>
-  <p class="headline"><span>The</span> <em>Meridian</em></p>
+<Base edition="UK" date={new Date().toISOString().split('T')[0]}>
+  <!-- DSN-12: single dominant lead story splash, full width -->
+  <div name="splash" class="grid-column-span-5 mb-6">
+    <h1 class="font-masthead text-h1 font-bold italic mb-2">Lead story headline goes here</h1>
+    <p class="text-deck text-muted mb-4">This is the deck for the day&rsquo;s top-trending story.</p>
+    <img
+      src="/images/story-lead.jpg"
+      alt=""
+      width="800"
+      height="450"
+      loading="eager"
+      fetchpriority="high"
+      class="w-full h-auto object-cover"
+    />
+  </div>
+
+  <hr class="hairline" />
+
+  <!-- Section grid: 3+2 split -->
+  <div class="front-grid">
+    <div class="section-split-left">
+      <h2 class="font-masthead text-h2 font-bold italic mb-3 border-b hairline pb-1">World</h2>
+      <ul class="list-none p-0 m-0 space-y-3">
+        <li class="border-b hairline pb-2">
+          <a href="#" class="text-ink no-underline hover:text-accent">International news story one</a>
+          <p class="text-caption text-muted mt-1">Publisher name &middot; 2h ago</p>
+        </li>
+        <li class="border-b hairline pb-2">
+          <a href="#" class="text-ink no-underline hover:text-accent">International news story two</a>
+          <p class="text-caption text-muted mt-1">Publisher name &middot; 4h ago</p>
+        </li>
+      </ul>
+    </div>
+    <div class="section-split-right">
+      <h2 class="font-masthead text-h2 font-bold italic mb-3 border-b hairline pb-1">Business</h2>
+      <ul class="list-none p-0 m-0 space-y-3">
+        <li class="border-b hairline pb-2">
+          <a href="#" class="text-ink no-underline hover:text-accent">Business story one</a>
+          <p class="text-caption text-muted mt-1">Publisher name &middot; 1h ago</p>
+        </li>
+      </ul>
+    </div>
+  </div>
 </Base>

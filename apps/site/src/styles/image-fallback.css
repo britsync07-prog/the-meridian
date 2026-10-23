@@ -1,0 +1,23 @@
+/* Expired-image typographic fallback panel (DSN-16) */
+.image-fallback {
+  display: inline-block;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-masthead);
+  font-style: italic;
+  font-size: var(--text-display);
+  font-weight: 400;
+  line-height: 1.4;
+  padding: var(--space-lg) var(--space-xl);
+  margin: var(--space-md) 0;
+  max-width: 100%;
+  /* No border, no label — reads as intentional editorial element */
+  text-align: left;
+}
+
+@media (prefers-color-scheme: dark) {
+  .image-fallback {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+  }
+}

@@ -1,0 +1,15 @@
+---
+import Base from './Base.astro';
+interface Props {
+  edition?: string;
+  date?: string;
+}
+const { edition = 'UK', date = new Date().toISOString().split('T')[0] } = Astro.props;
+---
+<Base edition={edition} date={date}>
+  <div class="front-grid">
+    <!-- DSN-12: single dominant lead story splash, full width -->
+    <slot name="splash" />
+    <slot name="section-grid" />
+  </div>
+</Base>
