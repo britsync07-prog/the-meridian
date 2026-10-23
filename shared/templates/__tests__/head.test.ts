@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath, URL } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 import { EDITIONS } from '../../config/editions';
@@ -68,10 +71,22 @@ describe('pageMeta', () => {
 
       expect(meta.title).toContain(SITE_NAME);
       expect(meta.title).toContain(edition.countryName);
+      expect(meta.title.startsWith('x — ')).toBe(true);
       // The site name appears once. Two copies is how a per-edition site name
       // creeps back in.
       expect(meta.title.split(SITE_NAME).length - 1).toBe(1);
     }
+  });
+
+  it('uses the caller title first across editions and rejects invalid identity input', () => {
+    expect(pageMeta({ title: 'Politics', description: 'y', path: '/uk/', edition: 'uk' }).title).toBe(
+      'Politics — United Kingdom — The Meridian',
+    );
+    expect(pageMeta({ title: 'Election & <polls>', description: 'y', path: '/in/', edition: 'in' }).title).toBe(
+      'Election & <polls> — India — The Meridian',
+    );
+    expect(() => pageMeta({ title: '   ', description: 'y', path: '/uk/', edition: 'uk' })).toThrow(/title/i);
+    expect(() => pageMeta({ title: SITE_NAME, description: 'y', path: '/uk/', edition: 'uk' })).toThrow(/site name/i);
   });
 
   it('carries the country keyword in the description', () => {
@@ -165,7 +180,7 @@ describe('renderHead', () => {
     });
     const html = renderHead(meta);
 
-    expect(html).toContain(`<title>${SITE_NAME} — United Kingdom</title>`);
+    expect(html).toContain(`<title>Council backs new rail link — United Kingdom — ${SITE_NAME}</title>`);
     expect(html).toContain('<meta name="description"');
   });
 
@@ -193,6 +208,29 @@ describe('renderHead', () => {
 
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
+  });
+
+  it('escapes a caller title that carries markup', () => {
+    const html = renderHead(
+      pageMeta({
+        title: 'Council <em>backs</em>',
+        description: 'A story from the United Kingdom.',
+        path: '/uk/',
+        edition: 'uk',
+      }),
+    );
+
+    expect(html).toContain('&lt;em&gt;backs&lt;/em&gt;');
+    expect(html).not.toContain('<em>backs</em>');
+  });
+
+  it('keeps the site-name ADR bound to executable source and runtime/deployment configuration', () => {
+    const adr = readFileSync(fileURLToPath(new URL('../../../docs/adr/0004-domain-and-name.md', import.meta.url)), 'utf8');
+
+    expect(adr).toContain('shared/config/site.ts');
+    expect(adr).toContain('executable source');
+    expect(adr).toContain('runtime/deployment configuration');
+    expect(adr).toContain('Historical or explanatory Markdown');
   });
 });
 

@@ -32,7 +32,8 @@ export interface CandidateStoryRow {
   headline: string;
   excerpt: string | null;
   publishedAt: string;
-  simhash: bigint | number;
+  simhash_hi: number;
+  simhash_lo: number;
   language: string;
   countryCode: string;
 }

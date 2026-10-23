@@ -1,4 +1,5 @@
 import { typographicFallback } from '../templates/typographic-fallback';
+import { MEDIA_LIFETIME_DAYS as configuredMediaLifetimeDays } from '../config/r2-lifecycle.js';
 
 /**
  * D-15 through D-19: the image-permanence contract.
@@ -40,7 +41,7 @@ import { typographicFallback } from '../templates/typographic-fallback';
  * carve-out and no permanent set, because a rule with exceptions is a rule
  * that has to be reasoned about every time one of them is questioned.
  */
-export const MEDIA_LIFETIME_DAYS = 365;
+export const MEDIA_LIFETIME_DAYS = configuredMediaLifetimeDays;
 
 /** Whether a media object is still there. */
 export type MediaState = 'present' | 'expired';

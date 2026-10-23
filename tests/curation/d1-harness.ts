@@ -22,7 +22,7 @@
  */
 
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -130,7 +130,13 @@ export function createD1Binding(sqliteDb: DatabaseSync): TestD1Binding {
 /** Build an in-memory database from the project's schema and seed. */
 export function createTestDatabase(filePath = ':memory:'): DatabaseSync {
   const db = new DatabaseSync(filePath);
-  db.exec(readFileSync(path.join(REPO_ROOT, 'shared', 'db', '0001_init.sql'), 'utf8'));
+  const migrationDir = path.join(REPO_ROOT, 'shared', 'db');
+  const migrations = readdirSync(migrationDir)
+    .filter((file) => /^\d+.*\.sql$/.test(file))
+    .sort();
+  for (const migration of migrations) {
+    db.exec(readFileSync(path.join(migrationDir, migration), 'utf8'));
+  }
   db.exec(readFileSync(path.join(REPO_ROOT, 'shared', 'db', 'seed.sql'), 'utf8'));
   // The `cluster_id = 0` sentinel points at a cluster that does not exist yet,
   // so the foreign key is switched off for the test connection — the same

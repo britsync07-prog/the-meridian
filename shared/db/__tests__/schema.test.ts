@@ -13,11 +13,13 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '..', '..', '..');
 const DDL_PATH = path.join(REPO_ROOT, 'shared', 'db', '0001_init.sql');
+const RETENTION_MIGRATION_PATH = path.join(REPO_ROOT, 'shared', 'db', '0002_story-retention.sql');
 const SEED_PATH = path.join(REPO_ROOT, 'shared', 'db', 'seed.sql');
 
 /**
@@ -30,6 +32,7 @@ function read(filePath: string): string {
 }
 
 const DDL = (): string => read(DDL_PATH);
+const RETENTION_MIGRATION = (): string => read(RETENTION_MIGRATION_PATH);
 const SEED = (): string => read(SEED_PATH);
 
 /** The names of the objects the DDL creates, in creation order. */
@@ -209,5 +212,69 @@ describe('shared/db/seed.sql', () => {
     for (const country of ['GB', 'US', 'AU', 'CA', 'IE', 'NZ', 'IN']) {
       expect(SEED()).toContain(`'${country}'`);
     }
+  });
+});
+
+describe('shared/db/0002_story-retention.sql', () => {
+  function migratedDatabase(): DatabaseSync {
+    const db = new DatabaseSync(':memory:');
+    db.exec(DDL());
+    db.exec(SEED());
+    db.exec(`
+      INSERT INTO clusters (id, slug, canonical_headline, published_at, first_seen_at, last_seen_at)
+      VALUES (1, 'retention-proof', 'Retention proof', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z');
+      INSERT INTO topics (id, slug, name) VALUES (1, 'proof-topic', 'Proof topic');
+      INSERT INTO entities (id, slug, name, type) VALUES (1, 'proof-entity', 'Proof entity', 'event');
+      INSERT INTO stories (
+        id, cluster_id, source_id, external_guid, headline, excerpt, url, slug, language,
+        published_at, fetched_at, simhash, band0, band1, band2, band3, country_code
+      ) VALUES
+        (1, 1, 1, 'positive', 'Positive', NULL, 'https://example.test/positive', 'positive', 'en', '2026-10-01T00:00:00Z', '2026-10-01T00:01:00Z', 4294967298, 0, 0, 0, 0, 'GB'),
+        (2, 1, 1, 'sign-bit', 'Sign bit', NULL, 'https://example.test/sign-bit', 'sign-bit', 'en', '2026-10-02T00:00:00Z', '2026-10-02T00:01:00Z', -9223372036854775808, 0, 0, 0, 0, 'GB'),
+        (3, 1, 2, 'max-signed', 'Max signed', NULL, 'https://example.test/max', 'max-signed', 'en', '2026-10-03T00:00:00Z', '2026-10-03T00:01:00Z', 9223372036854775807, 0, 0, 0, 0, 'GB');
+      INSERT INTO story_sources (cluster_id, story_id, source_id, rank, headline, url, published_at) VALUES
+        (1, 1, 1, 2, 'Later duplicate', 'https://example.test/later', '2026-10-02T00:00:00Z'),
+        (1, 2, 1, 1, 'Winning duplicate', 'https://example.test/winner', '2026-10-03T00:00:00Z'),
+        (1, 3, 2, 0, 'Second source', 'https://example.test/second', '2026-10-03T00:00:00Z');
+      INSERT INTO story_topics (story_id, topic_id) VALUES (1, 1);
+      INSERT INTO story_entities (story_id, entity_id) VALUES (1, 1);
+      INSERT INTO images (id, story_id, source_url, content_hash) VALUES (1, 1, 'https://example.test/image', 'hash');
+    `);
+    db.exec(RETENTION_MIGRATION());
+    return db;
+  }
+
+  it('keeps permanent attribution while raw-story dependents cascade on prune', () => {
+    const db = migratedDatabase();
+    const winningAttribution = db.prepare(
+      'SELECT rank, headline, url, published_at FROM story_sources WHERE cluster_id = 1 AND source_id = 1',
+    ).get() as Record<string, unknown>;
+
+    expect(winningAttribution).toEqual({
+      rank: 1,
+      headline: 'Winning duplicate',
+      url: 'https://example.test/winner',
+      published_at: '2026-10-03T00:00:00Z',
+    });
+
+    db.exec('DELETE FROM stories WHERE id = 1');
+    expect(db.prepare('SELECT COUNT(*) AS n FROM story_topics WHERE story_id = 1').get()).toEqual({ n: 0 });
+    expect(db.prepare('SELECT COUNT(*) AS n FROM story_entities WHERE story_id = 1').get()).toEqual({ n: 0 });
+    expect(db.prepare('SELECT COUNT(*) AS n FROM images WHERE story_id = 1').get()).toEqual({ n: 0 });
+    expect(db.prepare('SELECT COUNT(*) AS n FROM story_sources WHERE cluster_id = 1 AND source_id = 1').get()).toEqual({ n: 1 });
+    expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+  });
+
+  it('splits legacy signed int64 simhash values into exact unsigned words', () => {
+    const db = migratedDatabase();
+    const words = db.prepare(
+      'SELECT id, simhash_hi, simhash_lo FROM stories ORDER BY id',
+    ).all() as Array<{ id: number; simhash_hi: number; simhash_lo: number }>;
+
+    expect(words).toEqual([
+      { id: 1, simhash_hi: 1, simhash_lo: 2 },
+      { id: 2, simhash_hi: 2147483648, simhash_lo: 0 },
+      { id: 3, simhash_hi: 2147483647, simhash_lo: 4294967295 },
+    ]);
   });
 });

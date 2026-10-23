@@ -190,7 +190,7 @@ CREATE INDEX idx_stories_published ON stories(published_at DESC);
 -- headline and the attribution URL are retained permanently.
 CREATE TABLE story_sources (
   cluster_id   INTEGER NOT NULL REFERENCES clusters(id),
-  story_id     INTEGER NOT NULL REFERENCES stories(id),
+  story_id     INTEGER REFERENCES stories(id) ON DELETE SET NULL,
   source_id    INTEGER NOT NULL REFERENCES sources(id),
   rank         INTEGER NOT NULL DEFAULT 0,   -- 0 = primary/headline source
   headline     TEXT NOT NULL,                -- the outlet's own headline, retained permanently
@@ -231,7 +231,7 @@ CREATE INDEX idx_edition_clusters_cluster ON edition_clusters(cluster_id);
 CREATE INDEX idx_edition_clusters_edition ON edition_clusters(edition_id, published_at);
 
 CREATE TABLE story_topics (
-  story_id INTEGER NOT NULL REFERENCES stories(id),
+  story_id INTEGER REFERENCES stories(id) ON DELETE CASCADE,
   topic_id INTEGER NOT NULL REFERENCES topics(id),
   weight   REAL NOT NULL DEFAULT 1,
   PRIMARY KEY (story_id, topic_id)
@@ -239,7 +239,7 @@ CREATE TABLE story_topics (
 CREATE INDEX idx_story_topics_topic ON story_topics(topic_id, story_id);
 
 CREATE TABLE story_entities (
-  story_id   INTEGER NOT NULL REFERENCES stories(id),
+  story_id   INTEGER REFERENCES stories(id) ON DELETE CASCADE,
   entity_id  INTEGER NOT NULL REFERENCES entities(id),
   weight     REAL NOT NULL DEFAULT 1,
   is_primary INTEGER NOT NULL DEFAULT 0,

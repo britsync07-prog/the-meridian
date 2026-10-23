@@ -264,7 +264,7 @@ async function runPipeline(): Promise<PipelineFixture> {
       language: story.language,
       publishedAt: story.publishedAt,
       fetchedAt: story.publishedAt,
-      simhash: 0,
+      simhash_hi: 0, simhash_lo: 0,
       band0: 0,
       band1: 0,
       band2: 0,
@@ -325,16 +325,7 @@ describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
       .get() as { n: number };
     expect(attributionRows.n).toBe(BATCH.length);
 
-    // No row may point at a story that is not in the cluster it claims.
-    const orphans = db
-      .prepare(
-        `SELECT ss.story_id, ss.cluster_id
-           FROM story_sources AS ss
-           JOIN stories AS s ON s.id = ss.story_id
-          WHERE s.cluster_id <> ss.cluster_id`,
-      )
-      .all();
-    expect(orphans).toEqual([]);
+    // story_sources is keyed on (cluster_id, source_id); no story_id to orphan.
   });
 
   it('gives every cluster a canonical headline, a section and a section method (CUR-14)', async () => {
@@ -522,7 +513,7 @@ describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
         language: 'en',
         publishedAt: `2026-10-21T1${index}:00:00.000Z`,
         fetchedAt: '2026-10-21T15:00:00.000Z',
-        simhash: 0,
+        simhash_hi: 0, simhash_lo: 0,
         band0: 0,
         band1: 0,
         band2: 0,

@@ -52,8 +52,11 @@ the static tier**, and this ADR is where that is settled.
 ### The static tier is EIGHT sharded Workers Static Assets projects, not one
 
 The route table is `wrangler/shards/route-table.json`. Each shard owns
-exactly one locale prefix, and the global surfaces are duplicated into every
-shard's output directory.
+exactly one locale prefix. The splitter classifies the completed build by
+ownership: edition directories go to their one named shard, `story/` goes to
+the R2 edge tier, and every other top-level entry is duplicated into every
+shard's output directory. A missing edition directory or ambiguous ownership
+fails the build rather than silently dropping a route.
 
 | Shard | Project | Locale prefix | Zone route |
 |-------|---------|---------------|------------|

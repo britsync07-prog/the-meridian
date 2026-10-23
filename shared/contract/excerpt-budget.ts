@@ -401,11 +401,19 @@ export class ExcerptBudgetError extends Error {
  */
 export function assertExcerptWithinBudget(
   text: string,
+  candidate: string,
   sourceVisibleText: string,
   language: 'en' | 'hi' = 'en'
 ): void {
   const violations: string[] = [];
   const sourceWordCount = countWords(sourceVisibleText, language);
+
+  const comparableText = text.endsWith(EXCERPT_BUDGET.ellipsis)
+    ? text.slice(0, -EXCERPT_BUDGET.ellipsis.length)
+    : text;
+  if (!candidate.startsWith(comparableText)) {
+    violations.push('CON-04: the excerpt is not a verbatim prefix of the publisher candidate');
+  }
 
   if (sourceWordCount < EXCERPT_BUDGET.minSourceWords) {
     violations.push(

@@ -1,0 +1,119 @@
+{
+  "researcher_model": "gpt-5.6-terra",
+  "planner_model": "gpt-5.6-sol",
+  "checker_model": "gpt-5.6-terra",
+  "tdd_mode": false,
+  "granularity": "standard",
+  "research_enabled": true,
+  "plan_checker_enabled": true,
+  "nyquist_validation_enabled": true,
+  "commit_docs": true,
+  "text_mode": false,
+  "auto_advance": false,
+  "auto_chain_active": false,
+  "mode": "yolo",
+  "phase_found": true,
+  "phase_dir": "D:/myapps/newsportal/.planning/phases/01-foundation-free-tier-contract-architecture-decisions",
+  "expected_phase_dir": null,
+  "phase_number": "01",
+  "phase_name": "Foundation, Free-Tier Contract & Architecture Decisions",
+  "phase_slug": "foundation-free-tier-contract-architecture-decisions",
+  "padded_phase": "01",
+  "phase_req_ids": "OPS-01, OPS-04, OPS-14, MED-08, OPS-12, PUB-12, ING-02",
+  "phase_status": "Executed",
+  "has_research": true,
+  "has_context": true,
+  "context_scope": "complete",
+  "has_reviews": false,
+  "has_plans": true,
+  "plan_count": 6,
+  "threat_id_duplicates": [
+    {
+      "id": "T-01-02",
+      "plans": [
+        "01-01-PLAN.md",
+        "01-02-PLAN.md"
+      ]
+    },
+    {
+      "id": "T-01-03",
+      "plans": [
+        "01-01-PLAN.md",
+        "01-02-PLAN.md",
+        "01-03-PLAN.md"
+      ]
+    },
+    {
+      "id": "T-01-04",
+      "plans": [
+        "01-01-PLAN.md",
+        "01-02-PLAN.md",
+        "01-03-PLAN.md",
+        "01-04-PLAN.md"
+      ]
+    },
+    {
+      "id": "T-01-05",
+      "plans": [
+        "01-01-PLAN.md",
+        "01-02-PLAN.md",
+        "01-03-PLAN.md"
+      ]
+    },
+    {
+      "id": "T-01-06",
+      "plans": [
+        "01-01-PLAN.md",
+        "01-02-PLAN.md",
+        "01-03-PLAN.md",
+        "01-05-PLAN.md"
+      ]
+    },
+    {
+      "id": "T-01-07",
+      "plans": [
+        "01-01-PLAN.md",
+        "01-02-PLAN.md",
+        "01-03-PLAN.md",
+        "01-05-PLAN.md"
+      ]
+    },
+    {
+      "id": "T-01-08",
+      "plans": [
+        "01-02-PLAN.md",
+        "01-03-PLAN.md"
+      ]
+    }
+  ],
+  "threat_id_duplicate_count": 7,
+  "planning_exists": true,
+  "roadmap_exists": true,
+  "state_path": "D:/myapps/newsportal/.planning/STATE.md",
+  "roadmap_path": "D:/myapps/newsportal/.planning/ROADMAP.md",
+  "requirements_path": "D:/myapps/newsportal/.planning/REQUIREMENTS.md",
+  "patterns_path": null,
+  "context_path": "D:/myapps/newsportal/.planning/phases/01-foundation-free-tier-contract-architecture-decisions/01-CONTEXT.md",
+  "research_path": "D:/myapps/newsportal/.planning/phases/01-foundation-free-tier-contract-architecture-decisions/01-RESEARCH.md",
+  "verification_path": "D:/myapps/newsportal/.planning/phases/01-foundation-free-tier-contract-architecture-decisions/01-VERIFICATION.md",
+  "section_manifest": {
+    "workflow": "plan-phase",
+    "included": [],
+    "excluded": [
+      "reviews-prerequisite",
+      "prd-express-gate",
+      "adr-ingest-express-path",
+      "research-only-modifiers",
+      "research-only-early-exit",
+      "chunked-planning-mode"
+    ],
+    "read": []
+  },
+  "prior_verify_commands": [],
+  "project_root": "D:\\myapps\\newsportal",
+  "agents_installed": true,
+  "missing_agents": [],
+  "agents_dir": "C:\\Users\\Nafis\\.codex\\agents",
+  "agent_runtime": "codex",
+  "project_title": "The Meridian"
+}

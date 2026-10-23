@@ -342,7 +342,7 @@ describe('assertExcerptWithinBudget', () => {
     let thrown: unknown;
 
     try {
-      assertExcerptWithinBudget(overlong, sourceText(200));
+      assertExcerptWithinBudget(overlong, overlong, sourceText(200));
     } catch (error) {
       thrown = error;
     }
@@ -355,13 +355,15 @@ describe('assertExcerptWithinBudget', () => {
   });
 
   it('does not throw on a compliant string', () => {
-    expect(() => assertExcerptWithinBudget(phrase(40), sourceText(200))).not.toThrow();
+    const candidate = phrase(40);
+    expect(() => assertExcerptWithinBudget(candidate, candidate, sourceText(200))).not.toThrow();
   });
 
   it('lists every breached limit, not just the first', () => {
     let thrown: unknown;
     try {
-      assertExcerptWithinBudget(phrase(80), sourceText(200));
+      const candidate = phrase(80);
+      assertExcerptWithinBudget(candidate, candidate, sourceText(200));
     } catch (error) {
       thrown = error;
     }
@@ -373,13 +375,24 @@ describe('assertExcerptWithinBudget', () => {
   });
 
   it('rejects an excerpt over a source that is too short to carry one', () => {
-    expect(() => assertExcerptWithinBudget(phrase(40), sourceText(100))).toThrow(ExcerptBudgetError);
+    const candidate = phrase(40);
+    expect(() => assertExcerptWithinBudget(candidate, candidate, sourceText(100))).toThrow(ExcerptBudgetError);
   });
 
   it('validates a compliant Hindi excerpt within budget', () => {
     const hindiCandidate = 'भारत ने आज नया उपग्रह प्रक्षेपित किया। यह मिशन सफल रहा।';
     const hindiSource = Array.from({ length: 200 }, () => 'समाचार').join(' ');
-    expect(() => assertExcerptWithinBudget(hindiCandidate, hindiSource, 'hi')).not.toThrow();
+    expect(() => assertExcerptWithinBudget(hindiCandidate, hindiCandidate, hindiSource, 'hi')).not.toThrow();
+  });
+
+  it('requires a candidate prefix while allowing the publisher candidate and article body to differ', () => {
+    const candidate = 'Publisher summary leads with this verified account.';
+    const source = sourceText(200);
+
+    expect(() => assertExcerptWithinBudget(candidate, candidate, source)).not.toThrow();
+    expect(() => assertExcerptWithinBudget(`${candidate.slice(0, 20)}${EXCERPT_BUDGET.ellipsis}`, candidate, source)).not.toThrow();
+    expect(() => assertExcerptWithinBudget('Verified account leads this publisher summary.', candidate, source)).toThrow(/CON-04/);
+    expect(() => assertExcerptWithinBudget('summary leads with', candidate, source)).toThrow(/CON-04/);
   });
 });
 

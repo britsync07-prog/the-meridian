@@ -87,7 +87,8 @@ export interface StoryRow {
   excerpt: string | null;
   published_at: string;
   fetched_at: string;
-  simhash: number;
+  simhash_hi: number;
+  simhash_lo: number;
   band0: number;
   band1: number;
   band2: number;
@@ -144,7 +145,8 @@ export interface StoryInsert {
   language: string;
   publishedAt: string;
   fetchedAt: string;
-  simhash: number;
+  simhash_hi: number;
+  simhash_lo: number;
   band0: number;
   band1: number;
   band2: number;
@@ -174,7 +176,8 @@ export interface LshCandidateRow {
   headline: string;
   excerpt: string | null;
   published_at: string;
-  simhash: number;
+  simhash_hi: number;
+  simhash_lo: number;
   language: string;
   country_code: string;
   is_primary: number;
@@ -242,6 +245,7 @@ export interface Repository {
   listUnclusteredStories(limit: number): Promise<StoryRow[]>;
   /** Retrieve one raw story by its id, or null. */
   findStoryById(storyId: number): Promise<StoryRow | null>;
+  findStoryBySourceAndCluster(sourceId: number, clusterId: number): Promise<StoryRow | null>;
   /** Retrieve one source by its id, or null. */
   findSourceById(sourceId: number): Promise<SourceRow | null>;
   /** The eight broadsheet desks, in display order. */
@@ -402,8 +406,8 @@ export function createRepository(env: MeridianEnv): Repository {
         .prepare(
           `INSERT INTO stories (
              cluster_id, source_id, external_guid, headline, excerpt, url, slug, language,
-             published_at, fetched_at, simhash, band0, band1, band2, band3, country_code, is_primary
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             published_at, fetched_at, simhash_hi, simhash_lo, band0, band1, band2, band3, country_code, is_primary
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           row.clusterId,
@@ -416,7 +420,8 @@ export function createRepository(env: MeridianEnv): Repository {
           row.language,
           row.publishedAt,
           row.fetchedAt,
-          row.simhash,
+          row.simhash_hi,
+          row.simhash_lo,
           row.band0,
           row.band1,
           row.band2,
@@ -433,8 +438,8 @@ export function createRepository(env: MeridianEnv): Repository {
       const statement = db.prepare(
         `INSERT INTO stories (
            cluster_id, source_id, external_guid, headline, excerpt, url, slug, language,
-           published_at, fetched_at, simhash, band0, band1, band2, band3, country_code, is_primary
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           published_at, fetched_at, simhash_hi, simhash_lo, band0, band1, band2, band3, country_code, is_primary
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(source_id, external_guid) DO NOTHING`,
       );
 
@@ -455,6 +460,7 @@ export function createRepository(env: MeridianEnv): Repository {
             story.language,
             story.publishedAt,
             story.fetchedAt,
+            0,
             0,
             0,
             0,
@@ -494,7 +500,7 @@ export function createRepository(env: MeridianEnv): Repository {
     async listStoriesForCluster(clusterId: number): Promise<StorySourceRow[]> {
       const result = await db
         .prepare(
-          `SELECT story_id, source_id, rank, headline, url, published_at
+          `SELECT source_id, rank, headline, url, published_at
              FROM story_sources
             WHERE cluster_id = ?
             ORDER BY rank ASC`,
@@ -653,7 +659,7 @@ export function createRepository(env: MeridianEnv): Repository {
     ): Promise<LshCandidateRow[]> {
       const result = await db
         .prepare(
-          `SELECT id, cluster_id, headline, excerpt, published_at, simhash, language, country_code, is_primary
+          `SELECT id, cluster_id, headline, excerpt, published_at, simhash_hi, simhash_lo, language, country_code, is_primary
              FROM stories
             WHERE published_at >= ?
               AND language = ?
@@ -856,7 +862,7 @@ export function createRepository(env: MeridianEnv): Repository {
         .prepare(
           `SELECT id, cluster_id, source_id, external_guid, url, slug,
                   headline, excerpt, published_at, fetched_at,
-                  simhash, band0, band1, band2, band3,
+                  simhash_hi, simhash_lo, band0, band1, band2, band3,
                   language, country_code, is_primary
              FROM stories
             WHERE cluster_id = 0
@@ -873,12 +879,28 @@ export function createRepository(env: MeridianEnv): Repository {
         .prepare(
           `SELECT id, cluster_id, source_id, external_guid, url, slug,
                   headline, excerpt, published_at, fetched_at,
-                  simhash, band0, band1, band2, band3,
+                  simhash_hi, simhash_lo, band0, band1, band2, band3,
                   language, country_code, is_primary
              FROM stories
             WHERE id = ?`,
         )
         .bind(storyId)
+        .first<StoryRow>();
+      return row ?? null;
+    },
+
+    async findStoryBySourceAndCluster(sourceId: number, clusterId: number): Promise<StoryRow | null> {
+      const row = await db
+        .prepare(
+          `SELECT id, cluster_id, source_id, external_guid, url, slug,
+                  headline, excerpt, published_at, fetched_at,
+                  simhash_hi, simhash_lo, band0, band1, band2, band3,
+                  language, country_code, is_primary
+             FROM stories
+            WHERE source_id = ? AND cluster_id = ?
+            LIMIT 1`,
+        )
+        .bind(sourceId, clusterId)
         .first<StoryRow>();
       return row ?? null;
     },
@@ -927,7 +949,7 @@ export function createRepository(env: MeridianEnv): Repository {
       // bounds the scan to the merge window's worth of rows, not the table.
       const result = await db
         .prepare(
-          `SELECT id, cluster_id, headline, excerpt, published_at, simhash, language, country_code, is_primary
+          `SELECT id, cluster_id, headline, excerpt, published_at, simhash_hi, simhash_lo, language, country_code, is_primary
              FROM stories
             WHERE published_at >= ?
               AND language = ?
@@ -1040,14 +1062,14 @@ export function createRepository(env: MeridianEnv): Repository {
         db
           .prepare(
             `INSERT INTO story_sources (
-               cluster_id, story_id, source_id, rank, headline, url, published_at
-             ) VALUES (?, ?, ?, ?, ?, ?, ?)
-             ON CONFLICT(cluster_id, story_id) DO UPDATE SET
+               cluster_id, source_id, rank, headline, url, published_at
+             ) VALUES (?, ?, ?, ?, ?, ?)
+             ON CONFLICT(cluster_id, source_id) DO UPDATE SET
                rank = excluded.rank,
                headline = excluded.headline,
                url = excluded.url`,
           )
-          .bind(newClusterId, storyId, sourceId, 0, headline, url, publishedAt),
+          .bind(newClusterId, sourceId, 0, headline, url, publishedAt),
       ]);
 
       return newClusterId;
@@ -1074,14 +1096,14 @@ export function createRepository(env: MeridianEnv): Repository {
         db
           .prepare(
             `INSERT INTO story_sources (
-               cluster_id, story_id, source_id, rank, headline, url, published_at
-             ) VALUES (?, ?, ?, ?, ?, ?, ?)
-             ON CONFLICT(cluster_id, story_id) DO UPDATE SET
+               cluster_id, source_id, rank, headline, url, published_at
+             ) VALUES (?, ?, ?, ?, ?, ?)
+             ON CONFLICT(cluster_id, source_id) DO UPDATE SET
                headline = excluded.headline,
                url = excluded.url,
                published_at = excluded.published_at`,
           )
-          .bind(clusterId, storyId, sourceId, 0, headline, url, publishedAt),
+          .bind(clusterId, sourceId, 0, headline, url, publishedAt),
         // CON-15: the cluster's publication time is the EARLIEST member's, so
         // adding a member can only ever pull it backwards. The counts are
         // recomputed from `story_sources`, which is the member list of record.
@@ -1247,18 +1269,17 @@ export function createRepository(env: MeridianEnv): Repository {
         db
           .prepare(
             `DELETE FROM story_sources
-              WHERE cluster_id = ? AND story_id = ?`,
+              WHERE cluster_id = ? AND source_id = ?`,
           )
-          .bind(oldClusterId, storyId),
+          .bind(oldClusterId, story.source_id),
         db
           .prepare(
             `INSERT INTO story_sources (
-               cluster_id, story_id, source_id, rank, headline, url, published_at
-             ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+               cluster_id, source_id, rank, headline, url, published_at
+             ) VALUES (?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             newClusterId,
-            story.id,
             story.source_id,
             0,
             story.headline,
@@ -1292,7 +1313,7 @@ export function createRepository(env: MeridianEnv): Repository {
                               earlier.published_at < story_sources.published_at
                               OR (
                                    earlier.published_at = story_sources.published_at
-                                   AND earlier.story_id <= story_sources.story_id
+                                   AND earlier.source_id <= story_sources.source_id
                                  )
                             )
                     )

@@ -94,7 +94,7 @@ interface RouteTableShard {
 interface RouteTable {
   zone_name: string;
   shards: RouteTableShard[];
-  global_surfaces: string[];
+  reserved_prefixes: string[];
 }
 
 /** Read the route table. */
@@ -288,12 +288,11 @@ describe('the eight-project static shard (D-06)', () => {
     }
   });
 
-  it('lists the global surfaces that are duplicated into every shard', () => {
+  it('reserves the R2 story tier and leaves all other top-level output global', () => {
     const table = readRouteTable();
 
-    expect(table.global_surfaces.length).toBeGreaterThan(0);
-    expect(table.global_surfaces).toContain('index.html');
-    expect(table.global_surfaces).toContain('robots.txt');
+    expect(table.reserved_prefixes).toEqual(['story']);
+    expect(table.shards.map((shard) => shard.prefix.replace(/^\//, '').replace(/\/$/, ''))).not.toContain('story');
   });
 });
 

@@ -59,7 +59,12 @@ export function buildSanitizedExcerpt(options: BuildExcerptOptions): StoryExcerp
   });
 
   if (result.text !== null) {
-    assertExcerptWithinBudget(result.text, options.sourceVisibleText, options.language);
+    assertExcerptWithinBudget(
+      result.text,
+      options.candidateText,
+      options.sourceVisibleText,
+      options.language,
+    );
   }
 
   return toStoredExcerpt(result);

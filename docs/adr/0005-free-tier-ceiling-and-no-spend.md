@@ -18,9 +18,11 @@ The reconciled ceilings live in `config/free-tier-limits.json` (OPS-01). Every
 row carries the value, the unit, the period it is measured over, the URL it was
 read from and the date it was verified. Eighteen ceilings are recorded. A
 ceiling marked `enforcement: enforced` has a value distinctive enough to be
-searched for as a stray literal in source code, and
-`shared/config/__tests__/free-tier-limits.test.ts` proves that no code path
-reads one from anywhere else. A ceiling marked `informational` is still
+searched for as a stray literal in executable source and deployment
+configuration, and `shared/config/__tests__/free-tier-limits.test.ts` proves
+that no executable path or deployment setting reads one from anywhere else.
+Planning and research prose is documentary evidence rather than part of this
+numeric gate. A ceiling marked `informational` is still
 recorded, still readable through `shared/config/free-tier-limits.ts` and still
 measured by the Phase 7 audit Worker; it is simply not distinctive enough to be
 literal-scanned without colliding with unrelated code.

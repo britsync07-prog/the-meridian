@@ -10,12 +10,5 @@
     { "shard": "07", "project": "meridian-static-in", "prefix": "/in/", "route": "/in/*" },
     { "shard": "08", "project": "meridian-static-in-hi", "prefix": "/in-hi/", "route": "/in-hi/*" }
   ],
-  "global_surfaces": [
-    "index.html",
-    "robots.txt",
-    "favicon.ico",
-    "_astro/",
-    "sitemap-index.xml",
-    "feed.xml"
-  ]
+  "reserved_prefixes": ["story"]
 }

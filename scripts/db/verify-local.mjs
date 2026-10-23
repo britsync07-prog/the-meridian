@@ -5,7 +5,7 @@
  * OPS-14 is a claim about a *module*; this script is the claim about a
  * *database*. It proves:
  *
- *   1. The DDL applies to a genuinely empty database with no manual repair step.
+ *   1. Every numbered migration applies to a genuinely empty database with no manual repair step.
  *   2. The schema carries the exact table and index set the free-tier budget
  *      was calculated against — the four LSH band indexes and the partial
  *      editorial-rank index included.
@@ -185,8 +185,8 @@ if (listResult.status !== 0) {
 // `wrangler d1 migrations apply` succeeds when there is nothing to apply, so
 // the migration list itself must be checked. Otherwise a mis-pointed
 // migrations_dir would produce an empty database and a misleading PASS.
-if (!/0001_init\.sql/.test(listResult.stdout)) {
-  console.error('FAIL: `shared/db/0001_init.sql` was not found in the migrations directory.');
+if (!/0001_init\.sql/.test(listResult.stdout) || !/0002_story-retention\.sql/.test(listResult.stdout)) {
+  console.error('FAIL: the complete shared/db migration chain was not found in the migrations directory.');
   console.error(listResult.stdout);
   process.exit(1);
 }
@@ -284,7 +284,27 @@ checkTrue(
 );
 
 // ---------------------------------------------------------------------------
-// 5. Report.
+// 5. Prove the locked 30-day prune contract on the effective migration shape.
+// ---------------------------------------------------------------------------
+query("INSERT INTO clusters (id, slug, canonical_headline, published_at, first_seen_at, last_seen_at) VALUES (9001, 'verify-retention', 'Retention proof', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z')");
+query("INSERT INTO topics (id, slug, name) VALUES (9001, 'verify-retention', 'Retention proof')");
+query("INSERT INTO entities (id, slug, name, type) VALUES (9001, 'verify-retention', 'Retention proof', 'event')");
+query("INSERT INTO stories (id, cluster_id, source_id, external_guid, headline, url, slug, published_at, fetched_at, simhash_hi, simhash_lo, band0, band1, band2, band3, country_code) VALUES (9001, 9001, 1, 'verify-retention', 'Retention proof', 'https://example.test/retention', 'retention-proof', '2026-09-01T00:00:00Z', '2026-09-01T00:01:00Z', 2147483648, 1, 0, 0, 0, 0, 'GB')");
+query("INSERT INTO story_sources (cluster_id, source_id, rank, headline, url, published_at) VALUES (9001, 1, 0, 'Retention proof', 'https://example.test/retention', '2026-09-01T00:00:00Z')");
+query('INSERT INTO story_topics (story_id, topic_id) VALUES (9001, 9001)');
+query('INSERT INTO story_entities (story_id, entity_id) VALUES (9001, 9001)');
+query("INSERT INTO images (id, story_id, source_url, content_hash) VALUES (9001, 9001, 'https://example.test/retention.jpg', 'retention-proof')");
+query('DELETE FROM stories WHERE id = 9001');
+
+check('pruned raw story', 0, scalar('SELECT COUNT(*) AS n FROM stories WHERE id = 9001'));
+check('pruned story topics', 0, scalar('SELECT COUNT(*) AS n FROM story_topics WHERE story_id = 9001'));
+check('pruned story entities', 0, scalar('SELECT COUNT(*) AS n FROM story_entities WHERE story_id = 9001'));
+check('pruned story images', 0, scalar('SELECT COUNT(*) AS n FROM images WHERE story_id = 9001'));
+check('permanent attribution survives prune', 1, scalar('SELECT COUNT(*) AS n FROM story_sources WHERE cluster_id = 9001 AND source_id = 1'));
+check('foreign-key violations', 0, query('PRAGMA foreign_key_check').length);
+
+// ---------------------------------------------------------------------------
+// 6. Report.
 // ---------------------------------------------------------------------------
 const pad = (value, width) => String(value).padEnd(width);
 const failures = results.filter((result) => !result.ok);

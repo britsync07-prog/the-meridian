@@ -43,6 +43,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { R2_EXPIRY_PREFIXES, R2_LIFECYCLE_RULES } from '../../shared/config/r2-lifecycle.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const WRANGLER_BIN = path.join(REPO_ROOT, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
@@ -56,7 +57,7 @@ const BUCKET = 'meridian';
  * An empty string is deliberately absent: an empty prefix means "all prefixes"
  * and would match `og/` and the bucket root.
  */
-const ALLOWED_PREFIXES = ['raw/', 'media/'];
+const ALLOWED_PREFIXES = R2_EXPIRY_PREFIXES;
 
 /**
  * The rules this project owns, and only these two.
@@ -66,10 +67,7 @@ const ALLOWED_PREFIXES = ['raw/', 'media/'];
  * - `media/` at 365 days: one uniform 12-month clock for every media object,
  *   with no exemptions and no second rule to reason about (D-15).
  */
-const DESIRED_RULES = [
-  { id: 'expire-raw', prefix: 'raw/', expireDays: 7 },
-  { id: 'expire-media', prefix: 'media/', expireDays: 365 },
-];
+const DESIRED_RULES = R2_LIFECYCLE_RULES;
 
 /* ------------------------------------------------------------------------- */
 /* Wrangler                                                                  */

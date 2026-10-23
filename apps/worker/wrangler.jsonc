@@ -14,6 +14,9 @@
       "migrations_pattern": "../../shared/db/[0-9]*.sql"
     }
   ],
+  "vars": {
+    "MERIDIAN_DB_ID": "af7ca858-b8ce-432a-8e80-a05c39e3c1be"
+  },
   "r2_buckets": [
     { "binding": "R2", "bucket_name": "meridian" }
   ],

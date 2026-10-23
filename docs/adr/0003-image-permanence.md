@@ -67,10 +67,12 @@ Every media object expires after **12 months**. Every one. There is no
 curated permanent set, no per-publisher carve-out, no "this one is
 important enough" rule, and no second clock to reconcile with the first.
 
-The rule is expressed in days in the lifecycle configuration — 365 days,
-which is the same clock stated in the unit R2 takes — and the value lives in
-one place, `shared/contract/image-permanence.ts`, as
-`MEDIA_LIFETIME_DAYS`.
+The rule is expressed in days in the shared lifecycle configuration — 365
+days, which is the same clock stated in the unit R2 takes. The single source
+is `shared/config/r2-lifecycle.js`: it defines exactly `raw/` at 7 days and
+`media/` at 365 days. `shared/contract/image-permanence.ts` re-exports that
+media lifetime as `MEDIA_LIFETIME_DAYS`; the lifecycle creator and live
+verifier import the same definition.
 
 One rule, one value, one place to check. An exemption would be a hole in
 the budget that someone has to remember, and the next person to add one
@@ -139,8 +141,8 @@ by the views of stories whose media has actually expired.
 
 ### D-19 — Open Graph images never expire
 
-Open Graph images are excluded from **every** lifecycle rule, alongside the
-site root. They belong to permanent story URLs, and a permanent URL that
+Open Graph images and bucket-root objects are permanent: they are excluded
+from **every** lifecycle rule. They belong to permanent story URLs, and a permanent URL that
 loses its social card is broken in exactly the same way a permanent URL that
 loses its photograph is.
 
@@ -193,8 +195,9 @@ root. The rule set is structurally incapable of carrying a rule that would.
 
 ## References
 
-- `shared/contract/image-permanence.ts` — the resolution rule and the
-  lifetime constant
+- `shared/config/r2-lifecycle.js` — the single two-rule lifecycle source
+- `shared/contract/image-permanence.ts` — the resolution rule and re-exported
+  media lifetime constant
 - `shared/templates/typographic-fallback.ts` — the pure panel builder
 - `shared/contract/__tests__/image-permanence.test.ts` — the assertions
 - `config/free-tier-limits.json` — the `r2_class_b_ops_per_month` ceiling

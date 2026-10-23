@@ -33,6 +33,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { R2_EXPIRY_PREFIXES, R2_LIFECYCLE_RULES } from '../../shared/config/r2-lifecycle.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const WRANGLER_BIN = path.join(REPO_ROOT, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
@@ -41,16 +42,13 @@ const WRANGLER_BIN = path.join(REPO_ROOT, 'node_modules', 'wrangler', 'bin', 'wr
 const BUCKET = 'meridian';
 
 /** The only prefixes a rule in this project may carry. */
-const ALLOWED_PREFIXES = ['raw/', 'media/'];
+const ALLOWED_PREFIXES = R2_EXPIRY_PREFIXES;
 
 /** The prefixes that must never appear on any rule. */
 const FORBIDDEN_PREFIXES = ['og/', 'og', ''];
 
 /** The exact rule set the bucket must carry. */
-const EXPECTED_RULES = [
-  { id: 'expire-raw', prefix: 'raw/', expireDays: 7 },
-  { id: 'expire-media', prefix: 'media/', expireDays: 365 },
-];
+const EXPECTED_RULES = R2_LIFECYCLE_RULES;
 
 /** The rule count the bucket must carry. A third rule is a silent budget change. */
 const EXPECTED_RULE_COUNT = EXPECTED_RULES.length;

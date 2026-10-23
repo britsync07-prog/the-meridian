@@ -64,7 +64,7 @@ describe('the cluster split command (03-05)', () => {
           language: 'en',
           publishedAt,
           fetchedAt: publishedAt,
-          simhash: 0,
+          simhash_hi: 0, simhash_lo: 0,
           band0: 0,
           band1: 0,
           band2: 0,

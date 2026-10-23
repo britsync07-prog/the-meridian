@@ -167,11 +167,11 @@ describe('Excerpt Budget Pipeline (CON-01 through CON-05)', () => {
     const validSource = generateWords(200);
     const validExcerpt = generateWords(40);
 
-    expect(() => assertExcerptWithinBudget(validExcerpt, validSource)).not.toThrow();
+    expect(() => assertExcerptWithinBudget(validExcerpt, validExcerpt, validSource)).not.toThrow();
 
     // Tampered excerpt exceeding word limit
     const tamperedExcerpt = generateWords(55);
-    expect(() => assertExcerptWithinBudget(tamperedExcerpt, validSource)).toThrow(ExcerptBudgetError);
+    expect(() => assertExcerptWithinBudget(tamperedExcerpt, validExcerpt, validSource)).toThrow(ExcerptBudgetError);
   });
 
   it('handles Hindi Devanagari text with purna viram (D-14)', () => {

@@ -49,23 +49,23 @@ export async function splitCluster(
     );
   }
 
-  // 2. Validate that the target story is a member of this cluster
-  const targetSource = memberSources.find((s) => s.story_id === storyId);
-  if (!targetSource) {
-    throw new Error(
-      `Story ${storyId} does not belong to cluster ${oldClusterId}.`,
-    );
-  }
-
   // 3. The detached story and the outlet that published it. The correction
   //    note names the outlet, so the name has to be the real one — the source
   //    id alone would publish "source 10" to a reader.
   const story = await repository.findStoryById(storyId);
   if (!story) {
-    throw new Error(`Story ${storyId} not found.`);
+    throw new Error(`Story ${storyId} does not belong to cluster ${oldClusterId}.`);
   }
   const source = await repository.findSourceById(story.source_id);
   const outletName = source?.name ?? `source ${story.source_id}`;
+
+  // 2. Validate that the target story is a member of this cluster
+  const targetSource = memberSources.find((s) => s.source_id === story.source_id);
+  if (!targetSource) {
+    throw new Error(
+      `Story ${storyId} does not belong to cluster ${oldClusterId}.`,
+    );
+  }
 
   // 4. Generate standard dated correction note (CUR-03, D-19)
   const correctionNote = `Correction (${dateStr}): An earlier version of this story incorrectly grouped coverage from ${outletName}. The coverage has been separated into its own report.`;
@@ -97,7 +97,7 @@ export async function splitCluster(
   // 7. Re-measure the cluster the story is leaving. The surviving members
   //    keep the cluster; its canonical headline, counts, earliest publication
   //    time and trending score are recomputed from what is left.
-  const remaining = memberSources.filter((s) => s.story_id !== storyId);
+  const remaining = memberSources.filter((s) => s.source_id !== story.source_id);
   const distinctOutlets = new Set(remaining.map((s) => s.source_id)).size;
   const mentionCount = remaining.length;
   const earliestPublishedAt = remaining
@@ -108,7 +108,7 @@ export async function splitCluster(
     remaining.map((s) => ({ headline: s.headline })),
   );
   const promoted = remaining.find((s) => s.headline === canonicalHeadline) ?? remaining[0];
-  const promotedStory = await repository.findStoryById(promoted.story_id);
+  const promotedStory = await repository.findStoryBySourceAndCluster(promoted.source_id, oldClusterId);
 
   const oldTrendingScore = calculateTrendingScore({
     distinctOutlets,
@@ -119,7 +119,7 @@ export async function splitCluster(
   });
 
   const oldClusterUpdates = {
-    promotedStoryId: promoted.story_id,
+    promotedStoryId: promotedStory?.id ?? promoted.source_id,
     canonicalHeadline,
     canonicalExcerpt: promotedStory?.excerpt ?? null,
     publishedAt: earliestPublishedAt,

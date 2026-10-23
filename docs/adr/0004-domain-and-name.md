@@ -50,17 +50,19 @@ It lives in `shared/config/site.ts`, as `SITE_NAME`. That value feeds the
 name. It can never diverge from itself, because there is no second copy of
 it to diverge from.
 
-A test enforces the single-copy rule: the literal appears in exactly one
-source file in the whole repository. A second copy — in a component, a
-config, a comment, a template — is a failure the build reports, because the
-failure mode it causes (a mismatch on `news.google.com`) has no error
-message of its own.
+A test enforces the single-copy rule across executable source and
+runtime/deployment configuration, where `SITE_NAME` is the canonical value.
+Historical or explanatory Markdown may quote old or alternative names without
+becoming a runtime alias. A second executable copy would be a build failure,
+because the mismatch it causes on `news.google.com` has no error message of
+its own.
 
 **D-13 — all seven editions share ONE site name.**
 
 Edition identity appears in:
 
-- the `<title>`, with the site name first and the edition identity second;
+- the `<title>`, with the page-specific title first, edition identity second,
+  and the site name last;
 - the meta description, with the **country keyword present in the snippet**
   as well as in the title;
 - the `<h1>` and the visible masthead.
@@ -72,7 +74,7 @@ silently and lose the entire edition's Google News presence.
 
 `shared/templates/head.ts` is where this is enforced. `pageMeta()` reads the
 site name from the one config value and the edition from the one edition
-list, and builds the title as `${SITE_NAME} — ${edition.countryName}`.
+list, and builds the title as `${pageTitle} — ${edition.countryName} — ${SITE_NAME}`.
 
 ### The domain
 

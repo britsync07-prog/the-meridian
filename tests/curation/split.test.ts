@@ -38,6 +38,7 @@ function makeRepository(overrides: Partial<Repository> = {}): Repository {
     assignClusterTaxonomy: vi.fn(),
     listUnclusteredStories: vi.fn(),
     findStoryById: vi.fn(),
+    findStoryBySourceAndCluster: vi.fn(),
     findSourceById: vi.fn(),
     listSections: vi.fn(),
     listEditions: vi.fn(),
@@ -87,7 +88,7 @@ async function seedTwoOutletCluster() {
     language: 'en',
     publishedAt: '2026-10-21T09:00:00.000Z',
     fetchedAt: '2026-10-21T09:05:00.000Z',
-    simhash: 111,
+    simhash_hi: 0, simhash_lo: 111,
     band0: 11,
     band1: 12,
     band2: 13,
@@ -107,7 +108,7 @@ async function seedTwoOutletCluster() {
     language: 'en',
     publishedAt: '2026-10-21T10:00:00.000Z',
     fetchedAt: '2026-10-21T10:05:00.000Z',
-    simhash: 222,
+    simhash_hi: 0, simhash_lo: 222,
     band0: 21,
     band1: 22,
     band2: 23,
@@ -209,7 +210,7 @@ describe('splitCluster (CUR-02, CUR-03, D-18, D-19)', () => {
           excerpt: 'An excerpt.',
           published_at: '2026-10-21T00:00:00.000Z',
           fetched_at: '2026-10-21T00:05:00.000Z',
-          simhash: 0,
+          simhash_hi: 0, simhash_lo: 0,
           band0: 0,
           band1: 0,
           band2: 0,
@@ -256,7 +257,7 @@ describe('splitCluster (CUR-02, CUR-03, D-18, D-19)', () => {
           excerpt: null,
           published_at: '2026-10-21T00:00:00.000Z',
           fetched_at: '2026-10-21T00:05:00.000Z',
-          simhash: 0,
+          simhash_hi: 0, simhash_lo: 0,
           band0: 0,
           band1: 0,
           band2: 0,
@@ -300,7 +301,7 @@ describe('splitCluster (CUR-02, CUR-03, D-18, D-19)', () => {
       // orphans, and nothing is lost (CUR-02).
       const attributionRows = db
         .prepare(
-          'SELECT cluster_id, story_id, source_id, rank FROM story_sources ORDER BY cluster_id ASC',
+          'SELECT cluster_id, source_id, rank FROM story_sources ORDER BY cluster_id ASC',
         )
         .all() as Array<{
         cluster_id: number;
@@ -310,10 +311,10 @@ describe('splitCluster (CUR-02, CUR-03, D-18, D-19)', () => {
       }>;
       expect(attributionRows).toHaveLength(2);
       expect(
-        attributionRows.find((r) => r.cluster_id === clusterId)?.story_id,
+        attributionRows.find((r) => r.cluster_id === clusterId)?.source_id,
       ).toBe(bbcStoryId);
       expect(
-        attributionRows.find((r) => r.cluster_id === result.newClusterId)?.story_id,
+        attributionRows.find((r) => r.cluster_id === result.newClusterId)?.source_id,
       ).toBe(guardianStoryId);
       expect(
         attributionRows.find((r) => r.cluster_id === result.newClusterId)?.rank,

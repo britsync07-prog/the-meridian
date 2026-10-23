@@ -100,10 +100,12 @@ Sharding is not the growth strategy. These are:
    story's URL resolves forever. Non-prominent clusters stay addressable at
    their permanent URL, remain in date archives and topic/entity pages, and
    remain in the sitemap.
-2. **Pruning the LSH band columns on `stories` older than 30 days.** The merge
-   window is 48 hours, so band data is dead weight after that. The raw mention
-   rows are pruned; `story_sources` retains the outlet list, the headline and
-   the URL permanently.
+2. **Pruning raw `stories` rows after 30 days.** The merge window is 48 hours,
+   so raw dedup evidence is dead weight after 30 days. `story_sources` is
+   permanent under `(cluster_id, source_id)`, retaining the outlet list,
+   headline, URL, publication time and display rank after the raw mention and
+   its topic, entity and image children are deleted. `npm run db:verify:local`
+   executes that prune proof.
 3. **An alert at 60% of the 500 MB database limit.** The audit Worker (Phase 7)
    reads `config/free-tier-limits.json` and writes its observations to the
    `usage_log` table. This is the trigger that reopens this ADR.
@@ -204,7 +206,7 @@ the topology, not the table definitions.
 
 | Claim | How it is checked |
 |---|---|
-| The schema applies to an empty database | `node scripts/db/verify-local.mjs` — deletes `.wrangler/state`, applies the migrations, asserts 19 tables and 32 named indexes |
+| The schema applies to an empty database and prune preserves attribution | `node scripts/db/verify-local.mjs` — deletes `.wrangler/state`, applies every numbered migration, asserts 19 tables and 32 named indexes, then deletes a populated raw mention and proves its permanent attribution survives |
 | The seed is complete and no source is pre-verified | the same script — 8 editions, 8 sections, 64 edition-sections rows, 30 sources, zero sources with `terms_status <> 'unverified'` |
 | The identifier is a configuration value | `node scripts/db/verify-swap.mjs` — repoints the binding, rebuilds from nothing, restores the file byte-for-byte, and hashes `apps/worker/src` and `shared` before and after |
 | All SQL lives in one module | `apps/worker/src/db/__tests__/repository.test.ts` — a repository-wide scan for SQL keywords outside `apps/worker/src/db/repository.ts` |

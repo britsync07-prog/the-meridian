@@ -76,7 +76,7 @@ export interface HreflangAlternate {
   href: string;
 }
 
-/** The input to the page metadata builder. */
+/** The input to the page metadata builder. `title` leads the page-specific document title. */
 export interface PageMetaInput {
   title: string;
   description: string;
@@ -126,4 +126,3 @@ export interface FeedFetchLog {
   durationMs: number | null;
   error: string | null;
 }
-

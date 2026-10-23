@@ -121,6 +121,25 @@ if (!existsSync(buildDir)) {
 const table = readRouteTable();
 const fileCap = readFileCap();
 
+if (!Array.isArray(table.shards) || table.shards.length === 0) {
+  throw new Error('The route table must declare at least one shard.');
+}
+
+const localeOwners = new Map();
+for (const shard of table.shards) {
+  const prefix = shard.prefix.replace(/^\//, '').replace(/\/$/, '');
+  if (!prefix || localeOwners.has(prefix)) {
+    throw new Error(`The route table has an ambiguous locale prefix: ${prefix || '(empty)'}.`);
+  }
+  localeOwners.set(prefix, shard);
+}
+const reservedPrefixes = new Set(table.reserved_prefixes ?? ['story']);
+for (const reserved of reservedPrefixes) {
+  if (localeOwners.has(reserved)) {
+    throw new Error(`The reserved prefix "${reserved}" cannot also be an edition prefix.`);
+  }
+}
+
 /** Where every shard's output directory lives. */
 const shardsRoot = path.join(buildDir, 'shards');
 
@@ -136,6 +155,16 @@ if (existsSync(shardsRoot)) {
 }
 mkdirSync(shardsRoot, { recursive: true });
 
+const topLevelEntries = readdirSync(buildDir, { withFileTypes: true }).filter((entry) => entry.name !== 'shards');
+const globalEntries = topLevelEntries.filter(
+  (entry) => !localeOwners.has(entry.name) && !reservedPrefixes.has(entry.name),
+);
+const presentLocales = new Set(topLevelEntries.filter((entry) => localeOwners.has(entry.name)).map((entry) => entry.name));
+const missingLocales = [...localeOwners.keys()].filter((prefix) => !presentLocales.has(prefix));
+if (missingLocales.length > 0) {
+  throw new Error(`The build output is missing edition directories: ${missingLocales.join(', ')}.`);
+}
+
 const rows = [];
 
 for (const shard of table.shards) {
@@ -150,16 +179,11 @@ for (const shard of table.shards) {
     localeFiles = countFiles(path.join(shardDir, path.basename(prefixDir)));
   }
 
-  /* The global surfaces, duplicated into every shard. */
+  /* Every non-locale, non-story top-level entry is global and self-contained. */
   let globalFiles = 0;
-  const missingGlobal = [];
-  for (const surface of table.global_surfaces) {
-    const source = path.join(buildDir, surface);
-    if (!existsSync(source)) {
-      missingGlobal.push(surface);
-      continue;
-    }
-    const destination = path.join(shardDir, surface);
+  for (const entry of globalEntries) {
+    const source = path.join(buildDir, entry.name);
+    const destination = path.join(shardDir, entry.name);
     mkdirSync(path.dirname(destination), { recursive: true });
     cpSync(source, destination, { recursive: true });
     globalFiles += countFiles(destination);
@@ -174,7 +198,7 @@ for (const shard of table.shards) {
     globalFiles,
     total,
     overCap: total > fileCap,
-    missingGlobal,
+    missingGlobal: [],
   });
 }
 

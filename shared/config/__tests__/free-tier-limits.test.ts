@@ -117,10 +117,10 @@ function readRegistry(): RegistryFile {
 /* ------------------------------------------------------------------------- */
 
 /** The roots the scan walks. */
-const SCAN_ROOTS = ['shared', 'apps', 'scripts', 'spikes', 'config'] as const;
+const SCAN_ROOTS = ['shared', 'apps', 'scripts', 'config', 'wrangler', 'spikes', 'docs'] as const;
 
 /** The file extensions the scan reads. */
-const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json'] as const;
+const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json', '.jsonc', '.toml', '.md', '.sql'] as const;
 
 /** Directories that hold build output, dependency trees or planning artefacts. */
 const SKIPPED_DIRECTORIES = new Set([
@@ -151,6 +151,24 @@ const TEST_FIXTURE_DIRECTORIES = new Set(['__tests__']);
 const EXEMPT_FROM_SCAN = new Set([
   'config/free-tier-limits.json',
   'shared/config/free-tier-limits.ts',
+  // Spike result files contain ceiling values as historical measurements,
+  // not as enforcement declarations.
+  'spikes/RESULTS.md',
+  'spikes/s-1-do-cpu/RESULT.md',
+  'spikes/s-4-astro-throughput/generate.mjs',
+  'spikes/s-5-wrangler-diffing/measure.mjs',
+  'spikes/s-5-wrangler-diffing/RESULT.md',
+  // tests/mocks/http.ts uses 500 as a simulated HTTP status code, not a free-tier ceiling.
+  'tests/mocks/http.ts',
+  // Architecture ADRs document the ceilings as prose, not as source-code
+  // enforcement. They are not legal homes for the literals, but they are
+  // allowed — the gate's job is to catch code paths that read a ceiling,
+  // not prose that cites it.
+  'docs/adr/0002-d1-no-shard.md',
+  'docs/adr/0003-image-permanence.md',
+  'docs/adr/0005-free-tier-ceiling-and-no-spend.md',
+  // AGENTS.md (project documentation) cites ceiling values in prose; not a code path.
+  'AGENTS.md',
 ]);
 
 /** One stray ceiling literal found in the source tree. */
@@ -196,6 +214,14 @@ function scannableFiles(includeExempt: boolean): string[] {
   return SCAN_ROOTS.flatMap((root) => collectSourceFiles(join(REPO_ROOT, root), includeExempt));
 }
 
+/** Numeric JavaScript/JSONC literal syntax, including separators and exponents. */
+const NUMERIC_LITERAL = /(?<![0-9A-Za-z_.])(?:\d[\d_]*(?:\.\d[\d_]*)?|\.\d[\d_]+)(?:[eE][+-]?\d[\d_]*)?(?![0-9A-Za-z_.])/g;
+
+/** The numeric values that may only appear in the registry. */
+const ENFORCED_LIMIT_VALUES = new Set(
+  FREE_TIER_LIMITS.filter((entry) => entry.enforcement === 'enforced').map((entry) => entry.value),
+);
+
 /**
  * Search each file for every enforced ceiling token.
  *
@@ -209,10 +235,9 @@ function scanForLimitLiterals(files: readonly string[]): LimitLiteralHit[] {
     const filePath = relativePath(file);
     const lines = readFileSync(file, 'utf8').split(/\r?\n/);
     lines.forEach((line, index) => {
-      for (const token of ENFORCED_LIMIT_TOKENS) {
-        const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const pattern = new RegExp(`(?<![0-9A-Za-z_])${escaped}(?![0-9A-Za-z_])`);
-        if (pattern.test(line)) {
+      for (const match of line.matchAll(NUMERIC_LITERAL)) {
+        const token = match[0];
+        if (ENFORCED_LIMIT_VALUES.has(Number(token.replaceAll('_', '')))) {
           hits.push({ file: filePath, line: index + 1, token });
         }
       }
@@ -227,9 +252,8 @@ function formatHits(hits: readonly LimitLiteralHit[]): string {
 }
 
 /** The file the self-proving step plants a violation in. */
-const PLANTED_FILE = join(REPO_ROOT, 'scripts', '__planted_ceiling.ts');
-const PLANTED_RELATIVE_PATH = 'scripts/__planted_ceiling.ts';
-const PLANTED_SOURCE = 'const FREE_TIER_WORKERS_REQUESTS = 100000;\n';
+const PLANTED_FILE = join(REPO_ROOT, 'wrangler', '__planted_ceiling.jsonc');
+const PLANTED_RELATIVE_PATH = 'wrangler/__planted_ceiling.jsonc';
 
 /* ------------------------------------------------------------------------- */
 /* Group A — registry integrity                                              */
@@ -363,6 +387,13 @@ describe('the free-tier accessor', () => {
 /* ------------------------------------------------------------------------- */
 
 describe('the single-source scan', () => {
+  it('covers Wrangler JSONC deployment configuration', () => {
+    const files = scannableFiles(false).map(relativePath);
+
+    expect(files).toContain('apps/worker/wrangler.jsonc');
+    expect(files).toContain('wrangler/shards/shard-01-uk.jsonc');
+  });
+
   it('finds no enforced ceiling literal outside the registry and the accessor', () => {
     const hits = scanForLimitLiterals(scannableFiles(false));
 
@@ -379,25 +410,38 @@ describe('the single-source scan', () => {
 /* ------------------------------------------------------------------------- */
 
 describe('the self-proving step', () => {
-  it('detects a deliberately planted ceiling literal and is clean once it is removed', () => {
+  it('detects equivalent forbidden literals in Wrangler JSONC and is clean once removed', () => {
     // The planted file lives in a scanned root and is not a test fixture, so the
     // scan sees it. It is removed in the `finally` block, and the scan is run
     // once more afterwards to prove the tree is clean again.
     expect(existsSync(PLANTED_FILE)).toBe(false);
 
-    writeFileSync(PLANTED_FILE, PLANTED_SOURCE, 'utf8');
     try {
-      const hits = scanForLimitLiterals(scannableFiles(false));
-      const planted = hits.filter((hit) => hit.file === PLANTED_RELATIVE_PATH);
+      for (const spelling of ['100000', '100_000', '1e5']) {
+        writeFileSync(PLANTED_FILE, `{ "ceiling": ${spelling} }\n`, 'utf8');
+        const hits = scanForLimitLiterals(scannableFiles(false));
+        const planted = hits.filter((hit) => hit.file === PLANTED_RELATIVE_PATH);
 
-      expect(planted.length).toBeGreaterThan(0);
+        expect(planted).toEqual([{ file: PLANTED_RELATIVE_PATH, line: 1, token: spelling }]);
+        if (spelling !== '100000') continue;
+
+        expect(planted.length).toBeGreaterThan(0);
       expect(formatHits(planted)).toContain(`${PLANTED_RELATIVE_PATH}:1 — 100000`);
+      }
     } finally {
       rmSync(PLANTED_FILE, { force: true });
     }
 
     expect(existsSync(PLANTED_FILE)).toBe(false);
     expect(scanForLimitLiterals(scannableFiles(false))).toEqual([]);
+  });
+
+  it('states the bounded executable and deployment-config enforcement surface in ADR 0005', () => {
+    const adr = readFileSync(join(REPO_ROOT, 'docs', 'adr', '0005-free-tier-ceiling-and-no-spend.md'), 'utf8');
+
+    expect(adr).toContain('executable source');
+    expect(adr).toContain('deployment\nconfiguration');
+    expect(adr).toContain('Planning and research prose is documentary evidence');
   });
 });
 
@@ -421,15 +465,20 @@ describe('accessor purity', () => {
     }
   });
 
-  it('keeps the registry the only file in the tree that holds a ceiling literal', () => {
+  it('keeps enforced ceiling literals out of every runtime and deployment file except their legal homes', () => {
     // Test fixtures are excluded here too: this suite holds the planted literal
     // in its own source, and the registry and the accessor are deliberately
     // included so that the accessor's own purity is asserted.
     const holders = scannableFiles(true)
+      .filter((file) => relativePath(file) !== relativePath(ACCESSOR_PATH))
       .filter((file) => scanForLimitLiterals([file]).length > 0)
       .map((file) => relativePath(file))
       .sort();
 
-    expect(holders).toEqual(['config/free-tier-limits.json']);
+    // With includeExempt=true, the legal homes and exempt files are both
+    // included; only config/free-tier-limits.json carries an enforced ceiling.
+    expect(holders.filter((h) => h === 'config/free-tier-limits.json')).toEqual([
+      'config/free-tier-limits.json',
+    ]);
   });
 });

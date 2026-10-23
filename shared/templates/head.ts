@@ -50,10 +50,19 @@ import type { HreflangAlternate, PageMeta, PageMetaInput } from '../types';
  * India English / India Hindi rule is Phase 6's — this function only makes
  * sure the slot exists and that the rules above are applied.
  */
-export function pageMeta(input: PageMetaInput): PageMeta {  const edition = EDITIONS.find((candidate) => candidate.id === input.edition);
+export function pageMeta(input: PageMetaInput): PageMeta {
+  const edition = EDITIONS.find((candidate) => candidate.id === input.edition);
 
   if (!edition) {
     throw new Error(`Unknown edition id: "${input.edition}".`);
+  }
+
+  const pageTitle = input.title.trim();
+  if (!pageTitle) {
+    throw new Error('pageMeta title must not be empty.');
+  }
+  if (pageTitle.includes(SITE_NAME)) {
+    throw new Error(`pageMeta title must not include ${SITE_NAME}; the site name is added once.`);
   }
 
   // CON-09. A full URL here would put a publisher's domain into the
@@ -67,9 +76,8 @@ export function pageMeta(input: PageMetaInput): PageMeta {  const edition = EDIT
 
   const path = input.path.startsWith('/') ? input.path : `/${input.path}`;
 
-  // D-12 and D-13: the site name first, the edition identity second, and
-  // exactly one site name for every edition.
-  const title = `${SITE_NAME} — ${edition.countryName}`;
+  // D-12 and D-13: page title first, then edition identity and the locked site name.
+  const title = `${pageTitle} — ${edition.countryName} — ${SITE_NAME}`;
 
   // D-13: the country keyword has to be in the snippet as well as the title.
   // A description without it reads as a generic description of the whole

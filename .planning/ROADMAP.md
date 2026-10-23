@@ -68,7 +68,7 @@ Seven spikes are concrete work items, not research topics. Each has an owner pha
   4. The written paid-plan decision rule names all three triggers (daily visitors approaching 4,000, a static project exceeding 20,000 files, any revenue) and lives in the same versioned file the audit Worker reads, so the rule and the budget can never drift apart.
   5. Spikes S-1, S-2, S-3, S-4 and S-5 have each been executed and their outcomes recorded, with the decision each one drove and the resulting change, if any, to the delivery model.
 
-**Plans**: 6 plans
+**Plans**: 15 plans
 
 Plans:
 **Wave 1**
@@ -82,6 +82,21 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [x] 01-06-PLAN.md — Spikes S-1 through S-5, executed and recorded with the decision each one drove
+
+**Gap Closure Wave 1**
+- [ ] 01-07-PLAN.md — Forward retention migration preserves attribution while raw-story children prune safely
+- [ ] 01-09-PLAN.md — Free-tier ceiling scan covers deployment config and equivalent numeric spellings
+- [ ] 01-10-PLAN.md — Page-specific edition titles and evidence-aligned site-name ADR
+- [ ] 01-11-PLAN.md — Verbatim excerpt provenance assertion wired through ingest
+- [ ] 01-12-PLAN.md — Exhaustive global-surface routing across all eight static shards
+- [ ] 01-13-PLAN.md — Single-source R2 lifecycle rules for raw, media, OG, and root safety
+
+**Gap Closure Wave 2** *(01-08 and 01-14 depend on 01-07)*
+- [ ] 01-08-PLAN.md — Permanent-attribution repository contract and lossless two-word SimHash persistence
+- [ ] 01-14-PLAN.md — Production-shaped D1 identity configuration and text-safe swap verification
+
+**Gap Closure Wave 3** *(depends on 01-08)*
+- [ ] 01-15-PLAN.md — Source-keyed editorial split workflow with correction and attribution regressions
 
 **UI hint**: no
 **Work items**:

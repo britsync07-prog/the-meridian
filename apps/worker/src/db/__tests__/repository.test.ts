@@ -203,6 +203,7 @@ describe('createRepository', () => {
         'findRecentCandidateStories',
         'findSourceById',
         'findStoryById',
+        'findStoryBySourceAndCluster',
         'insertStory',
         'listActiveSources',
         'listEditions',
@@ -424,7 +425,7 @@ describe('createRepository', () => {
                       headline: 'Bank of England cuts rates',
                       excerpt: 'Rate cut to 4.75%',
                       published_at: '2026-10-21T11:00:00.000Z',
-                      simhash: 12345678,
+                      simhash_hi: 0, simhash_lo: 12345678,
                       language: 'en',
                       country_code: 'GB',
                       is_primary: 1,
@@ -454,7 +455,7 @@ describe('createRepository', () => {
     expect(candidates.length).toBe(1);
     expect(candidates[0].id).toBe(101);
     expect(captured).not.toBeNull();
-    expect(captured!.sql).toMatch(/SELECT id, cluster_id, headline, excerpt, published_at, simhash, language, country_code, is_primary/i);
+    expect(captured!.sql).toMatch(/SELECT id, cluster_id, headline, excerpt, published_at, simhash_hi, simhash_lo, language, country_code, is_primary/i);
     expect(captured!.sql).toMatch(/FROM stories/i);
     expect(captured!.sql).toMatch(/WHERE published_at >= \?/i);
     expect(captured!.sql).toMatch(/AND language = \?/i);
