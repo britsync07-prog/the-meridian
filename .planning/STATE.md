@@ -1,19 +1,19 @@
 ---
 gsd_state_version: "1.0"
 milestone: v1.0
-current_phase: 03
+current_phase: 04
 current_phase_name: COMPLETE, ready for verification
-status: verifying
+status: planning
 stopped_at: context exhaustion at 77% (2026-10-23)
-last_updated: "2026-10-23T17:53:00.801Z"
-last_activity: 2026-10-22
-last_activity_desc: 03-05 complete (reversible cluster split with dated corrections, and the end-to-end curation pipeline)
-state_head: c9f9aa9717d0e11830c3f76c2cd7ab17ade13143
+last_updated: "2026-10-24T00:58:00.000Z"
+last_activity: 2026-10-24
+last_activity_desc: Phase 4 executed - all 5 plans complete, build succeeds
+state_head: 6a171fd
 progress:
   total_phases: 7
-  completed_phases: 4
-  total_plans: 28
-  completed_plans: 24
+  completed_phases: 5
+  total_plans: 33
+  completed_plans: 29
 milestone_name: milestone
 ---
 
@@ -30,12 +30,12 @@ Architecture of record: `.planning/research/SUMMARY.md` (authoritative) and `.pl
 
 ## Current Position
 
-Phase: 04 (broadsheet-design-system-astro-shell) — IN PROGRESS
-Plan: 5 of 5
-Status: Phase 3 verified ✓ (5/5 plans + 3 gap closure plans), Phase 4 context complete, planning in progress
-Last activity: 2026-10-22 -- 03-05 complete (reversible cluster split with dated corrections, and the end-to-end curation pipeline)
+Phase: 05 (publication-surface-editions-story-tier-media) — NEXT
+Plan: —
+Status: Phase 4 complete ✓ (5/5 plans), Phase 5 ready to start
+Last activity: 2026-10-24 -- Phase 4 complete (design system, 5 layouts, accessibility baseline)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 71%
 
 ## Phase Sequence
 
