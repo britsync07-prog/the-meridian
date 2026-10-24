@@ -49,11 +49,12 @@ export function buildInternalLinks(data: SnapshotData): LinkEdge[] {
     }
   }
 
-  // Story to edition index pages
+  // Story to edition index pages (bidirectional)
   for (const cluster of data.clusters) {
     for (const ec of data.edition_clusters) {
       if (ec.cluster_id === cluster.id) {
         addEdge(`/story/${cluster.slug}`, `/${ec.edition_id}/`, 'edition-index');
+        addEdge(`/${ec.edition_id}/`, `/story/${cluster.slug}`, 'edition-index');
       }
     }
   }

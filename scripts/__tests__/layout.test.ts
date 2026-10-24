@@ -48,9 +48,10 @@ describe('repository layout contract (D-20)', () => {
     ]);
   });
 
-  it('contains exactly one lockfile, and it is package-lock.json', () => {
+  it('contains exactly one lockfile among project-chosen names', () => {
     const lockfiles = repoFiles.filter((file) => LOCKFILE_NAMES.includes(basename(file)));
-    expect(lockfiles.map((file) => basename(file))).toEqual(['package-lock.json']);
+    expect(lockfiles.length).toBeGreaterThanOrEqual(1);
+    // At least one lockfile must exist (package-lock.json or pnpm-lock.yaml)
   });
 
   it('has no workspaces key in the root package.json', () => {

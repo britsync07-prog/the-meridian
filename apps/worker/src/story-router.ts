@@ -16,8 +16,8 @@ export async function handleStoryRequest(
   env: { R2_BUCKET: R2Bucket },
 ): Promise<Response> {
   // Strip leading /story/ and normalise
-  const slug = path.replace(/^\/story\//, '');
-  if (!slug || slug.includes('/')) {
+  const slug = decodeURIComponent(path.replace(/^\/story\//, ''));
+  if (!slug || slug.includes('/') || slug.includes('..') || !/^[a-zA-Z0-9_-]+$/.test(slug)) {
     return new Response(null, { status: 404 });
   }
 
