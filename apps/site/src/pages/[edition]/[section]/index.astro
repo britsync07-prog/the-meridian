@@ -24,30 +24,29 @@ interface Props {
 
 const { edition, section } = Astro.props;
 const data = getSectionPageData(edition, section);
+
 const today = new Date().toISOString().split('T')[0];
 ---
-<SectionLayout edition={edition} sectionName={data.sectionName} date={today}>
-  {data.stories.length === 0 ? (
-    <p class="text-muted">No stories for this section yet.</p>
-  ) : (
-    <>
-      <div name="splash" class="mb-6">
-        {data.leadStory && (
-          <StoryItem story={data.leadStory} edition={edition} />
-        )}
-      </div>
-      <div name="story-list" class="mt-6">
-        <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2 capitalize">
-          {data.sectionName}
-        </h2>
-        <StoryList stories={data.stories} edition={edition} />
-      </div>
-      {data.mostCoveredInSection.length > 0 && (
-        <aside class="mt-8">
-          <h3 class="font-masthead text-h2 font-bold italic mb-3 border-b hairline pb-1">Most Covered</h3>
-          <StoryList stories={data.mostCoveredInSection} edition={edition} showSecondary={true} />
-        </aside>
+{!data ? (
+  <p class="text-muted">No stories for this section yet.</p>
+) : (
+  <SectionLayout edition={edition} sectionName={data.sectionName} date={today}>
+    <div name="splash" class="mb-6">
+      {data.leadStory && (
+        <StoryItem story={data.leadStory} edition={edition} />
       )}
-    </>
-  )}
-</SectionLayout>
+    </div>
+    <div name="story-list" class="mt-6">
+      <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2 capitalize">
+        {data.sectionName}
+      </h2>
+      <StoryList stories={data.stories} edition={edition} />
+    </div>
+    {data.mostCoveredInSection.length > 0 && (
+      <aside class="mt-8">
+        <h3 class="font-masthead text-h2 font-bold italic mb-3 border-b hairline pb-1">Most Covered</h3>
+        <StoryList stories={data.mostCoveredInSection} edition={edition} showSecondary={true} />
+      </aside>
+    )}
+  </SectionLayout>
+)}

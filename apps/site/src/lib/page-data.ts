@@ -186,23 +186,13 @@ export function getFrontPageData(edition: string): FrontPageData {
   };
 }
 
-export function getSectionPageData(edition: string, section: string): SectionPageData {
+export function getSectionPageData(edition: string, section: string): SectionPageData | null {
   const stories = SAMPLE_STORIES.filter(s => s.section === section && (!s.edition || s.edition === edition));
-  const sectionName = SECTIONS.find(s => s.id === section as SectionId)?.name ?? section;
-
-  if (stories.length === 0) {
-    return {
-      edition: edition as EditionId,
-      section: section as SectionId,
-      sectionName,
-      leadStory: null,
-      stories: [],
-      mostCoveredInSection: [],
-    };
-  }
+  if (stories.length === 0) return null;
 
   const leadStory = stories.find(s => s.cluster.isProminent) ?? stories[0] ?? null;
   const rest = stories.filter(s => s !== leadStory);
+  const sectionName = SECTIONS.find(s => s.id === section as SectionId)?.name ?? section;
 
   const mostCoveredInSection = [...stories]
     .sort((a, b) => b.cluster.coverageCount - a.cluster.coverageCount)
