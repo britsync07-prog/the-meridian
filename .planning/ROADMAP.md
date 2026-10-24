@@ -290,7 +290,7 @@ Plans:
 | 1. Foundation, Free-Tier Contract & Architecture Decisions | 6/6 | Complete | 2026-10-21 |
 | 2. Feed Acquisition, Raw Capture & Normalization | 5/5 | In Progress | - |
 | 3. Curation Core: Clustering, Ranking & Enrichment | 5/5 | Complete | 2026-10-22 |
-| 4. Broadsheet Design System & Astro Shell | 0/TBD | Not started | - |
+| 4. Broadsheet Design System & Astro Shell | 5/5 | Complete | 2026-10-24 |
 | 5. Publication Surface: Editions, Story Tier & Media | 0/TBD | Not started | - |
 | 6. Digest, Trust Layer & SEO/Discovery | 0/TBD | Not started | - |
 | 7. Operational Hardening, Rollout & Measurement | 0/TBD | Not started | - |
