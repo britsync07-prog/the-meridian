@@ -1,0 +1,41 @@
+name: Phase 4 — Design System CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run dev & npm run test:lighthouse
+        env:
+          CI: true
+
+  visual-regression:
+    name: Visual Regression (360px, 1280px)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install-deps
+      - run: npx playwright install
+      - run: npm run test:visual
+        env:
+          CI: true
