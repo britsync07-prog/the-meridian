@@ -5,7 +5,7 @@
  * CON-07: Excerpts are verbatim from source items — never rewritten or paraphrased.
  */
 
-import type { SnapshotData } from '../snapshot.ts';
+import type { SnapshotData } from './snapshot.js';
 import { SITE_NAME } from '../../../../shared/config/site.js';
 
 /** One RSS item representing one cluster story. */

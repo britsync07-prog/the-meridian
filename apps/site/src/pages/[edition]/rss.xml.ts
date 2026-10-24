@@ -6,8 +6,8 @@
 import type { APIRoute } from 'astro';
 import { loadSnapshot } from '../../lib/snapshot.js';
 import { buildRssFeed } from '../../lib/rss.js';
-import { EDITIONS } from '../../../../../shared/config/editions.ts';
-import { SITE_NAME } from '../../../../../shared/config/site.ts';
+import { EDITIONS } from '../../../../../shared/config/editions.js';
+import { SITE_NAME } from '../../../../../shared/config/site.js';
 
 export const getStaticPaths = async () => {
   const paths = EDITIONS.map((e) => ({
@@ -37,7 +37,7 @@ export const get: APIRoute = async (context) => {
     edition,
     feedTitle: `${SITE_NAME} — ${editionInfo.countryName}`,
     feedDescription: `Latest stories from ${SITE_NAME} ${editionInfo.countryName} edition`,
-    siteOrigin: import.meta.env.SITE ?? 'https://meridian.workers.dev',
+    siteOrigin: 'https://meridian.workers.dev',
   });
 
   return new Response(rss, {

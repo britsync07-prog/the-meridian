@@ -1,5 +1,5 @@
-import { SITE_ORIGIN } from '../../../../shared/config/site.ts';
-import { getEditions, getSections, getAllStorySlugs, getArchiveDates } from '../lib/page-data.ts';
+import { SITE_ORIGIN } from '../../../../shared/config/site.js';
+import { getEditions, getSections, getAllStorySlugs, getArchiveDates } from '../lib/page-data.js';
 
 export function GET(): Response {
   const editions = getEditions();

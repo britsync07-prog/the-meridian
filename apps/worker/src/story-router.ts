@@ -13,7 +13,7 @@ const STORY_CACHE = `public, max-age=${STORY_TTL_SECONDS}, stale-while-revalidat
 
 export async function handleStoryRequest(
   path: string,
-  env: { R2_BUCKET: R2Bucket },
+  env: { R2: R2Bucket },
 ): Promise<Response> {
   // Strip leading /story/ and normalise
   const slug = decodeURIComponent(path.replace(/^\/story\//, ''));
@@ -21,20 +21,18 @@ export async function handleStoryRequest(
     return new Response(null, { status: 404 });
   }
 
-  const object = await env.R2_BUCKET.get(`story/${slug}.html`);
+  const object = await env.R2.get(`story/${slug}.html`);
   if (!object) {
     return new Response(null, { status: 404 });
   }
 
   const body = await object.body;
-  const etag = object.httpMetadata?.etag ?? object.checksums.sha256
-    ? Buffer.from(object.checksums.sha256).toString('base64')
+  const checksumEtag = object.checksums?.sha256
+    ? Buffer.from(object.checksums.sha256 as unknown as Uint8Array).toString('base64')
     : null;
 
-  // Conditional GET support
-  const ifNoneMatch = etag && etag === object.httpMetadata?.etag
-    ? object.httpMetadata?.etag
-    : null;
+  // Conditional GET support — use only checksum-based ETag since httpMetadata.etag is not in R2HTTPMetadata
+  const ifNoneMatch = checksumEtag;
 
   if (ifNoneMatch) {
     return new Response(null, {
