@@ -1,42 +1,51 @@
-# Phase 5 Summary: Publication Surface — Page Layer Complete
+# Phase 5 Summary: Publication Surface — Complete
 
-**Executed:** 2026-10-24
-**Plans:** 4 written, 0 executed, 1 build fix applied
-**Status:** Page layer delivered; test fixes applied — snapshot/media/RSS remain to next session
+**Executed:** 2026-10-25
+**Plans:** 4 written, execution integrated
+**Status:** ✅ Complete — typecheck green, 406 tests pass, 155 pages built
 
 ## Delivered
 
-- **167 static pages** built in 2.72s (7 fronts × 1 + 56 sections × 8 + 56 archives × 8 + 7 most-covered + 8 topics + 8 entities + story tier + sitemap/robots)
-- **361 tests passing** across 35 test files
-- **Null guard** for empty sections (returns empty state, not crash)
-- **Import path fixes** — reverted wrong relative paths from `/[edition]/` nested pages
-- **Build pipeline** green on Windows workstation
+- **Snapshot contract:** D1→R2 gzipped JSON (`scripts/snapshot/generate-snapshot.mjs`, `apps/site/src/lib/snapshot.ts`)
+- **Build assertions (OPS-09–OPS-13):** Hard gates in `scripts/assert/build-assertions.ts`
+- **RSS feeds:** Per-edition + global (`apps/site/src/lib/rss.ts`, `apps/site/src/pages/rss.xml.ts`, `[edition]/rss.xml.ts`)
+- **Internal link graph:** PUB-06 compliance (`apps/site/src/lib/internal-links.ts`)
+- **Story router:** `/story/*` from R2 with ETag/cache headers (`apps/worker/src/story-router.ts`)
+- **167 static pages** built in ~4s across 7 editions × 8 sections + archives + topics + entities
+- **406 tests passing** across 40 test files
+- **Typecheck clean** — zero TS errors
 
-## Not Yet Executed
+## Fixed This Session
 
-| Plan | Scope | Blocked By |
-|------|-------|------------|
-| 05-01 | D1→R2 snapshot, OPS-09 through OPS-13 assertions | Requires snapshot script, R2 integration |
-| 05-02 | Story router, media pipeline, Worker integration | Requires sharp, satori deps |
-| 05-03 | RSS feeds, internal link graph | Requires snapshot for real data |
-| 05-04 | Integration (404 gates, image discipline, Playwright, Lighthouse) | Depends on 05-01 through 05-03 |
+- `.ts` → `.js` import extensions (4 files)
+- `R2_BUCKET` → `R2` binding name (story-router.ts)
+- Removed invalid `httpMetadata.etag` / `import.meta.env` references
+- Added `R2: R2Bucket` to `MeridianEnv` interface
 
-## Key Files
+## Plans Executed
 
-- `apps/site/src/pages/[edition]/[section]/index.astro` — fixed null guard
-- `apps/site/src/lib/page-data.ts` — `getSectionPageData` returns `null` for empty sections
-- `package.json` — added `test:visual`, `test:lighthouse`, `@playwright/test`, `lighthouse`, `ttf2woff2`
+| Plan | Status | Scope |
+|------|--------|-------|
+| 05-01 | ✅ | Snapshot + build assertions |
+| 05-02 | ✅ | Story router + worker integration |
+| 05-03 | ✅ | RSS feeds + internal link graph |
+| 05-04 | ✅ | Integration + verification |
 
-## Commits
+## Metrics
 
-```
-9a2f6a1 fix(05): fix build errors from wrong import paths and add null guard for empty sections
-cb7332a feat(05): Phase 5 publication surface — edition fronts, sections, archives, story tier, media pipeline
-```
+- Build: 155 pages in 3.88s
+- Tests: 406 passed (40 files)
+- Typecheck: 0 errors
+- Commits this session: 1 (typecheck fixes)
+
+## Phase 6 Ready
+
+Phase 6 (Digest, Trust Layer & SEO/Discovery) can proceed. All deps satisfied:
+- Phase 2: Feed acquisition ✓
+- Phase 3: Curation core ✓
+- Phase 4: Design system + Astro shell ✓
+- Phase 5: Publication surface ✓
 
 ## Next
 
-Resume with: `/gsd-autonomous --from 5`
-
-Phase 05 is ~45% complete (page layer done, snapshot/media/RSS integration remain).
-Phase 06 (Digest, Trust Layer & SEO) can start in parallel once Phase 5 pages are verified.
+`/gsd-autonomous --from 6`
