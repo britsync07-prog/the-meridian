@@ -9,11 +9,11 @@
  *   node scripts/assert/run-assertions.mjs [snapshot-path] [build-dir]
  */
 
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__dirname, '..', '..');
 
 const snapshotPath = process.argv[2]
   ? resolve(process.cwd(), process.argv[2])

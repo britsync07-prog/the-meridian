@@ -10,7 +10,7 @@ import {
   assertSingleOutletDominance,
   assertNoDuplicateTitles,
   assertStoryValueElements,
-} from '../../scripts/assert/build-assertions.js';
+} from '../build-assertions';
 
 // Helper to create minimal valid snapshots
 function createSnapshot(overrides: Partial<SnapshotData> = {}): SnapshotData {
@@ -19,10 +19,23 @@ function createSnapshot(overrides: Partial<SnapshotData> = {}): SnapshotData {
     schema_version: 1,
     editions: [
       { id: 'uk', slug: 'uk', name: 'United Kingdom', country_code: 'GB', language: 'en' },
+      { id: 'us', slug: 'us', name: 'United States', country_code: 'US', language: 'en' },
+      { id: 'au', slug: 'au', name: 'Australia', country_code: 'AU', language: 'en' },
+      { id: 'ca', slug: 'ca', name: 'Canada', country_code: 'CA', language: 'en' },
+      { id: 'ie', slug: 'ie', name: 'Ireland', country_code: 'IE', language: 'en' },
+      { id: 'nz', slug: 'nz', name: 'New Zealand', country_code: 'NZ', language: 'en' },
+      { id: 'in', slug: 'in', name: 'India', country_code: 'IN', language: 'en' },
+      { id: 'in-hi', slug: 'in-hi', name: 'India (Hindi)', country_code: 'IN', language: 'hi' },
     ],
     sections: [
       { id: 'politics', name: 'Politics', sortOrder: 1 },
-      { id: 'technology', name: 'Technology', sortOrder: 2 },
+      { id: 'business', name: 'Business', sortOrder: 2 },
+      { id: 'technology', name: 'Technology', sortOrder: 3 },
+      { id: 'sport', name: 'Sport', sortOrder: 4 },
+      { id: 'health', name: 'Health', sortOrder: 5 },
+      { id: 'world', name: 'World', sortOrder: 6 },
+      { id: 'weather', name: 'Weather', sortOrder: 7 },
+      { id: 'entertainment', name: 'Entertainment', sortOrder: 8 },
     ],
     clusters: [
       { id: 1, slug: 'cluster-1', canonical_headline: 'Headline 1', published_at: '2026-10-24T08:00:00Z', is_prominent: true, trending_score: 10.0, outlet_count: 3, editorial_rank: 1 },
@@ -63,8 +76,11 @@ function createSnapshot(overrides: Partial<SnapshotData> = {}): SnapshotData {
 describe('build-assertions.ts', () => {
   describe('assertThinEdition', () => {
     it('passes when all editions have >= 8 stories', () => {
-      const clusters = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, slug: `cluster-${i}` }));
-      const editionClusters = clusters.map((c) => ({ edition_id: 'uk', cluster_id: c.id }));
+      const allEditionIds = ['uk', 'us', 'au', 'ca', 'ie', 'nz', 'in', 'in-hi'];
+      const clusters = Array.from({ length: 80 }, (_, i) => ({ id: i + 1, slug: `cluster-${i}` }));
+      const editionClusters = clusters.flatMap((c) =>
+        allEditionIds.map((e) => ({ edition_id: e, cluster_id: ((c.id - 1) % 8) + 1 + Math.floor((c.id - 1) / 8) * 8 }))
+      );
       const snapshot = createSnapshot({ clusters: clusters as any, edition_clusters: editionClusters as any });
 
       expect(() => assertThinEdition(snapshot)).not.toThrow();
@@ -83,12 +99,19 @@ describe('build-assertions.ts', () => {
 
   describe('assertSectionStoryFloor', () => {
     it('passes when all sections have >= 3 stories', () => {
-      // Create enough clusters distributed across sections
-      const clusters = Array.from({ length: 20 }, (_, i) => ({ id: i + 1 }));
-      const editionClusters = clusters.map((c) => ({ edition_id: 'uk', cluster_id: c.id }));
-      const clusterSections = clusters.map((c) => ({
-        cluster_id: c.id,
-        section_id: c.id % 2 === 0 ? 'politics' : 'technology',
+      const sectionIds = ['politics','business','technology','sport','health','world','weather','entertainment'];
+      const editionIds = ['uk','us','au','ca','ie','nz','in','in-hi'];
+      // 3 clusters per section per edition = 8 sections * 8 editions * 3 clusters = 192 clusters
+      const clusters = Array.from({ length: 192 }, (_, i) => ({ id: i + 1 }));
+      const editionClusters = editionIds.flatMap((eid) =>
+        sectionIds.flatMap((sid, si) =>
+          [1, 2, 3].map((c) => ({ edition_id: eid, cluster_id: si * 3 + c }))
+        )
+      );
+      // Each cluster maps to exactly ONE section (not all sections)
+      const clusterSections = editionClusters.map((ec) => ({
+        cluster_id: ec.cluster_id,
+        section_id: sectionIds[(ec.cluster_id - 1) % 8],
         confidence: 0.9,
         method: 'test',
       }));

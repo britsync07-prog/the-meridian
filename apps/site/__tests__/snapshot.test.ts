@@ -91,7 +91,7 @@ describe('snapshot.ts', () => {
     });
 
     it('returns null for empty section', () => {
-      const result = getSectionPageData(mockSnapshot, 'uk', 'technology');
+      const result = getSectionPageData(mockSnapshot, 'uk', 'sports');
       expect(result).toBeNull();
     });
 

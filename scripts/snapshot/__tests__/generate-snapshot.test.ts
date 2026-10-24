@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
-import { gzipSync, inflateSync } from 'node:zlib';
+import { gzipSync, gunzipSync } from 'node:zlib';
 
 describe('generate-snapshot.mjs', () => {
   it('produces correct JSON shape with all required fields', () => {
@@ -57,7 +57,7 @@ describe('generate-snapshot.mjs', () => {
   it('gzip compression is lossless', () => {
     const original = JSON.stringify({ test: 'data', count: 42 });
     const compressed = gzipSync(Buffer.from(original, 'utf8'));
-    const decompressed = inflateSync(compressed).toString('utf8');
+    const decompressed = gunzipSync(compressed).toString('utf8');
 
     expect(decompressed).toBe(original);
   });

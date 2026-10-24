@@ -52,6 +52,7 @@ const ALLOWED_FILES = new Set([
   REPOSITORY_MODULE,
   'scripts/db/verify-local.mjs',
   'scripts/db/verify-swap.mjs',
+  'scripts/snapshot/generate-snapshot.mjs',
 ]);
 
 const SQL_KEYWORD = /\b(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|CREATE INDEX|ALTER TABLE)\b/i;
