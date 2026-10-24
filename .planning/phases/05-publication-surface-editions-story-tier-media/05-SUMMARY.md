@@ -2,7 +2,7 @@
 
 **Executed:** 2026-10-24
 **Plans:** 4 written, 0 executed, 1 build fix applied
-**Status:** Page layer delivered; snapshot/media/RSS deferred to next session
+**Status:** Page layer delivered; test fixes applied — snapshot/media/RSS remain to next session
 
 ## Delivered
 
@@ -38,5 +38,5 @@ cb7332a feat(05): Phase 5 publication surface — edition fronts, sections, arch
 
 Resume with: `/gsd-autonomous --from 5`
 
-Phase 05 is ~30% complete (page layer done, snapshot/media/RSS integration remain).
+Phase 05 is ~45% complete (page layer done, snapshot/media/RSS integration remain).
 Phase 06 (Digest, Trust Layer & SEO) can start in parallel once Phase 5 pages are verified.
