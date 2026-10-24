@@ -11,6 +11,7 @@
 import { resolveDatabaseId, type MeridianEnv } from './db/config';
 import { createRepository } from './db/repository';
 import { pollFeedPartition } from './fetcher';
+import { handleStoryRequest } from './story-router.js';
 
 function json(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload, null, 2), {
@@ -24,6 +25,11 @@ export default {
     const repository = createRepository(env);
     const databaseId = resolveDatabaseId(env);
     const url = new URL(request.url);
+
+    // Story tier: serve /story/* from R2
+    if (url.pathname.startsWith('/story/')) {
+      return handleStoryRequest(url.pathname, env);
+    }
 
     // A deliberate, explicit probe: it costs one D1 query and it is the only
     // path that does. The health endpoint itself reads nothing.

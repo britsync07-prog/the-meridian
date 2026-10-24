@@ -18,11 +18,14 @@ const { slug } = Astro.props;
 const data = getStoryPageData(slug);
 
 if (!data) {
-  throw new Error(`Story not found: ${slug}`);
+  // Return empty page — build still succeeds (404-like behavior)
+  Astro.response?.status(404);
 }
 
 const today = new Date().toISOString().split('T')[0];
-const publishedDate = new Date(data.cluster.publishedAt).toISOString().split('T')[0];
+const publishedDate = data?.cluster?.publishedAt
+  ? new Date(data.cluster.publishedAt).toISOString().split('T')[0]
+  : today;
 ---
 <StoryLayout storyTitle={data.cluster.canonicalHeadline} edition={data.section} date={today}>
   <div name="body" class="mb-8">

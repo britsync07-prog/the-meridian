@@ -50,5 +50,7 @@ const today = new Date().toISOString().split('T')[0];
     </div>
   </TopicEntityLayout>
 ) : (
-  <p class="text-muted">Not enough stories found for this topic.</p>
+  <TopicEntityLayout edition="uk" topicName={topicName} date={today}>
+    <p class="text-muted">Not enough stories found for this topic.</p>
+  </TopicEntityLayout>
 )}

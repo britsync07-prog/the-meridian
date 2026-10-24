@@ -7,9 +7,8 @@
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { SnapshotData } from '../snapshot/snapshot.js';
-import { EDITIONS } from '../../shared/config/editions.js';
-import { SECTIONS } from '../../shared/config/editions.js';
+import type { SnapshotData } from '../../apps/site/src/lib/snapshot.js';
+import { EDITIONS, SECTIONS } from '../../shared/config/editions.js';
 import freeTierLimits from '../../config/free-tier-limits.json' with { type: 'json' };
 
 /* ------------------------------------------------------------------------- */
@@ -221,7 +220,7 @@ export function assertStoryValueElements(data: SnapshotData): void {
     // trending_score
     if (cluster.trending_score > 0) elementCount++;
     // editorial_rank
-    if (cluster.editorialRank !== null) elementCount++;
+    if (cluster.editorial_rank !== null) elementCount++;
 
     // topics
     const hasTopics = data.cluster_topics.some((ct) => ct.cluster_id === cluster.id);

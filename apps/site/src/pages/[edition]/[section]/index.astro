@@ -27,9 +27,7 @@ const data = getSectionPageData(edition, section);
 
 const today = new Date().toISOString().split('T')[0];
 ---
-{!data ? (
-  <p class="text-muted">No stories for this section yet.</p>
-) : (
+{data ? (
   <SectionLayout edition={edition} sectionName={data.sectionName} date={today}>
     <div name="splash" class="mb-6">
       {data.leadStory && (
@@ -48,5 +46,9 @@ const today = new Date().toISOString().split('T')[0];
         <StoryList stories={data.mostCoveredInSection} edition={edition} showSecondary={true} />
       </aside>
     )}
+  </SectionLayout>
+) : (
+  <SectionLayout edition={edition} sectionName={section} date={today}>
+    <p class="text-muted">No stories for this section yet.</p>
   </SectionLayout>
 )}

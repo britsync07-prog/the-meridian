@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { SnapshotData } from '../src/lib/snapshot.js';
+import type { SnapshotData } from '../../../apps/site/src/lib/snapshot.js';
 import {
   assertThinEdition,
   assertSectionStoryFloor,
@@ -39,7 +39,7 @@ function createSnapshot(overrides: Partial<SnapshotData> = {}): SnapshotData {
     ],
     clusters: [
       { id: 1, slug: 'cluster-1', canonical_headline: 'Headline 1', published_at: '2026-10-24T08:00:00Z', is_prominent: true, trending_score: 10.0, outlet_count: 3, editorial_rank: 1 },
-      { id: 2, slug: 'cluster-2', canonical_headline: 'Headline 2', published_at: '2026-10-24T07:00:00Z', is_prominent: false, trending_score: 8.5, outlet_count: 2, editorial_rank: null },
+      { id: 2, slug: 'cluster-2', canonical_headline: 'Headline 2', published_at: '2026-10-24T07:00:00Z', is_prominent: false, trending_score: 8.5, outlet_count: 2, editorial_rank: 2 },
     ],
     story_sources: [
       { cluster_id: 1, source_id: 'bbc', rank: 1, headline: 'BBC', url: 'https://bbc.co.uk', published_at: '2026-10-24T08:00:00Z' },
@@ -177,7 +177,7 @@ describe('build-assertions.ts', () => {
     it('throws when duplicate headlines exist', () => {
       const clusters = [
         { id: 1, slug: 'cluster-1', canonical_headline: 'Same Headline', published_at: '2026-10-24T08:00:00Z', is_prominent: true, trending_score: 10.0, outlet_count: 3, editorial_rank: 1 },
-        { id: 2, slug: 'cluster-2', canonical_headline: 'Same Headline', published_at: '2026-10-24T07:00:00Z', is_prominent: false, trending_score: 8.5, outlet_count: 2, editorial_rank: null },
+        { id: 2, slug: 'cluster-2', canonical_headline: 'Same Headline', published_at: '2026-10-24T07:00:00Z', is_prominent: false, trending_score: 8.5, outlet_count: 2, editorial_rank: 2 },
       ];
       const snapshot = createSnapshot({ clusters: clusters as any });
 
@@ -193,7 +193,7 @@ describe('build-assertions.ts', () => {
 
     it('throws when a cluster has fewer than 4 value elements', () => {
       const clusters = [
-        { id: 1, slug: 'cluster-1', canonical_headline: 'Headline 1', published_at: '2026-10-24T08:00:00Z', is_prominent: false, trending_score: 0, outlet_count: 0, editorial_rank: null },
+        { id: 1, slug: 'cluster-1', canonical_headline: 'Headline 1', published_at: '2026-10-24T08:00:00Z', is_prominent: false, trending_score: 0, outlet_count: 0, editorial_rank: 2 },
       ];
       const snapshot = createSnapshot({
         clusters: clusters as any,

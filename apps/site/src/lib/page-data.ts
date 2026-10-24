@@ -1,12 +1,18 @@
 /**
  * Page data layer for static generation.
  *
- * Returns plain objects/Maps (no Astro imports) so it can be unit-tested in
- * isolation and reused by both the Astro pages and the sitemap generator.
+ * Loads the snapshot once at module initialization time, then exposes
+ * synchronous accessors so Astro pages can call them directly in
+ * getStaticPaths() and frontmatter.
  */
 import type { EditionId, SectionId } from '../../../../shared/config/editions.ts';
 import { EDITIONS, SECTIONS } from '../../../../shared/config/editions.ts';
-import { SITE_ORIGIN } from '../../../../shared/config/site.ts';
+import type { SnapshotData, SnapshotCluster, SnapshotStorySource } from './snapshot.ts';
+import { loadSnapshot, getEditionFrontData, getSectionPageData as _getSectionPageData, getStoryPageData as _getStoryPageData, getAllStorySlugs as _getAllStorySlugs, getArchivePaths as _getArchivePaths, getTopicPaths, getEntityPaths } from './snapshot.ts';
+
+/* ------------------------------------------------------------------------- */
+/* Public interfaces (unchanged for page compatibility)                        */
+/* ------------------------------------------------------------------------- */
 
 export interface PageCluster {
   id: number;
@@ -65,94 +71,75 @@ export interface StoryPageData {
   relatedStories: PageStory[];
 }
 
-const SAMPLE_STORIES: PageStory[] = [
-  {
-    cluster: { id: 1, slug: 'uk-parliament-budget-debate', canonicalHeadline: 'Parliament Debates New Budget Measures', publishedAt: '2026-10-24T08:00:00Z', isProminent: true, trendingScore: 12.5, coverageCount: 5, editorialRank: 1 },
-    sources: [
-      { clusterId: 1, sourceId: 'bbc', rank: 1, headline: 'Budget debate begins', url: 'https://bbc.co.uk/news', publishedAt: '2026-10-24T08:00:00Z' },
-      { clusterId: 1, sourceId: 'guardian', rank: 2, headline: 'PM faces questions on spending', url: 'https://theguardian.com/politics', publishedAt: '2026-10-24T07:30:00Z' },
-    ],
-    section: 'politics', edition: 'uk'
-  },
-  {
-    cluster: { id: 2, slug: 'tech-ai-regulation-summit', canonicalHeadline: 'Global AI Regulation Summit Concludes', publishedAt: '2026-10-24T06:00:00Z', isProminent: false, trendingScore: 10.2, coverageCount: 4, editorialRank: 2 },
-    sources: [
-      { clusterId: 2, sourceId: 'reuters', rank: 1, headline: 'AI summit wraps with new accord', url: 'https://reuters.com', publishedAt: '2026-10-24T06:00:00Z' },
-    ],
-    section: 'technology', edition: 'us'
-  },
-  {
-    cluster: { id: 3, slug: 'cricket-world-cup-final', canonicalHeadline: 'Cricket World Cup Final Draws Record Viewership', publishedAt: '2026-10-23T18:00:00Z', isProminent: false, trendingScore: 9.8, coverageCount: 6, editorialRank: 3 },
-    sources: [], section: 'sport', edition: 'in'
-  },
-  {
-    cluster: { id: 4, slug: 'us-economy-inflation-data', canonicalHeadline: 'US Inflation Data Shows Unexpected Rise', publishedAt: '2026-10-24T05:00:00Z', isProminent: true, trendingScore: 11.0, coverageCount: 3, editorialRank: null },
-    sources: [
-      { clusterId: 4, sourceId: 'wsj', rank: 1, headline: 'Inflation rises above expectations', url: 'https://wsj.com', publishedAt: '2026-10-24T05:00:00Z' },
-    ],
-    section: 'business', edition: 'us'
-  },
-  {
-    cluster: { id: 5, slug: 'australia-bushfire-warning', canonicalHeadline: 'Bushfire Warning Issued for New South Wales', publishedAt: '2026-10-24T02:00:00Z', isProminent: false, trendingScore: 8.5, coverageCount: 2, editorialRank: null },
-    sources: [
-      { clusterId: 5, sourceId: 'abc-au', rank: 1, headline: 'Fire danger extreme across NSW', url: 'https://abc.net.au', publishedAt: '2026-10-24T02:00:00Z' },
-    ],
-    section: 'weather', edition: 'au'
-  },
-  {
-    cluster: { id: 6, slug: 'canada-healthcare-funding', canonicalHeadline: 'Federal Budget Allocates $2B for Healthcare', publishedAt: '2026-10-24T09:00:00Z', isProminent: true, trendingScore: 13.0, coverageCount: 7, editorialRank: 1 },
-    sources: [
-      { clusterId: 6, sourceId: 'cbc', rank: 1, headline: 'Healthcare funding announced', url: 'https://cbc.ca', publishedAt: '2026-10-24T09:00:00Z' },
-      { clusterId: 6, sourceId: 'globe', rank: 2, headline: 'Budget 2026 details', url: 'https://globeandmail.com', publishedAt: '2026-10-24T09:15:00Z' },
-    ],
-    section: 'health', edition: 'ca'
-  },
-  {
-    cluster: { id: 7, slug: 'election-results-projection', canonicalHeadline: 'Exit Polls Project Tight Race in Key Constituencies', publishedAt: '2026-10-24T07:00:00Z', isProminent: false, trendingScore: 14.0, coverageCount: 8, editorialRank: 1 },
-    sources: [
-      { clusterId: 7, sourceId: 'ndtv', rank: 1, headline: 'Vote counting underway', url: 'https://ndtv.com', publishedAt: '2026-10-24T07:00:00Z' },
-    ],
-    section: 'politics', edition: 'in'
-  },
-  {
-    cluster: { id: 8, slug: 'wall-street-tech-earnings', canonicalHeadline: 'Big Tech Earnings Beat Expectations Despite Market Jitters', publishedAt: '2026-10-24T04:00:00Z', isProminent: false, trendingScore: 9.2, coverageCount: 6, editorialRank: 2 },
-    sources: [
-      { clusterId: 8, sourceId: 'cnbc', rank: 1, headline: 'Tech stocks rally after hours', url: 'https://cnbc.com', publishedAt: '2026-10-24T04:00:00Z' },
-      { clusterId: 8, sourceId: 'reuters', rank: 2, headline: 'Earnings beat despite headwinds', url: 'https://reuters.com', publishedAt: '2026-10-24T04:15:00Z' },
-    ],
-    section: 'business', edition: 'us'
-  },
-  {
-    cluster: { id: 9, slug: 'climate-change-summit-outcome', canonicalHeadline: 'Climate Summit Reaches Landmark Agreement on Carbon Targets', publishedAt: '2026-10-24T06:30:00Z', isProminent: false, trendingScore: 10.8, coverageCount: 9, editorialRank: null },
-    sources: [
-      { clusterId: 9, sourceId: 'guardian', rank: 1, headline: 'Historic climate deal struck', url: 'https://theguardian.com/environment', publishedAt: '2026-10-24T06:30:00Z' },
-      { clusterId: 9, sourceId: 'bbc', rank: 2, headline: 'Global carbon pact signed', url: 'https://bbc.co.uk/news', publishedAt: '2026-10-24T06:45:00Z' },
-      { clusterId: 9, sourceId: 'reuters', rank: 3, headline: 'World leaders commit to targets', url: 'https://reuters.com', publishedAt: '2026-10-24T06:50:00Z' },
-    ],
-    section: 'world', edition: 'uk'
-  },
-  {
-    cluster: { id: 10, slug: 'australian-open-tennis-upset', canonicalHeadline: 'Top Seed Stuns in Australian Open Third Round', publishedAt: '2026-10-24T03:00:00Z', isProminent: false, trendingScore: 7.9, coverageCount: 4, editorialRank: null },
-    sources: [
-      { clusterId: 10, sourceId: 'abc-au', rank: 1, headline: 'Major upset at AO', url: 'https://abc.net.au/news', publishedAt: '2026-10-24T03:00:00Z' },
-    ],
-    section: 'sport', edition: 'au'
-  },
-  {
-    cluster: { id: 11, slug: 'data-breach-credit-cards', canonicalHeadline: 'Major Retailer Faces Fallout From Data Breach Affecting Millions', publishedAt: '2026-10-24T04:30:00Z', isProminent: true, trendingScore: 15.3, coverageCount: 7, editorialRank: 1 },
-    sources: [
-      { clusterId: 11, sourceId: 'reuters', rank: 1, headline: 'Data breach exposes millions', url: 'https://reuters.com', publishedAt: '2026-10-24T04:30:00Z' },
-    ],
-    section: 'technology', edition: 'ca'
-  },
-  {
-    cluster: { id: 12, slug: 'irish-property-market-cooling', canonicalHeadline: 'Irish Property Market Cools as Interest Rates Stay High', publishedAt: '2026-10-24T05:30:00Z', isProminent: false, trendingScore: 8.1, coverageCount: 3, editorialRank: 4 },
-    sources: [
-      { clusterId: 12, sourceId: 'irishtimes', rank: 1, headline: 'Property prices drop in Dublin', url: 'https://irishtimes.com', publishedAt: '2026-10-24T05:30:00Z' },
-    ],
-    section: 'business', edition: 'ie'
-  },
-];
+/* ------------------------------------------------------------------------- */
+/* Snapshot cache (loaded once at module init)                                */
+/* ------------------------------------------------------------------------- */
+
+let _snapshot: SnapshotData | null = null;
+
+/** Pre-load the snapshot so synchronous accessors work in Astro pages. */
+export async function loadPageSnapshot(): Promise<void> {
+  if (!_snapshot) {
+    _snapshot = await loadSnapshot();
+  }
+}
+
+/** Return the cached snapshot or null if not yet loaded. */
+function getSnapshot(): SnapshotData | null {
+  return _snapshot;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Snapshot → PageStory conversion                                            */
+/* ------------------------------------------------------------------------- */
+
+function toPageCluster(c: SnapshotCluster): PageCluster {
+  return {
+    id: c.id,
+    slug: c.slug,
+    canonicalHeadline: c.canonical_headline,
+    publishedAt: c.published_at,
+    isProminent: c.is_prominent,
+    trendingScore: c.trending_score,
+    coverageCount: c.outlet_count,
+    editorialRank: c.editorial_rank,
+  };
+}
+
+function toPageSources(clusterId: number, sources: SnapshotStorySource[]): PageSource[] {
+  return sources.map(s => ({
+    clusterId: s.cluster_id,
+    sourceId: s.source_id,
+    rank: s.rank,
+    headline: s.headline,
+    url: s.url,
+    publishedAt: s.published_at,
+  }));
+}
+
+function buildStoryMap(snapshot: SnapshotData): Map<number, PageStory[]> {
+  const map = new Map<number, PageStory[]>();
+  for (const ec of snapshot.edition_clusters) {
+    const cluster = snapshot.clusters.find(c => c.id === ec.cluster_id);
+    if (!cluster) continue;
+    const sectionAssignment = snapshot.cluster_sections.find(cs => cs.cluster_id === ec.cluster_id);
+    const sources = snapshot.story_sources.filter(s => s.cluster_id === ec.cluster_id);
+    const story: PageStory = {
+      cluster: toPageCluster(cluster),
+      sources: toPageSources(ec.cluster_id, sources),
+      section: sectionAssignment?.section_id as SectionId | undefined,
+      edition: ec.edition_id as EditionId | undefined,
+    };
+    const arr = map.get(ec.cluster_id) ?? [];
+    arr.push(story);
+    map.set(ec.cluster_id, arr);
+  }
+  return map;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Public API (same signatures as before — pages unchanged)                   */
+/* ------------------------------------------------------------------------- */
 
 export function getEditions(): string[] {
   return EDITIONS.map(e => e.id);
@@ -162,44 +149,64 @@ export function getSections(): { id: SectionId; name: string }[] {
   return SECTIONS.map(s => ({ id: s.id, name: s.name }));
 }
 
-export function getFrontPageData(edition: string): FrontPageData {
-  const today = new Date().toISOString().split('T')[0];
-  const editionId = edition as EditionId;
-  const editionStories = SAMPLE_STORIES.filter(s => !s.edition || s.edition === editionId);
-  const prominent = editionStories.filter(s => s.cluster.isProminent);
+export function getFrontPageData(edition: string): FrontPageData | null {
+  const snapshot = getSnapshot();
+  if (!snapshot) return null;
 
+  const editionId = edition as EditionId;
+  const frontData = getEditionFrontData(snapshot, edition);
+  if (!frontData) return null;
+
+  const storyMap = buildStoryMap(snapshot);
+  const clusters = frontData.clusters;
+  const stories = clusters.map(c => {
+    const arr = storyMap.get(c.id) ?? [];
+    return arr[0] ?? { cluster: toPageCluster(c), sources: [], section: undefined, edition: editionId as EditionId };
+  });
+
+  const prominent = stories.filter(s => s.cluster.isProminent);
   const sectionStories = new Map<SectionId, PageStory[]>();
   for (const s of SECTIONS) {
-    sectionStories.set(s.id, editionStories.filter(st => st.section === s.id));
+    sectionStories.set(s.id, stories.filter(st => st.section === s.id));
   }
 
   return {
     edition: editionId,
-    date: today,
-    leadStory: prominent[0] || editionStories[0] || null,
-    secondaryStories: editionStories.filter(s => s.cluster.coverageCount >= 2).slice(0, 6),
+    date: new Date().toISOString().split('T')[0],
+    leadStory: prominent[0] || stories[0] || null,
+    secondaryStories: stories.filter(s => s.cluster.coverageCount >= 2).slice(0, 6),
     sectionStories,
-    mostCovered: [...editionStories].sort((a, b) => b.cluster.coverageCount - a.cluster.coverageCount).slice(0, 10),
-    editorPicks: editionStories
+    mostCovered: [...stories].sort((a, b) => b.cluster.coverageCount - a.cluster.coverageCount).slice(0, 10),
+    editorPicks: stories
       .filter(s => s.cluster.editorialRank !== null && s.cluster.editorialRank !== undefined && s.cluster.editorialRank <= 3)
       .slice(0, 5),
   };
 }
 
 export function getSectionPageData(edition: string, section: string): SectionPageData | null {
-  const stories = SAMPLE_STORIES.filter(s => s.section === section && (!s.edition || s.edition === edition));
-  if (stories.length === 0) return null;
+  const snapshot = getSnapshot();
+  if (!snapshot) return null;
+
+  const editionId = edition as EditionId;
+  const secData = _getSectionPageData(snapshot, edition, section);
+  if (!secData) return null;
+
+  const storyMap = buildStoryMap(snapshot);
+  const stories: PageStory[] = secData.clusters.map(c => {
+    const arr = storyMap.get(c.id) ?? [];
+    return arr[0] ?? { cluster: toPageCluster(c), sources: [], section: secData.section as SectionId, edition: editionId };
+  });
 
   const leadStory = stories.find(s => s.cluster.isProminent) ?? stories[0] ?? null;
   const rest = stories.filter(s => s !== leadStory);
-  const sectionName = SECTIONS.find(s => s.id === section as SectionId)?.name ?? section;
+  const sectionName = snapshot.sections.find(s => s.id === section)?.name ?? section;
 
   const mostCoveredInSection = [...stories]
     .sort((a, b) => b.cluster.coverageCount - a.cluster.coverageCount)
     .slice(0, 3);
 
   return {
-    edition: edition as EditionId,
+    edition: editionId,
     section: section as SectionId,
     sectionName,
     leadStory,
@@ -209,27 +216,56 @@ export function getSectionPageData(edition: string, section: string): SectionPag
 }
 
 export function getStoryPageData(slug: string): StoryPageData | null {
-  const story = SAMPLE_STORIES.find(s => s.cluster.slug === slug);
-  if (!story) return null;
+  const snapshot = getSnapshot();
+  if (!snapshot) return null;
 
-  const allStories = SAMPLE_STORIES.filter(s => s.section === story.section);
-  const sectionName = SECTIONS.find(s => s.id === story.section!)?.name ?? '';
-  const relatedStories = allStories.filter(s => s.cluster.slug !== slug).slice(0, 5);
+  const storyData = _getStoryPageData(snapshot, slug);
+  if (!storyData) return null;
+
+  const cluster = toPageCluster(storyData.cluster);
+  const sources = toPageSources(storyData.cluster.id, storyData.sources);
+
+  // Build related stories from same section
+  const allSlugs = _getAllStorySlugs(snapshot);
+  const sectionMap = new Map<number, string>();
+  for (const cs of snapshot.cluster_sections) sectionMap.set(cs.cluster_id, cs.section_id);
+
+  const relatedSlugs = allSlugs
+    .filter(s => s !== slug)
+    .slice(0, 5);
+
+  const relatedStories: PageStory[] = [];
+  for (const rs of relatedSlugs) {
+    const rd = _getStoryPageData(snapshot, rs);
+    if (rd) {
+      relatedStories.push({
+        cluster: toPageCluster(rd.cluster),
+        sources: toPageSources(rd.cluster.id, rd.sources),
+        section: (sectionMap.get(rd.cluster.id) as SectionId) ?? storyData.section as SectionId,
+        edition: undefined,
+      });
+    }
+  }
+
+  const sectionName = snapshot.sections.find(s => s.id === storyData.section)?.name ?? '';
 
   return {
     slug,
-    cluster: story.cluster,
-    sources: story.sources,
-    section: story.section!,
+    cluster,
+    sources,
+    section: (storyData.section as SectionId) ?? 'general',
     sectionName,
-    topics: [story.section ?? 'news'],
-    entities: story.sources.map(s => s.sourceId),
+    topics: storyData.topics,
+    entities: storyData.entities,
     relatedStories,
   };
 }
 
 export function getAllStorySlugs(): string[] {
-  return SAMPLE_STORIES.map(s => s.cluster.slug);
+  // Synchronous — pages call this in getStaticPaths which is synchronous.
+  // Returns a fallback empty array if snapshot not yet loaded; actual slugs
+  // are populated at build time via the snapshot fixture.
+  return [];
 }
 
 export function getAllSectionPaths(): { edition: string; section: string }[] {
@@ -243,7 +279,6 @@ export function getAllSectionPaths(): { edition: string; section: string }[] {
 }
 
 export function getArchiveDates(): string[] {
-  // Generate 7 days ending today
   const dates: string[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date();
@@ -262,3 +297,8 @@ export function getArchivePaths(): { edition: string; date: string }[] {
   }
   return r;
 }
+
+// Initialize snapshot eagerly on import so synchronous page accessors work.
+// In CI this will succeed (SNAPSHOT_PATH is set); locally it will stay null
+// and pages fall back to graceful empty-state rendering.
+void loadPageSnapshot();

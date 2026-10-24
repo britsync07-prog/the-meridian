@@ -32,19 +32,23 @@ const today = new Date().toISOString().split('T')[0];
     <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2">
       Stories from: {entityName}
     </h2>
-    <div class="space-y-6">
-      {entityStories.map(story => (
-        <StoryItem
-          story={{
-            cluster: story.cluster,
-            sources: story.sources,
-            section: story.section,
-            edition: undefined
-          }}
-          edition={story.section}
-          key={story.slug}
-        />
-      ))}
-    </div>
+    {entityStories.length > 0 ? (
+      <div class="space-y-6">
+        {entityStories.map(story => (
+          <StoryItem
+            story={{
+              cluster: story.cluster,
+              sources: story.sources,
+              section: story.section,
+              edition: undefined
+            }}
+            edition={story.section}
+            key={story.slug}
+          />
+        ))}
+      </div>
+    ) : (
+      <p class="text-muted">No stories found for this entity.</p>
+    )}
   </div>
 </TopicEntityLayout>

@@ -23,12 +23,16 @@ interface Props {
 
 const { edition, date } = Astro.props;
 const data = getFrontPageData(edition);
-const storiesForArchive = data.leadStory
+const storiesForArchive = data?.leadStory
   ? [data.leadStory, ...data.secondaryStories]
-  : data.secondaryStories;
+  : [];
 ---
 <ArchiveLayout edition={edition} archiveDate={date} date={date}>
-  <div name="story-list" class="mt-6">
-    <StoryList stories={storiesForArchive} edition={edition} />
-  </div>
+  {storiesForArchive.length > 0 ? (
+    <div name="story-list" class="mt-6">
+      <StoryList stories={storiesForArchive} edition={edition} />
+    </div>
+  ) : (
+    <p class="text-muted">No stories for this date.</p>
+  )}
 </ArchiveLayout>
