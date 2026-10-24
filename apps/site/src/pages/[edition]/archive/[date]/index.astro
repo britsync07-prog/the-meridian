@@ -1,0 +1,34 @@
+---
+import ArchiveLayout from '../../../../layouts/ArchiveLayout.astro';
+import StoryList from '../../../../components/StoryList.astro';
+import { getFrontPageData, getEditions, getArchiveDates } from '../../../../lib/page-data.ts';
+
+export function getStaticPaths() {
+  const paths: Array<{ params: { edition: string; date: string }; props: { edition: string; date: string } }> = [];
+  for (const e of getEditions()) {
+    for (const d of getArchiveDates()) {
+      paths.push({
+        params: { edition: e, date: d },
+        props: { edition: e, date: d }
+      });
+    }
+  }
+  return paths;
+}
+
+interface Props {
+  edition: string;
+  date: string;
+}
+
+const { edition, date } = Astro.props;
+const data = getFrontPageData(edition);
+const storiesForArchive = data.leadStory
+  ? [data.leadStory, ...data.secondaryStories]
+  : data.secondaryStories;
+---
+<ArchiveLayout edition={edition} archiveDate={date} date={date}>
+  <div name="story-list" class="mt-6">
+    <StoryList stories={storiesForArchive} edition={edition} />
+  </div>
+</ArchiveLayout>

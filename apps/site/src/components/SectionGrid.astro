@@ -1,0 +1,45 @@
+---
+import type { FrontPageData } from '../lib/page-data.ts';
+import StoryItem from './StoryItem.astro';
+
+interface Props {
+  data: FrontPageData;
+}
+
+const { data } = Astro.props;
+const { sectionStories, edition } = data;
+const entries = Array.from(sectionStories.entries()).filter(([, stories]) => stories.length > 0);
+---
+
+<div class="front-grid">
+  {entries.slice(0, Math.ceil(entries.length / 2)).map(([section, stories]) => {
+    const sectionName = stories[0]?.section ?? section;
+    return (
+      <div class="section-split-left" key={section}>
+        <h2 class="font-masthead text-h2 font-bold italic mb-3 border-b hairline pb-1 capitalize">
+          {sectionName}
+        </h2>
+        <div class="space-y-3">
+          {stories.slice(0, 3).map(story => (
+            <StoryItem story={story} edition={edition} />
+          ))}
+        </div>
+      </div>
+    );
+  })}
+  {entries.slice(Math.ceil(entries.length / 2)).map(([section, stories]) => {
+    const sectionName = stories[0]?.section ?? section;
+    return (
+      <div class="section-split-right" key={section}>
+        <h2 class="font-masthead text-h2 font-bold italic mb-3 border-b hairline pb-1 capitalize">
+          {sectionName}
+        </h2>
+        <div class="space-y-3">
+          {stories.slice(0, 2).map(story => (
+            <StoryItem story={story} edition={edition} />
+          ))}
+        </div>
+      </div>
+    );
+  })}
+</div>

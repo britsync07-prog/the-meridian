@@ -1,0 +1,32 @@
+---
+import FrontLayout from '../../layouts/FrontLayout.astro';
+import LeadStory from '../../components/LeadStory.astro';
+import MostCovered from '../../components/MostCovered.astro';
+import EditorPicks from '../../components/EditorPicks.astro';
+import SectionGrid from '../../components/SectionGrid.astro';
+import { getFrontPageData, getEditions } from '../../lib/page-data.ts';
+
+export function getStaticPaths() {
+  return getEditions().map(e => ({
+    params: { edition: e },
+    props: { edition: e }
+  }));
+}
+
+interface Props {
+  edition: string;
+}
+
+const { edition } = Astro.props;
+const data = getFrontPageData(edition);
+const today = data.date;
+---
+<FrontLayout edition={edition} date={today}>
+  {data.leadStory && <LeadStory story={data.leadStory} edition={edition} />}
+  <SectionGrid data={data} />
+  <hr class="hairline my-6" />
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <MostCovered stories={data.mostCovered} title={`Most Covered in ${edition.toUpperCase()}`} edition={edition} />
+    {data.editorPicks.length > 0 && <EditorPicks stories={data.editorPicks} edition={edition} />}
+  </div>
+</FrontLayout>

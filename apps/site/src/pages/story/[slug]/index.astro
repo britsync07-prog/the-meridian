@@ -1,0 +1,74 @@
+---
+import StoryLayout from '../../../layouts/StoryLayout.astro';
+import StoryList from '../../../components/StoryList.astro';
+import { getStoryPageData, getAllStorySlugs } from '../../../lib/page-data.ts';
+
+export function getStaticPaths() {
+  return getAllStorySlugs().map(slug => ({
+    params: { slug },
+    props: { slug }
+  }));
+}
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const data = getStoryPageData(slug);
+
+if (!data) {
+  throw new Error(`Story not found: ${slug}`);
+}
+
+const today = new Date().toISOString().split('T')[0];
+const publishedDate = new Date(data.cluster.publishedAt).toISOString().split('T')[0];
+---
+<StoryLayout storyTitle={data.cluster.canonicalHeadline} edition={data.section} date={today}>
+  <div name="body" class="mb-8">
+    <div class="flex flex-wrap gap-4 text-caption text-muted mb-6">
+      <span>Section: {data.sectionName}</span>
+      <time datetime={publishedDate}>Published: {publishedDate}</time>
+      {data.cluster.coverageCount > 0 && (
+        <span>{data.cluster.coverageCount} outlet{data.cluster.coverageCount > 1 ? 's' : ''} covering</span>
+      )}
+      {data.cluster.trendingScore > 9 && (
+        <span class="text-accent font-medium">Trending ({data.cluster.trendingScore.toFixed(1)})</span>
+      )}
+    </div>
+
+    <div class="prose lg:prose-xl max-w-none">
+      <p class="text-deck text-muted mb-6">
+        {data.cluster.canonicalHeadline}
+      </p>
+
+      <h2 class="font-masthead text-h2 font-bold italic mb-3">Key Points</h2>
+      <ul class="mb-6">
+        <li>Development trending with score {data.cluster.trendingScore.toFixed(1)}</li>
+        <li>Editorial rank: {data.cluster.editorialRank ?? 'Unranked'}</li>
+        <li>Topics: {data.topics.join(', ')}</li>
+      </ul>
+
+      <h2 class="font-masthead text-h2 font-bold italic mb-3">Coverage Sources</h2>
+      <ul class="mb-6">
+        {data.sources.map(source => (
+          <li key={`${source.sourceId}-${source.rank}`} class="mb-2">
+            <a href={source.url} class="text-ink no-underline hover:text-accent" target="_blank" rel="noopener noreferrer">
+              {source.sourceId} &mdash; {source.headline}
+            </a>
+            <span class="text-caption text-muted"> (Rank {source.rank})</span>
+          </li>
+        ))}
+      </ul>
+
+      <h2 class="font-masthead text-h2 font-bold italic mb-3">Entities Mentioned</h2>
+      <p class="text-deck text-muted mb-6">
+        {data.entities.join(', ') || 'No entities identified'}
+      </p>
+
+      <div class="mt-8">
+        <StoryList stories={data.relatedStories} edition={data.section} />
+      </div>
+    </div>
+  </div>
+</StoryLayout>

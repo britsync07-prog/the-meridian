@@ -1,0 +1,22 @@
+---
+import type { PageStory } from '../lib/page-data.ts';
+import StoryItem from './StoryItem.astro';
+
+interface Props {
+  stories: PageStory[];
+  edition: string;
+}
+
+const { stories, edition } = Astro.props;
+---
+
+<aside class="mb-8">
+  <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2">
+    Editor&rsquo;s Picks
+  </h2>
+  <div class="space-y-4">
+    {stories.map(story => (
+      <StoryItem story={story} edition={edition} isSecondary={true} />
+    ))}
+  </div>
+</aside>

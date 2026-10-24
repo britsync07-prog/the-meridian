@@ -1,0 +1,50 @@
+---
+import TopicEntityLayout from '../../../layouts/TopicEntityLayout.astro';
+import StoryItem from '../../../components/StoryItem.astro';
+import { getAllStorySlugs, getStoryPageData } from '../../../lib/page-data.ts';
+
+export function getStaticPaths() {
+  const entities = ['bbc', 'guardian', 'reuters', 'wsj', 'abc-au', 'cnbc', 'cbc', 'globe', 'ndtv', 'irishtimes'];
+  return entities.map(e => ({
+    params: { slug: e },
+    props: { slug: e }
+  }));
+}
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+
+// Collect stories from this entity
+const allSlugs = getAllStorySlugs();
+const entityStories = allSlugs
+  .map(s => getStoryPageData(s))
+  .filter((s): s is NonNullable<typeof s> => s !== null)
+  .filter(s => s.entities.includes(slug));
+
+const entityName = slug.charAt(0).toUpperCase() + slug.slice(1);
+const today = new Date().toISOString().split('T')[0];
+---
+<TopicEntityLayout edition={entityStories[0]?.section ?? 'uk'} topicName={entityName} date={today}>
+  <div name="story-list" class="mt-6">
+    <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2">
+      Stories from: {entityName}
+    </h2>
+    <div class="space-y-6">
+      {entityStories.map(story => (
+        <StoryItem
+          story={{
+            cluster: story.cluster,
+            sources: story.sources,
+            section: story.section,
+            edition: undefined
+          }}
+          edition={story.section}
+          key={story.slug}
+        />
+      ))}
+    </div>
+  </div>
+</TopicEntityLayout>

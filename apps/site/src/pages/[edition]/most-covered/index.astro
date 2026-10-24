@@ -1,0 +1,29 @@
+---
+import FrontLayout from '../../../layouts/FrontLayout.astro';
+import MostCovered from '../../../components/MostCovered.astro';
+import { getFrontPageData, getEditions } from '../../../lib/page-data.ts';
+
+export function getStaticPaths() {
+  return getEditions().map(e => ({
+    params: { edition: e },
+    props: { edition: e }
+  }));
+}
+
+interface Props {
+  edition: string;
+}
+
+const { edition } = Astro.props;
+const data = getFrontPageData(edition);
+const today = data.date;
+---
+<FrontLayout edition={edition} date={today}>
+  <div class="mb-6">
+    <h1 class="font-masthead text-h1 font-bold italic mb-4">Most Covered Stories</h1>
+    <p class="text-deck text-muted mb-4">
+      The most extensively covered stories in the {edition.toUpperCase()} edition, ranked by number of outlets.
+    </p>
+  </div>
+  <MostCovered stories={data.mostCovered} title={`Most Covered in ${edition.toUpperCase()}`} edition={edition} />
+</FrontLayout>

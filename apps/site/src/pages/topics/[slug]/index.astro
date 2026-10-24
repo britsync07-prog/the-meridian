@@ -1,0 +1,54 @@
+---
+import TopicEntityLayout from '../../../layouts/TopicEntityLayout.astro';
+import StoryItem from '../../../components/StoryItem.astro';
+import { getAllStorySlugs, getStoryPageData } from '../../../lib/page-data.ts';
+
+export function getStaticPaths() {
+  const topics = ['politics', 'business', 'technology', 'sport', 'health', 'world', 'weather', 'entertainment'];
+  return topics.map(topic => ({
+    params: { slug: topic },
+    props: { slug: topic }
+  }));
+}
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+
+// Collect stories matching the topic
+const allSlugs = getAllStorySlugs();
+const topicStories = allSlugs
+  .map(s => getStoryPageData(s))
+  .filter((s): s is NonNullable<typeof s> => s !== null)
+  .filter(s => s.section === slug as any);
+
+const topicName = slug.charAt(0).toUpperCase() + slug.slice(1);
+const today = new Date().toISOString().split('T')[0];
+---
+{topicStories.length >= 5 ? (
+  <TopicEntityLayout edition={topicStories[0]?.section ?? 'uk'} topicName={topicName} date={today}>
+    <div name="story-list" class="mt-6">
+      <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2">
+        Stories tagged: {topicName}
+      </h2>
+      <div class="space-y-6">
+        {topicStories.map(story => (
+          <StoryItem
+            story={{
+              cluster: story.cluster,
+              sources: story.sources,
+              section: story.section,
+              edition: undefined
+            }}
+            edition={story.section}
+            key={story.slug}
+          />
+        ))}
+      </div>
+    </div>
+  </TopicEntityLayout>
+) : (
+  <p class="text-muted">Not enough stories found for this topic.</p>
+)}

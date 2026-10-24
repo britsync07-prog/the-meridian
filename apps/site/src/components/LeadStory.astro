@@ -1,0 +1,39 @@
+---
+import type { PageStory } from '../lib/page-data.ts';
+import MediaImage from './MediaImage.astro';
+
+interface Props {
+  story: PageStory;
+  edition: string;
+}
+
+const { story, edition } = Astro.props;
+const { cluster, sources } = story;
+const publishedDate = new Date(cluster.publishedAt).toISOString().split('T')[0];
+---
+
+<article class="grid-column-span-5 mb-8">
+  <MediaImage
+    src="/images/lead-placeholder.jpg"
+    alt={cluster.canonicalHeadline}
+    width={800}
+    height={450}
+    priority={true}
+    class="w-full h-auto object-cover rounded-lg mb-4"
+  />
+  <h1 class="font-masthead text-h1 font-bold italic mb-3">
+    <a href={`/story/${cluster.slug}/`} class="text-ink no-underline hover:text-accent">
+      {cluster.canonicalHeadline}
+    </a>
+  </h1>
+  <p class="text-deck text-muted mb-4 max-w-3xl">
+    This is the leading story for the {edition.toUpperCase()} edition. {sources.length} source{sources.length !== 1 ? 's are' : ' is'} covering this development.
+  </p>
+  <div class="flex flex-wrap gap-4 text-caption text-muted">
+    <time datetime={publishedDate}>{publishedDate}</time>
+    <span>Edition: {edition.toUpperCase()}</span>
+    {cluster.coverageCount > 0 && (
+      <span>{cluster.coverageCount} outlet{cluster.coverageCount > 1 ? 's' : ''} covering</span>
+    )}
+  </div>
+</article>

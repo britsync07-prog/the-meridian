@@ -1,0 +1,35 @@
+---
+import type { PageStory } from '../lib/page-data.ts';
+
+interface Props {
+  story: PageStory;
+  edition: string;
+  isSecondary?: boolean;
+}
+
+const { story, edition, isSecondary = false } = Astro.props;
+const { cluster, sources } = story;
+const publishedDate = new Date(cluster.publishedAt).toISOString().split('T')[0];
+const primarySource = sources[0];
+---
+
+<article class={`border-b hairline pb-4 ${isSecondary ? 'mb-4' : 'mb-6'}`}>
+  <h3 class={`font-masthead text-h2 font-bold italic mb-1 ${isSecondary ? 'text-base' : 'text-lg'}`}>
+    <a href={`/story/${cluster.slug}/`} class="text-ink no-underline hover:text-accent">
+      {cluster.canonicalHeadline}
+    </a>
+  </h3>
+  {primarySource && (
+    <p class="text-caption text-muted mb-1">
+      {primarySource.sourceId} &middot; <time datetime={publishedDate}>{publishedDate}</time>
+    </p>
+  )}
+  <p class="text-deck text-muted mb-2">
+    A developing story with {cluster.coverageCount} coverage{cluster.coverageCount > 1 ? 's' : ''}.
+  </p>
+  {cluster.trendingScore > 9 && (
+    <span class="inline-block text-caption font-medium text-accent bg-accent/10 px-2 py-0.5 rounded">
+      Trending
+    </span>
+  )}
+</article>
