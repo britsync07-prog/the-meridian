@@ -203,7 +203,6 @@ export function getSectionPageData(edition: string, section: string): SectionPag
 
   const leadStory = stories.find(s => s.cluster.isProminent) ?? stories[0] ?? null;
   const rest = stories.filter(s => s !== leadStory);
-  const sectionName = SECTIONS.find(s => s.id === section as SectionId)?.name ?? section;
 
   const mostCoveredInSection = [...stories]
     .sort((a, b) => b.cluster.coverageCount - a.cluster.coverageCount)
