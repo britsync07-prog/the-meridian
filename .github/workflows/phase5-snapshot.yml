@@ -1,0 +1,56 @@
+name: Phase 5 — Snapshot & Build Assertions
+
+on:
+  schedule:
+    # Hourly at :10 — never :00 (avoids CI burst)
+    - cron: '10 * * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/snapshot/**'
+      - 'scripts/assert/**'
+      - 'apps/site/src/lib/snapshot.ts'
+      - 'shared/**/*'
+
+jobs:
+  snapshot-and-build:
+    name: Generate Snapshot & Run Assertions
+    runs-on: ubuntu-latest
+    env:
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+      R2_BUCKET_NAME: meridian
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Generate snapshot from D1 → R2
+        run: node scripts/snapshot/generate-snapshot.mjs
+        # Requires CF_API_TOKEN, CF_ACCOUNT_ID, CF_D1_DATABASE_ID, R2_BUCKET_NAME
+
+      - name: Build site
+        run: npm run build
+
+      - name: Run build assertions (OPS-09 through OPS-13)
+        run: node scripts/assert/run-assertions.mjs
+
+      - name: Run tests
+        run: npm test -- --run
+
+      - name: Upload build artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/site/dist
