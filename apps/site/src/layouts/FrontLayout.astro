@@ -11,8 +11,6 @@ const { edition = 'UK', date = new Date().toISOString().split('T')[0], path = '/
 ---
 <Base edition={edition} date={date} path={path} title={title} description={description}>
   <div class="front-grid">
-    <!-- DSN-12: single dominant lead story splash, full width -->
-    <slot name="splash" />
-    <slot name="section-grid" />
+    <slot />
   </div>
 </Base>
