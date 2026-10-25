@@ -6,6 +6,7 @@ import { renderOpenGraph } from '../../../../shared/templates/og-meta.ts';
 import { buildOrganizationSchema, renderSchema } from '../../../../shared/templates/schema.ts';
 import type { PageMetaInput } from '../../../../shared/types.ts';
 import type { EditionId } from '../../../../shared/config/editions.ts';
+import '../styles/global.css';
 
 interface Props {
   title?: string;
@@ -43,9 +44,9 @@ const meta = pageMeta(metaInput);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {renderHead(meta)}
-    {renderOpenGraph(meta)}
-    {renderSchema(buildOrganizationSchema({ name: SITE_NAME, url: SITE_ORIGIN, logoUrl: `${SITE_ORIGIN}/favicon.ico`, sameAs: [] }))}
+    <Fragment set:html={renderHead(meta)} />
+    <Fragment set:html={renderOpenGraph(meta)} />
+    <Fragment set:html={renderSchema(buildOrganizationSchema({ name: SITE_NAME, url: SITE_ORIGIN, logoUrl: `${SITE_ORIGIN}/favicon.ico`, sameAs: [] }))} />
     <link rel="preload" href="/fonts/PlayfairDisplay-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/NotoSerifDevanagari-Regular.woff2" as="font" type="font/woff2" crossorigin />
   </head>
