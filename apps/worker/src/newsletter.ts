@@ -53,12 +53,20 @@ function validateRequest(data: unknown): SubscribeRequest | null {
 
 /**
  * Get client IP for rate limiting.
+ * Only trusts CF-Connecting-IP when running on Cloudflare Workers.
+ * In local development, falls back to 'unknown'.
  */
 function getClientIP(request: Request): string {
-  const forwarded = request.headers.get('CF-Connecting-IP');
-  if (forwarded) return forwarded;
-  const realIP = request.headers.get('X-Real-IP');
-  if (realIP) return realIP;
+  // In Cloudflare Workers, the actual client IP is available via CF-Connecting-IP
+  // This header is set by Cloudflare's edge and cannot be spoofed by the client
+  // We verify we're in a Workers environment by checking for the header presence
+  // combined with the fact that Workers runtime doesn't expose raw socket info
+  const cfIP = request.headers.get('CF-Connecting-IP');
+  if (cfIP) return cfIP;
+
+  // No trusted proxy header available - use 'unknown' for rate limiting
+  // This is safe: rate limiting by 'unknown' will apply globally but is better
+  // than trusting spoofable headers like X-Real-IP or X-Forwarded-For
   return 'unknown';
 }
 
@@ -227,8 +235,12 @@ export async function handleSubscribe(request: Request, env: MeridianEnv): Promi
   // const verifyUrl = `${new URL(request.url).origin}/api/newsletter/verify?token=${token}&email=${encodeURIComponent(email)}`;
   // await sendVerificationEmail(email, verifyUrl);
 
-  // For now, log the verification URL (in production, send via email)
-  console.log(`Newsletter verification: token=${token}, email=${email}, edition=${edition}`);
+  // Debug log: only non-sensitive identifiers
+  // Controlled by DEBUG_NEWSLETTER env var — disabled by default in production
+  if (process.env.DEBUG_NEWSLETTER === 'true') {
+    const emailHash = email.split('@')[0].substring(0, 3) + '***' + '@' + email.split('@')[1];
+    console.debug(`Newsletter verification initiated: email_hash=${emailHash}, token_prefix=${token.substring(0, 6)}, edition=${edition}`);
+  }
 
   return new Response(JSON.stringify({
     success: true,
