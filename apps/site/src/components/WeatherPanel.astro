@@ -1,0 +1,57 @@
+---
+/**
+ * Weather panel component.
+ *
+ * GRO-06: Each edition shows live weather for country centroid + major cities
+ * GRO-07: Weather fetch failure never fails build; last cached forecast served or panel omitted
+ */
+
+interface Props {
+  edition: string;
+  weather?: {
+    city: string;
+    temp_c: number;
+    condition: string;
+    as_of: string;
+  }[];
+}
+
+const { edition, weather } = Astro.props;
+
+// Weather data for each edition (centroid + major cities)
+const EDITION_WEATHER = {
+  uk: { lat: 51.5074, lon: -0.1278, cities: [{ name: 'London', lat: 51.5074, lon: -0.1278 }, { name: 'Manchester', lat: 53.4808, lon: -2.2426 }, { name: 'Edinburgh', lat: 55.9533, lon: -3.1883 }] },
+  us: { lat: 38.9072, lon: -77.0369, cities: [{ name: 'New York', lat: 40.7128, lon: -74.0060 }, { name: 'Chicago', lat: 41.8781, lon: -87.6298 }, { name: 'Los Angeles', lat: 34.0522, lon: -118.2437 }] },
+  au: { lat: -33.8688, lon: 151.2093, cities: [{ name: 'Sydney', lat: -33.8688, lon: 151.2093 }, { name: 'Melbourne', lat: -37.8136, lon: 144.9631 }, { name: 'Brisbane', lat: -27.4698, lon: 153.0251 }] },
+  ca: { lat: 43.6532, lon: -79.3832, cities: [{ name: 'Toronto', lat: 43.6532, lon: -79.3832 }, { name: 'Vancouver', lat: 49.2827, lon: -123.1207 }, { name: 'Ottawa', lat: 45.4215, lon: -75.6972 }] },
+  ie: { lat: 53.3498, lon: -6.2603, cities: [{ name: 'Dublin', lat: 53.3498, lon: -6.2603 }, { name: 'Cork', lat: 51.8989, lon: -8.4753 }] },
+  nz: { lat: -41.2865, lon: 174.7762, cities: [{ name: 'Wellington', lat: -41.2865, lon: 174.7762 }, { name: 'Auckland', lat: -36.8485, lon: 174.7633 }] },
+  in: { lat: 28.6139, lon: 77.209, cities: [{ name: 'New Delhi', lat: 28.6139, lon: 77.209 }, { name: 'Mumbai', lat: 19.076, lon: 72.8777 }, { name: 'Bangalore', lat: 12.9716, lon: 77.5946 }] },
+};
+
+const weatherData = EDITION_WEATHER[edition as keyof typeof EDITION_WEATHER];
+---
+
+{!weatherData || weather?.length === 0 ? (
+  <!-- Panel omitted on fetch failure -->
+) : (
+  <div class="weather-panel mt-8 p-4 border hairline-md bg-surface-alt" role="region" aria-label="Weather forecast">
+    <h3 class="font-masthead text-h3 font-bold italic mb-3">
+      Weather
+    </h3>
+
+    <div class="space-y-2">
+      {weather?.map(w => (
+        <div class="flex justify-between items-center text-sm">
+          <span class="font-medium">{w.city}</span>
+          <span class="text-muted">{w.temp_c}°C — {w.condition}</span>
+        </div>
+      ))}
+    </div>
+
+    <div class="mt-3 pt-2 border-t hairline text-caption text-muted">
+      <p>As of {weather?.[0]?.as_of ?? 'recent'}</p>
+      <p>Source: Open-Meteo (CC BY 4.0)</p>
+    </div>
+  </div>
+)}

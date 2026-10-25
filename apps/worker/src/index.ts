@@ -12,6 +12,10 @@ import { resolveDatabaseId, type MeridianEnv } from './db/config';
 import { createRepository } from './db/repository';
 import { pollFeedPartition } from './fetcher';
 import { handleStoryRequest } from './story-router.js';
+import { handleSubscribe } from './newsletter.js';
+import { handleFlagRequest, handleErrorRequest } from './reports.js';
+import { runAudit } from './audit.js';
+import { runPrune } from './prune.js';
 
 function json(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload, null, 2), {
@@ -26,9 +30,32 @@ export default {
     const databaseId = resolveDatabaseId(env);
     const url = new URL(request.url);
 
-    // Story tier: serve /story/* from R2
+    // Story tier: serve /story/* from R2 (OPS-11)
     if (url.pathname.startsWith('/story/')) {
       return handleStoryRequest(url.pathname, env);
+    }
+
+    // Newsletter subscription endpoints (GRO-01, GRO-04)
+    if (url.pathname === '/api/newsletter/subscribe') {
+      if (request.method === 'POST') {
+        return handleSubscribe(request, env);
+      }
+      return new Response('Method not allowed', { status: 405 });
+    }
+
+    // Report endpoints (OPS-22, OPS-23)
+    if (url.pathname === '/api/reports/flag') {
+      if (request.method === 'POST') {
+        return handleFlagRequest(request, env);
+      }
+      return new Response('Method not allowed', { status: 405 });
+    }
+
+    if (url.pathname === '/api/reports/error') {
+      if (request.method === 'POST') {
+        return handleErrorRequest(request, env);
+      }
+      return new Response('Method not allowed', { status: 405 });
     }
 
     // A deliberate, explicit probe: it costs one D1 query and it is the only
@@ -47,6 +74,17 @@ export default {
   },
 
   async scheduled(controller: ScheduledController, env: MeridianEnv, ctx: ExecutionContext): Promise<void> {
+    // OPS-15: Prune raw items daily at 02:00 UTC
+    if (controller.cron === '0 2 * * *') {
+      ctx.waitUntil(runPrune(env));
+    }
+
+    // OPS-02/03: Daily audit at 03:00 UTC
+    if (controller.cron === '0 3 * * *') {
+      ctx.waitUntil(runAudit(env));
+    }
+
+    // Feed polling on the existing schedule
     ctx.waitUntil(pollFeedPartition(env, controller.cron));
   },
 } satisfies ExportedHandler<MeridianEnv>;

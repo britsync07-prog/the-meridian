@@ -8,7 +8,7 @@
 import type { EditionId, SectionId } from '../../../../shared/config/editions.js';
 import { EDITIONS, SECTIONS } from '../../../../shared/config/editions.js';
 import type { SnapshotData, SnapshotCluster, SnapshotStorySource } from './snapshot.js';
-import { loadSnapshot, getEditionFrontData, getSectionPageData as _getSectionPageData, getStoryPageData as _getStoryPageData, getAllStorySlugs as _getAllStorySlugs, getArchivePaths as _getArchivePaths, getTopicPaths, getEntityPaths } from './snapshot.js';
+import { loadSnapshot, getEditionFrontData, getSectionPageData as _getSectionPageData, getStoryPageData as _getStoryPageData, getAllStorySlugs as _getAllStorySlugs, getArchivePaths as _getArchivePaths, getEntityPaths } from './snapshot.js';
 
 /* ------------------------------------------------------------------------- */
 /* Public interfaces (unchanged for page compatibility)                        */

@@ -1,0 +1,85 @@
+---
+/**
+ * Report error component — OPS-23.
+ * Reader can report a factual error on a story.
+ * Report enters corrections queue producing dated correction note.
+ */
+
+interface Props {
+  storySlug: string;
+}
+
+const { storySlug } = Astro.props;
+---
+
+<div class="report-error mt-8 pt-4 border-t hairline-md">
+  <details class="group">
+    <summary class="cursor-pointer text-caption text-muted hover:text-ink focus:outline-none">
+      Report a factual error
+    </summary>
+
+    <form
+      action="/api/reports/error"
+      method="POST"
+      class="mt-3 space-y-3"
+    >
+      <input type="hidden" name="story_slug" value={storySlug} />
+      <input type="hidden" name="type" value="error" />
+
+      <div>
+        <label for="error-type" class="block text-sm font-medium mb-1">Error type</label>
+        <select
+          id="error-type"
+          name="error_type"
+          class="w-full px-3 py-2 border hairline-md rounded bg-surface text-ink"
+          required
+        >
+          <option value="">Select error type...</option>
+          <option value="factual">Factual error</option>
+          <option value="misspelling">Misspelling</option>
+          <option value="outdated_date">Outdated date</option>
+          <option value="wrong_attribution">Wrong attribution</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="error-description" class="block text-sm font-medium mb-1">
+          Description of error
+        </label>
+        <textarea
+          id="error-description"
+          name="description"
+          rows={4}
+          class="w-full px-3 py-2 border hairline-md rounded bg-surface text-ink"
+          placeholder="Describe the error and the correct information..."
+          required
+        ></textarea>
+      </div>
+
+      <div>
+        <label for="error-evidence" class="block text-sm font-medium mb-1">
+          Evidence URL (optional)
+        </label>
+        <input
+          type="url"
+          id="error-evidence"
+          name="evidence_url"
+          class="w-full px-3 py-2 border hairline-md rounded bg-surface text-ink"
+          placeholder="https://example.com/evidence"
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="px-4 py-2 bg-accent text-white font-medium rounded hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+      >
+        Submit Report
+      </button>
+    </form>
+
+    <p class="text-caption text-muted mt-2">
+      If verified, a dated correction note will be added to this story.
+    </p>
+  </details>
+</div>
