@@ -26,8 +26,11 @@ const entityStories = allSlugs
 
 const entityName = slug.charAt(0).toUpperCase() + slug.slice(1);
 const today = new Date().toISOString().split('T')[0];
+const entityPath = `/entities/${slug}/`;
+const entityTitle = `${entityName} | Source coverage`;
+const entityDescription = `All stories covering ${entityName}. Track coverage across all outlets.`;
 ---
-<TopicEntityLayout edition={entityStories[0]?.section ?? 'uk'} topicName={entityName} date={today}>
+<TopicEntityLayout edition={entityStories[0]?.section ?? 'uk'} topicName={entityName} date={today} path={entityPath} title={entityTitle} description={entityDescription}>
   <div name="story-list" class="mt-6">
     <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2">
       Stories from: {entityName}

@@ -26,8 +26,21 @@ const today = new Date().toISOString().split('T')[0];
 const publishedDate = data?.cluster?.publishedAt
   ? new Date(data.cluster.publishedAt).toISOString().split('T')[0]
   : today;
+const storyPath = `/story/${slug}/`;
+const storyDescription = data.sources.length > 0
+  ? `${data.sources.map(s => s.headline).join(' | ')}`.substring(0, 160)
+  : data.cluster.canonicalHeadline;
 ---
-<StoryLayout storyTitle={data.cluster.canonicalHeadline} edition={data.section} date={today}>
+<StoryLayout
+  storyTitle={data.cluster.canonicalHeadline}
+  edition={data.section}
+  date={today}
+  path={storyPath}
+  description={storyDescription}
+  publishedDate={publishedDate}
+  tags={data.topics}
+  section={data.section}
+>
   <div name="body" class="mb-8">
     <div class="flex flex-wrap gap-4 text-caption text-muted mb-6">
       <span>Section: {data.sectionName}</span>
@@ -56,7 +69,7 @@ const publishedDate = data?.cluster?.publishedAt
       <ul class="mb-6">
         {data.sources.map(source => (
           <li key={`${source.sourceId}-${source.rank}`} class="mb-2">
-            <a href={source.url} class="text-ink no-underline hover:text-accent" target="_blank" rel="noopener noreferrer">
+            <a href={source.url} class="text-ink no-underline hover:text-accent" target="_blank" rel="noopener">
               {source.sourceId} &mdash; {source.headline}
             </a>
             <span class="text-caption text-muted"> (Rank {source.rank})</span>

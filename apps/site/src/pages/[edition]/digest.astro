@@ -1,0 +1,59 @@
+---
+import FrontLayout from '../../layouts/FrontLayout.astro';
+import { getFrontPageData, getEditions, getSnapshotData } from '../../lib/page-data.ts';
+import { generateDigest } from '../../lib/digest.ts';
+import type { SnapshotData } from '../../lib/snapshot.ts';
+
+export function getStaticPaths() {
+  return getEditions().map(e => ({
+    params: { edition: e },
+    props: { edition: e }
+  }));
+}
+
+interface Props {
+  edition: string;
+}
+
+const { edition } = Astro.props;
+const data = getFrontPageData(edition);
+const today = data?.date ?? new Date().toISOString().split('T')[0];
+const editionObj = getEditions().find(e => e === edition);
+const path = editionObj ? `/${editionObj}/` : '/';
+
+// Get snapshot data for digest generation
+const snapshot = getSnapshotData();
+const digestResult = snapshot
+  ? generateDigest(snapshot as SnapshotData, edition, editionObj?.language ?? 'en')
+  : { headline: `${editionObj?.countryName ?? edition} Digest`, content: 'Digest not available — snapshot not loaded.', sources: [], status: 'degraded' as const };
+
+const frontTitle = `${digestResult.headline} | ${edition.toUpperCase()}`;
+---
+
+<FrontLayout edition={edition} date={today} path={path} title={frontTitle} description={digestResult.content.slice(0, 150)}>
+  <div class="prose max-w-3xl mx-auto">
+    <h1 class="text-3xl font-bold mb-4">{digestResult.headline}</h1>
+
+    <div class="digest-content mb-8">
+      <p class="whitespace-pre-wrap text-base leading-relaxed">{digestResult.content}</p>
+    </div>
+
+    <div class="digest-sources border-t hairline-md pt-4 text-sm text-muted">
+      <p class="font-semibold mb-2">Sources cited:</p>
+      <ul class="list-disc list-inside space-y-1">
+        {digestResult.sources.map(source => (
+          <li>{source}</li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="digest-disclosure border-t hairline-md pt-4 mt-8 text-sm text-muted">
+      <p class="font-semibold">Automated summary</p>
+      <p>
+        This digest was produced automatically from the day's published coverage; no human editor reviewed or rewrote it.
+        {digestResult.status === 'degraded' && ' The deterministic template was used as the default.'}
+        Readers are encouraged to visit the source articles for full context and reporting.
+      </p>
+    </div>
+  </div>
+</FrontLayout>

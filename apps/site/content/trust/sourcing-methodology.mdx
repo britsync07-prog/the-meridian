@@ -1,0 +1,55 @@
+---
+title: "Sourcing and Methodology"
+lastReviewed: "2026-10-25"
+---
+
+# Sourcing and Methodology
+
+This page explains how The Meridian selects sources, fetches feeds, normalizes content, clusters stories, and ranks them.
+
+## Source Registry
+
+- **30+ registered publishers** across 7 countries plus Hindi publishers for India.
+- **Terms of use verified** before first fetch. Verification date recorded in the registry.
+- **Per-outlet metadata**: section priors, ETag/last-modified, consecutive failure count, disabled-until timestamp, freshness SLA.
+- **Polite fetching**: Descriptive User-Agent with contact URL, max 20 requests/host/hour, honors `Retry-After` on 429.
+
+## Feed Fetching
+
+- **Scheduled Workers**: 3 cron triggers per day.
+- **Conditional GET**: Uses ETag and Last-Modified to avoid redundant transfers.
+- **Raw capture only**: The fetch Worker performs no parsing, normalization, or scoring. Raw bytes go to R2 under `raw/{date}/{source}.xml`.
+- **Quarantine path**: Non-XML bodies, oversized responses (>2 MB), and bot-protection pages are quarantined per-feed; other feeds continue unaffected.
+
+## Normalization
+
+- **Excerpt budget (hard, tested)**: Max 50 words, 320 characters, 2 sentences, 30% of source visible text. Truncated at word boundary with visible ellipsis. Verbatim only — no paraphrasing, synonymizing, or translation. Source under 160 words publishes no excerpt. Build fails on any violation.
+- **Format support**: RSS 2.0, Atom, RDF including `dc:creator`, `media:content`, `content:encoded`.
+- **Canonicalization**: Strips `www`, forces HTTPS, normalizes trailing slashes, sorts query params, removes tracking params (`utm_*`, `ref`, `fbclid`, etc.), strips hash fragments.
+
+## Clustering (Merge Rule)
+
+- **Two-gate merge**: Surface similarity + semantic agreement with five anti-merge guards:
+  1. Generic-token stop list
+  2. Aspect-marker conflict sets
+  3. Round/ordinal guard
+  4. Distinct-event guard
+  5. Entity disjointness (never merge if recognized entity sets are disjoint)
+- **Calibrated against fixture**: 200+ hand-labelled headline pairs with measured precision (≥98%) and recall (≥85%). Re-labelled monthly.
+- **Reversible merges**: Per-item membership stored; split publishes dated correction note on the story URL.
+
+## Ranking
+
+- **Trending score**: `3.0*log2(1+distinct_outlets) + 1.0*log2(1+mentions) + 5.0*recency_decay(18h) + 0.8*min(1, distinct_sections-1)`
+- **Most Covered**: Sorted by coverage count.
+- **Editor's Picks**: Top-ranked stories with ≥2 distinct outlets and editorial rank ≤3.
+
+## Section Assignment
+
+Four-stage resolver:
+1. Feed URL hint
+2. Weighted section lexicon
+3. Section overrides
+4. Model tie-break (then `world` fallback)
+
+Method and confidence recorded per decision.

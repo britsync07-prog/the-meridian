@@ -20,9 +20,14 @@ interface Props {
 const { edition } = Astro.props;
 const data = getFrontPageData(edition);
 const today = data?.date ?? new Date().toISOString().split('T')[0];
+const editionObj = getEditions().find(e => e === edition);
+const path = editionObj ? `/${editionObj}/` : '/';
+const frontTitle = data?.leadStory?.cluster.canonicalHeadline
+  ? `${data.leadStory.cluster.canonicalHeadline} | ${edition.toUpperCase()}`
+  : `Latest news from ${edition.toUpperCase()}`;
 ---
 {data ? (
-  <FrontLayout edition={edition} date={today}>
+  <FrontLayout edition={edition} date={today} path={path} title={frontTitle} description="Top stories from today's edition.">
     {data.leadStory && <LeadStory story={data.leadStory} edition={edition} />}
     <SectionGrid data={data} />
     <hr class="hairline my-6" />

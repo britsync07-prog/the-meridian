@@ -3,10 +3,13 @@ import Base from './Base.astro';
 interface Props {
   edition?: string;
   date?: string;
+  path?: string;
+  title?: string;
+  description?: string;
 }
-const { edition = 'UK', date = new Date().toISOString().split('T')[0] } = Astro.props;
+const { edition = 'UK', date = new Date().toISOString().split('T')[0], path = '/', title, description } = Astro.props;
 ---
-<Base edition={edition} date={date}>
+<Base edition={edition} date={date} path={path} title={title} description={description}>
   <div class="front-grid">
     <!-- DSN-12: single dominant lead story splash, full width -->
     <slot name="splash" />

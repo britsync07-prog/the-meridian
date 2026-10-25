@@ -1,0 +1,36 @@
+---
+title: "About"
+lastReviewed: "2026-10-25"
+---
+
+# About The Meridian
+
+The Meridian is a free, automatically-curated daily news portal publishing one broadsheet edition for each of seven countries (UK, US, Australia, Canada, Ireland, New Zealand, India) plus a parallel Hindi edition from a single hostname.
+
+## What We Do
+
+Every day, we fetch feeds from registered publishers, group coverage of the same event into a single entry listing every outlet that covered it, and rank stories by how many independent outlets reported on them. The result is a daily paper that shows you what the world is covering — not what any single outlet chooses to highlight.
+
+## How It Works
+
+1. **Fetch** — A Cloudflare Worker captures raw feed bytes to R2 object storage on a fixed schedule
+2. **Normalize** — CI transforms raw feeds into canonical story items under a hard excerpt budget (max 50 words, 320 chars, 2 sentences, 30% of source text)
+3. **Cluster** — Stories about the same event collapse into one entry with every outlet listed, using a calibrated merge rule validated against a hand-labelled fixture
+4. **Rank** — A trending score weights distinct outlets heavily, recency with an 18-hour half-life, and section diversity
+5. **Publish** — Static pages are pre-rendered to R2 and served by an edge Worker; the static tier contains only editions, sections, archives, topics, entities, and support files
+
+## No Human Editor
+
+Every edition is produced automatically. No human editor selects, rewrites, or prioritizes stories. The lead story is the one with the most independent outlets covering it. Editor's Picks require at least two distinct outlets. This automation is visible on every page.
+
+## The Name
+
+"The Meridian" — a line of longitude where the day begins. Every edition shares one site name because Google News supports one site name per domain, not per subdirectory. The edition identity appears in the title, the meta description, the document language, and the visible masthead.
+
+## Free-Tier Commitment
+
+The entire stack runs on free tiers: Cloudflare Workers, R2, D1, Pages, and GitHub Actions. A versioned ceiling registry tracks every limit, and a standing no-purchase decision rule names the three triggers that would change this (daily visitors approaching 4,000, a static project exceeding 20,000 files, any revenue).
+
+## Source Verification
+
+Every registered feed has its terms of use verified before the first fetch, with the verification date recorded in the source registry. The Sources page lists every outlet with its verification date.

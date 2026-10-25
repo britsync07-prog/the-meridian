@@ -1,16 +1,53 @@
 ---
 import Base from './Base.astro';
+import { buildNewsArticleSchema, renderSchema } from '../../../../shared/templates/schema.ts';
+import { SITE_ORIGIN, SITE_NAME } from '../../../../shared/config/site.ts';
+
 interface Props {
   storyTitle?: string;
   edition?: string;
   date?: string;
+  path?: string;
+  description?: string;
+  publishedDate?: string;
+  imageUrl?: string;
+  authorUrl?: string;
+  section?: string;
+  tags?: string[];
 }
-const { storyTitle = 'Story', edition = 'UK', date = new Date().toISOString().split('T')[0] } = Astro.props;
+const {
+  storyTitle = 'Story',
+  edition = 'UK',
+  date = new Date().toISOString().split('T')[0],
+  path = '/',
+  description,
+  publishedDate = date,
+  imageUrl = `${SITE_ORIGIN}/og/default.jpg`,
+  authorUrl = `${SITE_ORIGIN}/trust/byline/`,
+  section = 'news',
+  tags = [],
+} = Astro.props;
+
+const articleUrl = `${SITE_ORIGIN}${path}`;
+const schema = buildNewsArticleSchema({
+  headline: storyTitle,
+  url: articleUrl,
+  datePublished: publishedDate,
+  dateModified: date,
+  imageUrl,
+  authorUrl,
+  publisherName: SITE_NAME,
+  publisherUrl: SITE_ORIGIN,
+  description: description ?? '',
+  section,
+  tags,
+});
 ---
-<Base edition={edition} date={date}>
+<Base edition={edition} date={date} path={path} title={storyTitle} description={description}>
   <article class="prose lg:prose-xl mx-auto max-w-none">
     <h1 class="font-masthead text-h1 font-bold italic mb-4">{storyTitle}</h1>
     <time datetime={date} class="text-caption text-muted mb-6 block">{date}</time>
     <slot name="body" />
   </article>
+  {renderSchema(schema)}
 </Base>

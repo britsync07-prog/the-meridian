@@ -1,0 +1,72 @@
+---
+title: "Privacy Policy"
+lastReviewed: "2026-10-25"
+---
+
+# Privacy Policy
+
+The Meridian collects minimal data. This policy describes what we collect, why, and your rights.
+
+## What We Collect
+
+### Automatic Collection
+- **Cloudflare Web Analytics** — Aggregated, privacy-first analytics (no cookies, no personal identifiers). Metrics: page views, unique visitors, referrers, country.
+- **Server logs** — Standard access logs (IP, user agent, path, timestamp) retained for 30 days for security and debugging.
+
+### No Collection
+- No cookies
+- No localStorage/sessionStorage
+- No tracking pixels
+- No third-party analytics (Google Analytics, etc.)
+- No user accounts or authentication
+- No newsletter signup data stored by us (handled by Brevo, see below)
+
+## Newsletter (Optional)
+
+If you subscribe to a daily edition email:
+- **Email address** → Brevo (our email provider)
+- **Edition preference** → Brevo
+- **Subscription timestamp** → Brevo
+- We do not store this data ourselves. See Brevo's privacy policy.
+
+## Data Retention
+
+| Data | Retention |
+|------|-----------|
+| Cloudflare Web Analytics | 13 months (Cloudflare default) |
+| Server access logs | 30 days |
+| Newsletter data (Brevo) | Per Brevo policy / your request |
+
+## Your Rights
+
+Under GDPR, UK GDPR, and similar laws you have the right to:
+- Access your data
+- Rectify inaccurate data
+- Erase your data
+- Restrict processing
+- Data portability
+- Object to processing
+
+**To exercise these rights:** Email privacy@meridian.workers.dev with "Data Request" in the subject line.
+
+## Third Parties
+
+| Provider | Purpose | Data Shared |
+|----------|---------|-------------|
+| Cloudflare | Hosting, Workers, R2, D1, Analytics | Access logs, analytics events |
+| Brevo | Newsletter delivery (opt-in only) | Email, edition preference |
+| Open-Meteo | Weather data (edition centroids) | None (server-side only) |
+
+No data is sold. No advertising networks. No cross-site tracking.
+
+## Security
+
+- All traffic over HTTPS (HSTS, TLS 1.2+)
+- Content Security Policy enforced
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+
+## Changes
+
+Material changes to this policy will be reflected in the `lastReviewed` date above and noted in the Corrections log.

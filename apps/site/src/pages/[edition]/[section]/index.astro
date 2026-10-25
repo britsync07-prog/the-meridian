@@ -26,9 +26,12 @@ const { edition, section } = Astro.props;
 const data = getSectionPageData(edition, section);
 
 const today = new Date().toISOString().split('T')[0];
+const path = `/${edition}/${section}/`;
+const title = data?.leadStory?.cluster.canonicalHeadline ?? `Latest ${data?.sectionName ?? section} news`;
+const description = `Top ${data?.sectionName ?? section} stories from ${edition.toUpperCase()} edition.`;
 ---
 {data ? (
-  <SectionLayout edition={edition} sectionName={data.sectionName} date={today}>
+  <SectionLayout edition={edition} sectionName={data.sectionName} date={today} path={path} title={title} description={description}>
     <div name="splash" class="mb-6">
       {data.leadStory && (
         <StoryItem story={data.leadStory} edition={edition} />

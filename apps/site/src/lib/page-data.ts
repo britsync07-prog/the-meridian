@@ -89,6 +89,11 @@ function getSnapshot(): SnapshotData | null {
   return _snapshot;
 }
 
+/** Export snapshot getter for pages that need raw snapshot data (e.g., digest). */
+export function getSnapshotData(): SnapshotData | null {
+  return _snapshot;
+}
+
 /* ------------------------------------------------------------------------- */
 /* Snapshot → PageStory conversion                                            */
 /* ------------------------------------------------------------------------- */
@@ -302,3 +307,13 @@ export function getArchivePaths(): { edition: string; date: string }[] {
 // In CI this will succeed (SNAPSHOT_PATH is set); locally it will stay null
 // and pages fall back to graceful empty-state rendering.
 void loadPageSnapshot();
+
+// Re-export getTopicPaths from snapshot (wraps to handle missing snapshot)
+export function getTopicPaths(): string[] {
+  const snapshot = getSnapshot();
+  if (!snapshot) return [];
+  const topicIds = new Set(snapshot.cluster_topics.map((ct) => ct.topic_id));
+  return snapshot.topics
+    .filter((t) => topicIds.has(t.id))
+    .map((t) => t.name.toLowerCase().replace(/\s+/g, '-'));
+}

@@ -1,0 +1,35 @@
+---
+import { SITE_NAME } from '../../../../shared/config/site.ts';
+import Base from './Base.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  edition: string;
+  path: string;
+  date: string;
+  lastReviewed: string;
+}
+
+const { title, description, edition, path, date, lastReviewed } = Astro.props;
+---
+
+<Base edition={edition} date={date} path={path} title={title} description={description}>
+  <article class="prose max-w-3xl mx-auto">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold mb-4">{title}</h1>
+      <p class="text-sm text-muted">Last reviewed: {lastReviewed}</p>
+    </header>
+
+    <div class="trust-disclosure border-b hairline-md pb-4 mb-8 text-sm text-muted">
+      <p class="font-semibold">Automatically curated</p>
+      <p>This page is part of {SITE_NAME}'s trust layer. It is published automatically and reviewed periodically. No human editor wrote this content.</p>
+    </div>
+
+    <slot />
+
+    <footer class="mt-12 border-t hairline-md pt-6 text-sm text-muted">
+      <p><a href="/{edition}/" class="underline hover:no-underline">← Back to {edition.toUpperCase()} edition</a></p>
+    </footer>
+  </article>
+</Base>

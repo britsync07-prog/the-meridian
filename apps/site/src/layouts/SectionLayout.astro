@@ -1,17 +1,26 @@
 ---
 import Base from './Base.astro';
+import { buildBreadcrumbSchema, renderSchema } from '../../../../shared/templates/schema.ts';
 interface Props {
   sectionName?: string;
   edition?: string;
   date?: string;
+  path?: string;
+  title?: string;
+  description?: string;
 }
-const { sectionName = 'Section', edition = 'UK', date = new Date().toISOString().split('T')[0] } = Astro.props;
+const { sectionName = 'Section', edition = 'UK', date = new Date().toISOString().split('T')[0], path = '/', title, description } = Astro.props;
+const crumbs = [
+  { name: 'Home', url: '/' },
+  { name: `${sectionName}`, url: path },
+];
 ---
-<Base edition={edition} date={date}>
+<Base edition={edition} date={date} path={path} title={title} description={description}>
   <header class="mb-6 border-b hairline-md pb-3">
     <h1 class="font-masthead text-display font-bold italic">{sectionName}</h1>
   </header>
   <main class="front-grid">
     <slot name="story-list" />
   </main>
+  {renderSchema([buildBreadcrumbSchema(crumbs)])}
 </Base>

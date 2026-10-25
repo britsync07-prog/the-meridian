@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
+import mdx from '@astrojs/mdx';
 
 import { SITE_NAME, SITE_ORIGIN } from '../../shared/config/site.ts';
 
@@ -32,6 +33,7 @@ export default defineConfig({
   experimental: { incrementalBuild: true },
   cacheDir: './.astro-cache',
   site: SITE_ORIGIN,
+  integrations: [mdx()],
   vite: {
     plugins: [tailwindcss()],
     server: { fs: { allow: ['../..'] } },

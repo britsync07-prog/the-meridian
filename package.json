@@ -34,9 +34,10 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@astrojs/mdx": "^8.1.1",
     "@cloudflare/workers-types": "5.20261019.1",
-    "@types/node": "24.19.2",
     "@playwright/test": "1.54.2",
+    "@types/node": "24.19.2",
     "lighthouse": "^12.7.0",
     "tsx": "4.22.4",
     "ttf2woff2": "^8.0.1",

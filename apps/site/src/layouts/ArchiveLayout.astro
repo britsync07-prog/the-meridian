@@ -4,10 +4,13 @@ interface Props {
   archiveDate?: string;
   edition?: string;
   date?: string;
+  path?: string;
+  title?: string;
+  description?: string;
 }
-const { archiveDate = new Date().toISOString().split('T')[0], edition = 'UK', date = new Date().toISOString().split('T')[0] } = Astro.props;
+const { archiveDate = new Date().toISOString().split('T')[0], edition = 'UK', date = new Date().toISOString().split('T')[0], path = '/', title, description } = Astro.props;
 ---
-<Base edition={edition} date={date}>
+<Base edition={edition} date={date} path={path} title={title} description={description}>
   <header class="mb-6 border-b hairline-md pb-3">
     <h1 class="font-masthead text-display font-bold italic">Archive &mdash; {archiveDate}</h1>
   </header>

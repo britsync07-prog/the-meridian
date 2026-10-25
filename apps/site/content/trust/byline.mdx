@@ -1,0 +1,59 @@
+---
+title: "Editorial Desk"
+lastReviewed: "2026-10-25"
+---
+
+# Editorial Desk
+
+The Meridian has no human editor and no individual bylines. This page describes the role-based editorial function.
+
+## How Stories Are Selected
+
+Every edition is produced by a deterministic pipeline:
+
+1. **Fetch** → Raw feed bytes captured to R2
+2. **Normalize** → Canonical story items under hard excerpt budget
+3. **Cluster** → Same-event stories merged (calibrated rule, measured precision/recall)
+4. **Rank** → Trending score (distinct outlets, recency, section diversity)
+5. **Assign** → Section, topics, entities via gazetteer + resolver
+6. **Publish** → Static pages pre-rendered, served from edge
+
+## The "Editorial Desk" Role
+
+The editorial desk is not a person. It is the collective name for the pipeline stages that make editorial-equivalent decisions:
+
+| Pipeline Stage | Editorial Equivalent |
+|----------------|---------------------|
+| Feed registry curation | Assignment editor (which sources to follow) |
+| Section resolver | Section editor (which desk a story belongs to) |
+| Merge rule calibration | Copy desk (which stories are the same event) |
+| Trending score weights | News editor (what leads the edition) |
+| Entity gazetteer | Research desk (which names are entities) |
+
+## No Individual Bylines
+
+- No story carries a reporter byline.
+- No edition carries an editor byline.
+- The author of every NewsArticle schema is the Organization "The Meridian".
+- The editorial-desk byline page (this page) is the author-identifying page for schema purposes.
+
+## Accountability
+
+- All pipeline code is in this repository and reviewable in pull requests.
+- The merge rule is calibrated against a public fixture and re-labelled monthly.
+- The free-tier ceiling registry is versioned and auditable.
+- Corrections are append-only and publicly visible.
+
+## Schema.org Author
+
+For Google News and schema.org purposes, the author of every story is:
+
+```json
+{
+  "@type": "Organization",
+  "name": "The Meridian",
+  "url": "https://meridian.workers.dev/trust/byline/"
+}
+```
+
+This page serves as the `author.url` target required by Google News article requirements.

@@ -292,7 +292,7 @@ Plans:
 | 3. Curation Core: Clustering, Ranking & Enrichment | 5/5 | Complete | 2026-10-22 |
 | 4. Broadsheet Design System & Astro Shell | 5/5 | Complete | 2026-10-24 |
 | 5. Publication Surface: Editions, Story Tier & Media | 0/TBD | Not started | - |
-| 6. Digest, Trust Layer & SEO/Discovery | 0/TBD | Not started | - |
+| 6. Digest, Trust Layer & SEO/Discovery | 0/TBD | Complete | 2026-10-25 |
 | 7. Operational Hardening, Rollout & Measurement | 0/TBD | Not started | - |
 
 ## Requirement Coverage

@@ -1,30 +1,51 @@
 ---
 import { SITE_NAME, SITE_ORIGIN } from '../../../../shared/config/site.ts';
+import { pageMeta, renderHead } from '../../../../shared/templates/head.ts';
+import { buildHreflang } from '../../../../shared/templates/hreflang.ts';
+import { renderOpenGraph } from '../../../../shared/templates/og-meta.ts';
+import { buildOrganizationSchema, renderSchema } from '../../../../shared/templates/schema.ts';
+import type { PageMetaInput } from '../../../../shared/types.ts';
+import type { EditionId } from '../../../../shared/config/editions.ts';
 
 interface Props {
   title?: string;
   description?: string;
   htmlLang?: string;
-  edition?: string;
+  edition?: EditionId;
   date?: string;
+  path?: string;
+  alternates?: { hreflang: string; href: string }[];
 }
 
 const {
-  title = SITE_NAME,
+  title = 'Latest news',
   description = 'A free, automatically-curated daily paper for seven countries.',
   htmlLang = 'en',
-  edition = 'UK',
+  edition = 'uk' as EditionId,
   date = new Date().toISOString().split('T')[0],
+  path = '/',
+  alternates = [],
 } = Astro.props;
+
+// Build page metadata using the single source of truth
+const metaInput: PageMetaInput = {
+  title,
+  description,
+  path,
+  edition,
+  alternates: buildHreflang(edition, path),
+};
+const meta = pageMeta(metaInput);
 ---
 
 <!doctype html>
-<html lang={htmlLang}>
+<html lang={meta.htmlLang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
+    {renderHead(meta)}
+    {renderOpenGraph(meta)}
+    {renderSchema(buildOrganizationSchema({ name: SITE_NAME, url: SITE_ORIGIN, logoUrl: `${SITE_ORIGIN}/favicon.ico`, sameAs: [] }))}
     <link rel="preload" href="/fonts/PlayfairDisplay-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/NotoSerifDevanagari-Regular.woff2" as="font" type="font/woff2" crossorigin />
   </head>

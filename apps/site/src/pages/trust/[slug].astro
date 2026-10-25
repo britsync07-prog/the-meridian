@@ -1,0 +1,50 @@
+---
+import { getEditions } from '../../lib/page-data.ts';
+import TrustLayout from '../../layouts/TrustLayout.astro';
+
+export async function getStaticPaths() {
+  const editions = getEditions();
+  const slugs = ['about', 'editorial-policy', 'sourcing-methodology', 'corrections', 'contact', 'privacy', 'byline', 'sources'];
+  const paths = [];
+
+  for (const edition of editions) {
+    for (const slug of slugs) {
+      paths.push({
+        params: { edition, slug },
+        props: { edition, slug }
+      });
+    }
+  }
+
+  return paths;
+}
+
+interface Props {
+  edition: string;
+  slug: string;
+}
+
+const { edition, slug } = Astro.props;
+const editionObj = getEditions().find(e => e.id === edition);
+const path = editionObj ? `/${editionObj}/` : '/';
+const today = new Date().toISOString().split('T')[0];
+
+// Import the MDX content
+const mdxMap: Record<string, () => Promise<{ default: any; frontmatter: any }>> = {
+  about: () => import('../../../content/trust/about.mdx'),
+  'editorial-policy': () => import('../../../content/trust/editorial-policy.mdx'),
+  'sourcing-methodology': () => import('../../../content/trust/sourcing-methodology.mdx'),
+  corrections: () => import('../../../content/trust/corrections.mdx'),
+  contact: () => import('../../../content/trust/contact.mdx'),
+  privacy: () => import('../../../content/trust/privacy.mdx'),
+  byline: () => import('../../../content/trust/byline.mdx'),
+  sources: () => import('../../../content/trust/sources.mdx'),
+};
+
+const mdxModule = await mdxMap[slug]?.() ?? { default: null, frontmatter: { title: slug, lastReviewed: '2026-10-25' } };
+const { frontmatter } = mdxModule;
+---
+
+<TrustLayout edition={edition} date={today} path={path} title={frontmatter.title} description={frontmatter.title} lastReviewed={frontmatter.lastReviewed}>
+  <mdxModule.default />
+</TrustLayout>

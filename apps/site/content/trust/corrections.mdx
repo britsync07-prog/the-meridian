@@ -1,0 +1,34 @@
+---
+title: "Corrections"
+lastReviewed: "2026-10-25"
+---
+
+# Corrections Policy and Log
+
+The Meridian maintains a live append-only corrections log. Every correction is dated and permanent — no correction is ever deleted or edited after publication.
+
+## Correction Triggers
+
+1. **Merge reversals** — When a cluster split is executed, a dated correction note is published on the affected story URL.
+2. **Source flags** — Readers can flag a source or report a factual error from any story page. Flags enter a review queue that produces a dated correction note.
+3. **Attribution errors** — If an outlet is misattributed or an excerpt is found to exceed the budget, a correction is published.
+4. **Structural errors** — Section misassignment, topic/entity tagging errors, or ranking anomalies that are confirmed.
+
+## Correction Format
+
+Each correction entry contains:
+- **Date** (ISO 8601)
+- **Story URL** (permanent `/story/{slug}/`)
+- **Type** (merge_reversal | source_flag | attribution_error | structural)
+- **Description** (what was wrong and what was corrected)
+- **Status** (published | under_review)
+
+## Append-Only Log
+
+The log below is append-only. New entries are added at the top. No entry is ever removed or modified.
+
+---
+
+### 2026-10-25 — Initial publication
+**Type**: policy_established  
+**Description**: Corrections policy and log established at launch. No prior corrections exist.

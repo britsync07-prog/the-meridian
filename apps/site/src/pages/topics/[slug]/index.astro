@@ -26,9 +26,12 @@ const topicStories = allSlugs
 
 const topicName = slug.charAt(0).toUpperCase() + slug.slice(1);
 const today = new Date().toISOString().split('T')[0];
+const topicPath = `/topics/${slug}/`;
+const topicTitle = `${topicName} news`;
+const topicDescription = `All stories tagged with ${topicName}. Stay updated with the latest coverage.`;
 ---
 {topicStories.length >= 5 ? (
-  <TopicEntityLayout edition={topicStories[0]?.section ?? 'uk'} topicName={topicName} date={today}>
+  <TopicEntityLayout edition={topicStories[0]?.section ?? 'uk'} topicName={topicName} date={today} path={topicPath} title={topicTitle} description={topicDescription}>
     <div name="story-list" class="mt-6">
       <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2">
         Stories tagged: {topicName}
