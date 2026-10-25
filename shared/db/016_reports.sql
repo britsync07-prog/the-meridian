@@ -27,4 +27,4 @@ CREATE TABLE IF NOT EXISTS usage_log (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_usage_log_date ON usage_log(date);
+CREATE INDEX idx_usage_log_date ON usage_log(usage_date);
