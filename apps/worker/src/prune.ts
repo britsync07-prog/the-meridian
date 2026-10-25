@@ -12,12 +12,14 @@ const PRUNE_WINDOW_DAYS = 30;
 interface PruneResult {
   deleted_raw_items: number;
   preserved_clusters: number;
+  skipped_referenced: number;
   deleted_at: string;
 }
 
 /**
  * Delete raw_item rows older than PRUNE_WINDOW_DAYS from their merge date.
- * Safe: never deletes from clusters, story_sources, or any permanent table.
+ * Safe: only deletes raw_items that have no associated permanent cluster data
+ * (i.e., not referenced in story_sources).
  */
 export async function pruneRawItems(env: MeridianEnv): Promise<PruneResult> {
   const db = env.DB;
@@ -30,10 +32,22 @@ export async function pruneRawItems(env: MeridianEnv): Promise<PruneResult> {
 
   console.log(`Pruning raw_items older than ${PRUNE_WINDOW_DAYS} days (cutoff: ${cutoffISO})`);
 
-  // Delete old raw items using prepare (exec doesn't support params)
+  // First, count how many raw_items are referenced by story_sources (permanent data)
+  const referencedStmt = db.prepare(`
+    SELECT COUNT(DISTINCT raw_item_id) as count
+    FROM story_sources
+    WHERE raw_item_id IS NOT NULL
+  `);
+  const referencedResult = await referencedStmt.all<{ count: number }>();
+  const referencedCount = referencedResult.results?.[0]?.count ?? 0;
+  console.log(`Found ${referencedCount} raw_items referenced by story_sources (permanent data)`);
+
+  // Delete old raw items that are NOT referenced by story_sources
+  // This ensures we never delete raw items that have been promoted to permanent clusters
   const deleteStmt = db.prepare(`
     DELETE FROM raw_items
     WHERE published_at < ?
+    AND id NOT IN (SELECT raw_item_id FROM story_sources WHERE raw_item_id IS NOT NULL)
   `).bind(cutoffISO);
 
   const deleteResult = await deleteStmt.all();
@@ -48,10 +62,11 @@ export async function pruneRawItems(env: MeridianEnv): Promise<PruneResult> {
   const result: PruneResult = {
     deleted_raw_items: deletedCount,
     preserved_clusters: preservedClusters,
+    skipped_referenced: referencedCount,
     deleted_at: deletedAt,
   };
 
-  console.log(`Prune complete: ${deletedCount} items deleted, ${preservedClusters} clusters preserved`);
+  console.log(`Prune complete: ${deletedCount} items deleted, ${preservedClusters} clusters preserved, ${referencedCount} referenced items skipped`);
   return result;
 }
 
@@ -89,6 +104,7 @@ export async function runPrune(env: MeridianEnv, dryRun = false): Promise<PruneR
     return {
       deleted_raw_items: 0,
       preserved_clusters: 0,
+      skipped_referenced: 0,
       deleted_at: new Date().toISOString(),
     };
   }

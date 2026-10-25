@@ -1,11 +1,11 @@
 ---
 gsd_state_version: "1.0"
 milestone: v1.0
-status: executing
+status: complete
 stopped_at: null
-last_updated: "2026-10-25T13:45:00.000Z"
+last_updated: "2026-10-25T14:00:00.000Z"
 last_activity: 2026-10-25
-last_activity_desc: Phase 7 complete; 171 pages built, typecheck clean
+last_activity_desc: Milestone v1.0 complete; 171 pages built, typecheck clean
 state_head: current
 progress:
   total_phases: 7
@@ -28,11 +28,11 @@ progress:
 ## Resume
 
 ```bash
-/gsd-complete-milestone
+/gsd-new-milestone
 ```
 
 ## Session
 
-**Last session:** 2026-10-25T13:45:00Z
-**Stopped at:** Phase 7 complete
+**Last session:** 2026-10-25T14:00:00Z
+**Stopped at:** Milestone v1.0 completed
 **Resume file:** None

@@ -34,20 +34,22 @@ function createMockEnv(tableExists = true, currentCount = 100) {
 describe('prune.ts', () => {
   describe('pruneRawItems', () => {
     it('deletes old raw items and preserves clusters', async () => {
-      const env = createMockEnv(true, 50);
+      const env = createMockEnv(true, 50, 10);
       const result = await pruneRawItems(env as any);
 
       expect(result.deleted_raw_items).toBe(50);
       expect(result.preserved_clusters).toBe(500);
+      expect(result.skipped_referenced).toBe(10);
       expect(result.deleted_at).toBeTruthy();
     });
 
     it('returns zero deletions when raw_items table does not exist', async () => {
-      const env = createMockEnv(false, 0);
+      const env = createMockEnv(false, 0, 0);
       const result = await pruneRawItems(env as any);
 
       expect(result.deleted_raw_items).toBe(0);
       expect(result.preserved_clusters).toBe(0);
+      expect(result.skipped_referenced).toBe(0);
     });
 
     it('calculates cutoff date from 30 days ago', async () => {

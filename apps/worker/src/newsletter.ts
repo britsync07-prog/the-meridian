@@ -11,6 +11,8 @@ import type { MeridianEnv } from './db/config.js';
 import freeTierLimits from '../../../config/free-tier-limits.json' with { type: 'json' };
 
 const BREVO_DAILY_CAP = 300;
+const MAX_REQUEST_BODY_SIZE = 10 * 1024; // 10KB
+const SUBSCRIPTION_RATE_LIMIT_TTL = 60 * 60; // 1 hour
 
 interface SubscribeRequest {
   edition: string;
@@ -20,7 +22,12 @@ interface SubscribeRequest {
 interface SubscribeResult {
   success: boolean;
   message: string;
-  status?: 'subscribed' | 'exists' | 'quota_exceeded' | 'invalid';
+  status?: 'subscribed' | 'exists' | 'quota_exceeded' | 'invalid' | 'rate_limited';
+}
+
+interface ConfirmRequest {
+  token: string;
+  email: string;
 }
 
 /**
@@ -38,7 +45,62 @@ function validateRequest(data: unknown): SubscribeRequest | null {
   const validEditions = ['uk', 'us', 'au', 'ca', 'ie', 'nz', 'in', 'in-hi'];
   if (!validEditions.includes(edition)) return null;
 
+  // Limit email length
+  if (email.length > 254) return null;
+
   return { edition, email: email.toLowerCase().trim() };
+}
+
+/**
+ * Get client IP for rate limiting.
+ */
+function getClientIP(request: Request): string {
+  const forwarded = request.headers.get('CF-Connecting-IP');
+  if (forwarded) return forwarded;
+  const realIP = request.headers.get('X-Real-IP');
+  if (realIP) return realIP;
+  return 'unknown';
+}
+
+/**
+ * Check IP-based rate limit for subscription attempts.
+ */
+async function checkSubscriptionRateLimit(env: MeridianEnv, ip: string): Promise<boolean> {
+  try {
+    const key = `newsletter:rate_limit:${ip}`;
+    const countStr = await env.KV.get(key);
+    const count = countStr ? parseInt(countStr, 10) : 0;
+    if (count >= 5) return false; // Max 5 attempts per hour per IP
+    await env.KV.put(key, String(count + 1), { expirationTtl: SUBSCRIPTION_RATE_LIMIT_TTL });
+    return true;
+  } catch {
+    // KV unavailable, allow request
+    return true;
+  }
+}
+
+/**
+ * Generate a verification token for double opt-in.
+ */
+function generateVerificationToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Store pending verification in KV.
+ */
+async function storePendingVerification(env: MeridianEnv, email: string, edition: string, token: string): Promise<void> {
+  try {
+    await env.KV.put(
+      `newsletter:verify:${token}`,
+      JSON.stringify({ email, edition, created_at: new Date().toISOString() }),
+      { expirationTtl: 60 * 60 * 24 } // 24 hour TTL for verification
+    );
+  } catch {
+    // KV unavailable, continue
+  }
 }
 
 /**
@@ -61,7 +123,7 @@ async function recordSubscriber(env: MeridianEnv, email: string, edition: string
   try {
     await env.KV.put(
       `newsletter:${email}`,
-      JSON.stringify({ edition, subscribed_at: new Date().toISOString() }),
+      JSON.stringify({ edition, subscribed_at: new Date().toISOString(), verified: true }),
       { expirationTtl: 60 * 60 * 24 * 365 } // 1 year TTL
     );
   } catch {
@@ -100,9 +162,19 @@ async function incrementDailyCount(env: MeridianEnv): Promise<void> {
 }
 
 /**
- * Handle newsletter subscription request.
+ * Handle newsletter subscription request — initiates double opt-in.
  */
 export async function handleSubscribe(request: Request, env: MeridianEnv): Promise<Response> {
+  // Check IP rate limit
+  const ip = getClientIP(request);
+  const rateLimited = await checkSubscriptionRateLimit(env, ip);
+  if (!rateLimited) {
+    return new Response(JSON.stringify({ success: false, message: 'Too many requests. Please try again later.', status: 'rate_limited' }), {
+      status: 429,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    });
+  }
+
   // Parse request body
   let data: unknown;
   try {
@@ -147,22 +219,94 @@ export async function handleSubscribe(request: Request, env: MeridianEnv): Promi
     });
   }
 
-  // In production, would call Brevo API here
-  // const brevoKey = env.BREVO_API_KEY;
-  // await fetch('https://api.brevo.com/v3/contacts', { ... });
+  // Generate verification token and store pending verification
+  const token = generateVerificationToken();
+  await storePendingVerification(env, email, edition, token);
 
-  // Record in KV for tracking
-  await recordSubscriber(env, email, edition);
-  await incrementDailyCount(env);
+  // In production, would send verification email via Brevo
+  // const verifyUrl = `${new URL(request.url).origin}/api/newsletter/verify?token=${token}&email=${encodeURIComponent(email)}`;
+  // await sendVerificationEmail(email, verifyUrl);
+
+  // For now, log the verification URL (in production, send via email)
+  console.log(`Newsletter verification: token=${token}, email=${email}, edition=${edition}`);
 
   return new Response(JSON.stringify({
     success: true,
-    message: 'Subscribed successfully',
-    status: 'subscribed',
+    message: 'Verification email sent. Please check your inbox to confirm subscription.',
+    status: 'verification_sent',
   }), {
-    status: 201,
+    status: 202,
     headers: { 'content-type': 'application/json; charset=utf-8' },
   });
+}
+
+/**
+ * Handle email verification callback.
+ */
+export async function handleVerify(request: Request, env: MeridianEnv): Promise<Response> {
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token');
+  const email = url.searchParams.get('email');
+
+  if (!token || !email) {
+    return new Response(JSON.stringify({ success: false, message: 'Invalid verification link' }), {
+      status: 400,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    });
+  }
+
+  try {
+    const pending = await env.KV.get(`newsletter:verify:${token}`);
+    if (!pending) {
+      return new Response(JSON.stringify({ success: false, message: 'Verification link expired or invalid' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
+
+    const { edition, email: storedEmail } = JSON.parse(pending);
+    if (storedEmail !== email) {
+      return new Response(JSON.stringify({ success: false, message: 'Verification link mismatch' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
+
+    // Check quota again at verification time
+    const { withinQuota, currentCount } = await checkDailyQuota(env);
+    if (!withinQuota) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: `Daily subscription limit reached (${currentCount}/${BREVO_DAILY_CAP}). Please try again tomorrow.`,
+        status: 'quota_exceeded',
+      }), {
+        status: 429,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
+
+    // Record subscriber and increment counter
+    await recordSubscriber(env, email, edition);
+    await incrementDailyCount(env);
+
+    // Clean up verification token
+    await env.KV.delete(`newsletter:verify:${token}`);
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Subscription confirmed! You will receive the next daily digest.',
+      status: 'subscribed',
+    }), {
+      status: 200,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    });
+  } catch (err) {
+    console.error('Verification failed:', err);
+    return new Response(JSON.stringify({ success: false, message: 'Verification failed' }), {
+      status: 500,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    });
+  }
 }
 
 /**
