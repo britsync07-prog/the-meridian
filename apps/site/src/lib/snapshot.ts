@@ -82,31 +82,12 @@ export interface SnapshotData {
 /* ------------------------------------------------------------------------- */
 
 /**
- * Load snapshot from SNAPSHOT_PATH env var (CI) or fetch from R2 (runtime).
+ * Load snapshot from SNAPSHOT_PATH env var or the CI-generated local copy.
  * Returns null if the snapshot is unavailable — callers must handle gracefully.
  */
 export async function loadSnapshot(): Promise<SnapshotData | null> {
-  const snapshotPath = process.env.SNAPSHOT_PATH;
-  if (!snapshotPath) {
-    // Fallback: try to read from built-in location
-    const fallbackPath = join(REPO_ROOT, 'scripts', 'snapshot', 'latest.json');
-    if (!existsSync(fallbackPath)) {
-      return null;
-    }
-    // Read manifest to get hash, then construct R2 URL
-    const manifest = JSON.parse(readFileSync(fallbackPath, 'utf8')) as { hash: string };
-    const r2Url = `https://pub-${manifest.hash.slice(0, 8)}.r2.dev/snapshot/${manifest.hash}.json.gz`;
-    try {
-      const response = await fetch(r2Url);
-      if (!response.ok) return null;
-      const buffer = await response.arrayBuffer();
-      return JSON.parse(inflateSync(Buffer.from(buffer)).toString('utf8'));
-    } catch {
-      return null;
-    }
-  }
+  const snapshotPath = process.env.SNAPSHOT_PATH ?? join(REPO_ROOT, 'scripts', 'snapshot', 'latest.json.gz');
 
-  // Read from local path (CI test mode)
   if (!existsSync(snapshotPath)) {
     return null;
   }

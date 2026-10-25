@@ -21,7 +21,7 @@ interface Props {
   edition: string;
 }
 
-export const get: APIRoute = async (context) => {
+export const GET: APIRoute = async (context) => {
   const snapshot = await loadSnapshot();
   if (!snapshot) {
     return new Response(null, { status: 404 });

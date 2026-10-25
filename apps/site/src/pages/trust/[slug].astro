@@ -1,22 +1,9 @@
 ---
-import { getEditions } from '../../lib/page-data.ts';
 import TrustLayout from '../../layouts/TrustLayout.astro';
 
 export async function getStaticPaths() {
-  const editions = getEditions();
   const slugs = ['about', 'editorial-policy', 'sourcing-methodology', 'corrections', 'contact', 'privacy', 'byline', 'sources'];
-  const paths = [];
-
-  for (const edition of editions) {
-    for (const slug of slugs) {
-      paths.push({
-        params: { edition, slug },
-        props: { edition, slug }
-      });
-    }
-  }
-
-  return paths;
+  return slugs.map((slug) => ({ params: { slug }, props: { edition: 'uk', slug } }));
 }
 
 interface Props {
@@ -25,8 +12,7 @@ interface Props {
 }
 
 const { edition, slug } = Astro.props;
-const editionObj = getEditions().find(e => e.id === edition);
-const path = editionObj ? `/${editionObj}/` : '/';
+const path = '/';
 const today = new Date().toISOString().split('T')[0];
 
 // Import the MDX content

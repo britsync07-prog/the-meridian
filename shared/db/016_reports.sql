@@ -1,7 +1,7 @@
 -- Migration: Reports table for OPS-22 and OPS-23
 -- Stores flagged sources and factual error reports in review queue
 
-CREATE TABLE reports (
+CREATE TABLE IF NOT EXISTS reports (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   type TEXT NOT NULL CHECK (type IN ('flag', 'error')),
   story_slug TEXT NOT NULL,
@@ -13,9 +13,9 @@ CREATE TABLE reports (
 );
 
 -- Index for pending report reviews
-CREATE INDEX idx_reports_status ON reports(status);
-CREATE INDEX idx_reports_story ON reports(story_slug);
-CREATE INDEX idx_reports_type ON reports(type);
+CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
+CREATE INDEX IF NOT EXISTS idx_reports_story ON reports(story_slug);
+CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(type);
 
 -- Usage log table for audit worker (OPS-02)
 CREATE TABLE IF NOT EXISTS usage_log (
@@ -27,4 +27,4 @@ CREATE TABLE IF NOT EXISTS usage_log (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_usage_log_date ON usage_log(usage_date);
+CREATE INDEX IF NOT EXISTS idx_usage_log_date ON usage_log(date);

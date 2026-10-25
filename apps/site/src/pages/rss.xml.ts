@@ -8,7 +8,7 @@ import { loadSnapshot } from '../lib/snapshot.js';
 import { buildRssFeed } from '../lib/rss.js';
 import { SITE_NAME } from '../../../../shared/config/site.js';
 
-export const get: APIRoute = async (_context) => {
+export const GET: APIRoute = async (_context) => {
   const snapshot = await loadSnapshot();
   if (!snapshot) {
     return new Response(null, { status: 404 });

@@ -17,7 +17,7 @@ const REPO_ROOT = resolve(__dirname, '..', '..');
 
 const snapshotPath = process.argv[2]
   ? resolve(process.cwd(), process.argv[2])
-  : resolve(REPO_ROOT, 'scripts', 'snapshot', 'latest.json');
+  : resolve(REPO_ROOT, 'scripts', 'snapshot', 'latest.json.gz');
 
 const buildDir = process.argv[3]
   ? resolve(process.cwd(), process.argv[3])

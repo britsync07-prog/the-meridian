@@ -41,6 +41,8 @@ export interface MeridianEnv {
   R2: R2Bucket;
   /** The KV binding for feed polling state (ETag, Last-Modified, etc). */
   KV: KVNamespace;
+  /** Static Astro output, served for every route outside the Worker API. */
+  ASSETS?: { fetch(request: Request): Promise<Response> };
   /**
    * An optional Worker text variable that overrides the binding's database
    * id. This is what makes "point the project at a different database" a

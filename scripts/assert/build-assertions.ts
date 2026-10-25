@@ -7,6 +7,7 @@
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { gunzipSync } from 'node:zlib';
 import type { SnapshotData } from '../../apps/site/src/lib/snapshot.js';
 import { EDITIONS, SECTIONS } from '../../shared/config/editions.js';
 import freeTierLimits from '../../config/free-tier-limits.json' with { type: 'json' };
@@ -250,8 +251,8 @@ export async function runAssertions(snapshotPath: string, buildDir?: string): Pr
   // Load snapshot
   let data: SnapshotData;
   try {
-    const raw = readFileSync(snapshotPath, 'utf8');
-    data = JSON.parse(raw);
+    const raw = readFileSync(snapshotPath);
+    data = JSON.parse((raw[0] === 0x1f && raw[1] === 0x8b ? gunzipSync(raw) : raw).toString('utf8'));
   } catch (err) {
     throw new Error(`Failed to load snapshot: ${err}`);
   }

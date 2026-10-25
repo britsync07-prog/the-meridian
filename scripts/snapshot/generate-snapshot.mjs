@@ -14,7 +14,7 @@
 
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
-import { existsSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -80,14 +80,14 @@ async function queryStorySources(dbId) {
 async function querySections(dbId) {
   return fetchD1Rows(
     `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
-    `SELECT id, slug as id, name, sort_order FROM sections ORDER BY sort_order`
+    `SELECT id, slug, name, sort_order FROM sections ORDER BY sort_order`
   );
 }
 
 async function queryEditions(dbId) {
   return fetchD1Rows(
     `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
-    `SELECT id, slug as id, name, country_code, language FROM editions ORDER BY id`
+    `SELECT id, slug, name, country_code, language FROM editions ORDER BY id`
   );
 }
 
@@ -129,14 +129,14 @@ async function queryClusterEntities(dbId) {
 async function queryTopics(dbId) {
   return fetchD1Rows(
     `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
-    `SELECT id, slug as id, name FROM topics ORDER BY id`
+    `SELECT id, slug, name FROM topics ORDER BY id`
   );
 }
 
 async function queryEntities(dbId) {
   return fetchD1Rows(
     `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
-    `SELECT id, slug as id, name, entity_type, country_code FROM entities ORDER BY id`
+    `SELECT id, slug, name, entity_type, country_code FROM entities ORDER BY id`
   );
 }
 
@@ -165,6 +165,12 @@ async function uploadToR2(bucket, key, body) {
 async function writeManifest(manifest) {
   const manifestPath = path.join(REPO_ROOT, 'scripts', 'snapshot', 'latest.json');
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+}
+
+function writeLocalSnapshot(snapshot) {
+  const snapshotPath = path.join(REPO_ROOT, 'scripts', 'snapshot', 'latest.json.gz');
+  writeFileSync(snapshotPath, snapshot);
+  return snapshotPath;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,14 +212,14 @@ async function main() {
     generated_at: new Date().toISOString(),
     schema_version: 1,
     editions: editions.results.map((r) => ({
-      id: r.id,
-      slug: r.id,
+      id: r.slug,
+      slug: r.slug,
       name: r.name,
       country_code: r.country_code,
       language: r.language,
     })),
     sections: sections.results.map((r) => ({
-      id: r.id,
+      id: r.slug,
       name: r.name,
       sortOrder: r.sort_order,
     })),
@@ -258,7 +264,7 @@ async function main() {
     topics: topics.results.map((r) => ({ id: r.id, name: r.name })),
     entities: entities.results.map((r) => ({
       id: r.id,
-      slug: r.id,
+      slug: r.slug,
       name: r.name,
       entity_type: r.entity_type,
       country_code: r.country_code,
@@ -287,6 +293,7 @@ async function main() {
   const objectKey = `snapshot/${hash}.json.gz`;
   console.log(`Uploading to R2: ${objectKey}...`);
   await uploadToR2(R2_BUCKET, objectKey, compressed);
+  const localSnapshotPath = writeLocalSnapshot(compressed);
 
   // Write local manifest
   const manifest = {
@@ -297,6 +304,7 @@ async function main() {
     cluster_count: snapshot.clusters.length,
   };
   await writeManifest(manifest);
+  console.log(`Local build snapshot written to ${path.relative(REPO_ROOT, localSnapshotPath)}`);
   console.log('Manifest written to scripts/snapshot/latest.json');
   console.log('Snapshot generation complete.');
 }

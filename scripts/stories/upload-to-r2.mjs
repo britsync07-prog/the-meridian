@@ -1,91 +1,51 @@
 /**
- * Upload rendered story pages to R2.
- *
- * OPS-11: Story pages pre-rendered to HTML, stored in R2, served by edge Worker.
+ * Upload rendered story pages to R2, then exclude them from Static Assets.
  */
 
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 
-const __dirname = import.meta.dirname;
-const REPO_ROOT = join(__dirname, '..', '..');
+const REPO_ROOT = join(import.meta.dirname, '..', '..');
+const WRANGLER = join(REPO_ROOT, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
 
-async function uploadToR2(bucketName, key, body) {
-  const CF_API_TOKEN = process.env.CF_API_TOKEN;
-  const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
-
-  if (!CF_API_TOKEN || !CF_ACCOUNT_ID) {
-    throw new Error('Missing CF_API_TOKEN or CF_ACCOUNT_ID');
-  }
-
-  const response = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/r2/buckets/${bucketName}/objects/${encodeURIComponent(key)}`,
-    {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${CF_API_TOKEN}`,
-        'Content-Type': 'application/octet-stream',
-      },
-      body,
-    }
+function uploadToR2(bucketName, key, file) {
+  const result = spawnSync(
+    process.execPath,
+    [WRANGLER, 'r2', 'object', 'put', `${bucketName}/${key}`, '--file', file, '--remote'],
+    { cwd: REPO_ROOT, encoding: 'utf8' },
   );
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`R2 upload failed: ${response.status} — ${text}`);
+  if (result.status !== 0) {
+    throw new Error(result.stderr || result.stdout || `wrangler exited ${result.status}`);
   }
-
-  return response;
 }
 
-/**
- * Walk directory and upload all .html files to R2 under story/{slug}/index.html
- */
-async function main() {
+function main() {
   const distDir = process.argv[2] ?? join(REPO_ROOT, 'apps', 'site', 'dist');
   const bucketName = process.env.R2_BUCKET_NAME;
-
-  if (!bucketName) {
-    throw new Error('R2_BUCKET_NAME environment variable required');
-  }
+  if (!bucketName) throw new Error('R2_BUCKET_NAME environment variable required');
 
   const storyDir = join(distDir, 'story');
-  if (!require('node:fs').existsSync(storyDir)) {
+  if (!existsSync(storyDir)) {
     console.log('No story directory found, nothing to upload');
     return;
   }
 
-  const slugs = readdirSync(storyDir);
-  console.log(`Found ${slugs.length} story slugs to upload`);
-
   let uploaded = 0;
-  let failed = 0;
-
-  for (const slug of slugs) {
-    const indexHtml = join(storyDir, slug, 'index.html');
-    if (!require('node:fs').existsSync(indexHtml)) continue;
-
-    const html = readFileSync(indexHtml);
-    const key = `story/${slug}/index.html`;
-
-    try {
-      await uploadToR2(bucketName, key, html);
-      uploaded++;
-    } catch (err) {
-      console.error(`Failed to upload ${key}: ${err.message}`);
-      failed++;
-    }
+  for (const slug of readdirSync(storyDir)) {
+    const file = join(storyDir, slug, 'index.html');
+    if (!existsSync(file)) continue;
+    uploadToR2(bucketName, `story/${slug}/index.html`, file);
+    uploaded++;
   }
 
-  console.log(`Upload complete: ${uploaded} uploaded, ${failed} failed`);
+  rmSync(storyDir, { recursive: true, force: true });
+  console.log(`Upload complete: ${uploaded} uploaded. Removed static story output.`);
 }
 
-function require(name) {
-  return import(name);
-}
-
-main().catch(err => {
-  console.error('Upload failed:', err);
+try {
+  main();
+} catch (error) {
+  console.error(`Upload failed: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
-});
+}

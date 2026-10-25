@@ -32,7 +32,7 @@ export default {
 
     // Story tier: serve /story/* from R2 (OPS-11)
     if (url.pathname.startsWith('/story/')) {
-      return handleStoryRequest(url.pathname, env);
+      return handleStoryRequest(request, env);
     }
 
     // Newsletter subscription endpoints (GRO-01, GRO-04)
@@ -65,12 +65,7 @@ export default {
       return json({ ok: true, service: 'meridian-worker', databaseId, tables });
     }
 
-    return json({
-      ok: true,
-      service: 'meridian-worker',
-      databaseId,
-      path: url.pathname,
-    });
+    return env.ASSETS?.fetch(request) ?? new Response("Static assets are unavailable", { status: 503 });
   },
 
   async scheduled(controller: ScheduledController, env: MeridianEnv, ctx: ExecutionContext): Promise<void> {

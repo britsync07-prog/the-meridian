@@ -267,10 +267,8 @@ export function getStoryPageData(slug: string): StoryPageData | null {
 }
 
 export function getAllStorySlugs(): string[] {
-  // Synchronous — pages call this in getStaticPaths which is synchronous.
-  // Returns a fallback empty array if snapshot not yet loaded; actual slugs
-  // are populated at build time via the snapshot fixture.
-  return [];
+  const snapshot = getSnapshot();
+  return snapshot ? _getAllStorySlugs(snapshot) : [];
 }
 
 export function getAllSectionPaths(): { edition: string; section: string }[] {
@@ -294,19 +292,13 @@ export function getArchiveDates(): string[] {
 }
 
 export function getArchivePaths(): { edition: string; date: string }[] {
-  const r: { edition: string; date: string }[] = [];
-  for (const e of EDITIONS) {
-    for (const d of getArchiveDates()) {
-      r.push({ edition: e.id, date: d });
-    }
-  }
-  return r;
+  const snapshot = getSnapshot();
+  return snapshot ? _getArchivePaths(snapshot) : [];
 }
 
-// Initialize snapshot eagerly on import so synchronous page accessors work.
-// In CI this will succeed (SNAPSHOT_PATH is set); locally it will stay null
-// and pages fall back to graceful empty-state rendering.
-void loadPageSnapshot();
+// Route modules import this data layer before calling synchronous accessors.
+// Awaiting here prevents static-path generation from racing the local CI snapshot.
+await loadPageSnapshot();
 
 // Re-export getTopicPaths from snapshot (wraps to handle missing snapshot)
 export function getTopicPaths(): string[] {

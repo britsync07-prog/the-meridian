@@ -6,7 +6,11 @@ on:
     - cron: '10 * * * *'
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
+      - 'apps/worker/**'
+      - 'apps/site/**'
+      - 'scripts/stories/**'
       - 'scripts/snapshot/**'
       - 'scripts/assert/**'
       - 'apps/site/src/lib/snapshot.ts'
@@ -28,7 +32,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -50,7 +54,8 @@ jobs:
       - name: Run tests
         run: npm test -- --run
 
-      - name: Upload build artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: apps/site/dist
+      - name: Upload story tier to R2
+        run: node scripts/stories/upload-to-r2.mjs
+
+      - name: Deploy Worker and static assets
+        run: npx wrangler deploy --config apps/worker/wrangler.jsonc
