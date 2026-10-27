@@ -50,7 +50,7 @@ function runLighthouse(url, outputPath) {
       '--output=json',
       `--output-path=${outputPath}`,
       '--only-categories=performance',
-      '--chrome-flags=--no-sandbox',
+      '--chrome-flags=--no-sandbox --headless=new',
       '--max-wait-for-load=15000',
     ], { stdio: 'pipe', timeout: MS_PER_SEC * 90 });
   } catch (e) {
