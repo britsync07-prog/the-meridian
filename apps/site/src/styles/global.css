@@ -14,6 +14,7 @@
   --color-border: #c8bfaf;
   --font-masthead: 'Playfair Display', Georgia, serif;
   --font-hindi: 'Noto Serif Devanagari', Georgia, serif;
+  --font-reading: Arial, Helvetica, sans-serif;
   --text-h1: clamp(2.35rem, 6vw, 5.75rem);
   --text-h2: clamp(1.2rem, 2vw, 1.7rem);
   --text-caption: .76rem;
@@ -22,7 +23,7 @@
 :root { color: var(--color-ink); background: #302f2b; font-synthesis: none; }
 * { box-sizing: border-box; }
 html { background: #302f2b; }
-body { min-width: 320px; margin: 0; background: #302f2b; color: var(--color-ink); font-family: var(--font-masthead); font-size: 16px; line-height: 1.55; }
+body { min-width: 320px; margin: 0; background: #302f2b; color: var(--color-ink); font-family: var(--font-reading); font-size: 16px; line-height: 1.55; }
 a { color: inherit; text-decoration-color: color-mix(in srgb, currentColor 36%, transparent); text-decoration-thickness: 1px; text-underline-offset: .16em; }
 a:hover { color: var(--color-accent); }
 :focus-visible { outline: 3px solid var(--color-accent); outline-offset: 3px; }
@@ -51,7 +52,7 @@ a:hover { color: var(--color-accent); }
 .story-kicker { margin: 0 0 .55rem; color: var(--color-accent); font: 700 .85rem/1.2 Arial, sans-serif; letter-spacing: .02em; }
 .lead-story-headline { margin: 0; font: 700 clamp(2.1rem, 4.4vw, 4.7rem)/.97 var(--font-masthead); letter-spacing: -.048em; }
 .lead-story-headline a, .story-item-headline a { text-decoration: none; }
-.lead-story-deck { margin: .9rem 0 0; font-size: clamp(1.05rem, 1.6vw, 1.35rem); line-height: 1.37; }
+.lead-story-deck { margin: .9rem 0 0; font-size: clamp(1.05rem, 1.6vw, 1.35rem); line-height: 1.45; }
 .story-meta { display: flex; flex-wrap: wrap; gap: .25rem .65rem; margin: 1rem 0 0; color: var(--color-muted); font: .84rem/1.35 Arial, sans-serif; }
 .story-meta span:not(:last-child)::after { content: ' /'; margin-left: .65rem; color: var(--color-border); }
 
@@ -64,7 +65,7 @@ a:hover { color: var(--color-accent); }
 .story-item-compact { padding-block: .85rem; }
 .story-item-compact .story-item-headline { font-size: 1.2rem; }
 .story-item-headline { margin: 0; font: 700 1.55rem/1.05 var(--font-masthead); letter-spacing: -.025em; }
-.story-item-deck { margin: .55rem 0 0; color: #454139; font-size: .94rem; line-height: 1.42; }
+.story-item-deck { margin: .55rem 0 0; color: #454139; font-size: .94rem; line-height: 1.5; }
 .story-trending { display: inline-block; margin-top: .7rem; color: var(--color-accent); font: 700 .84rem/1 Arial, sans-serif; letter-spacing: .02em; }
 .front-supplement { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1.5rem, 5vw, 5rem); margin-top: 2.7rem; }
 .coverage-panel { background: #e7dfd0; padding: 1.3rem 1.4rem; }
