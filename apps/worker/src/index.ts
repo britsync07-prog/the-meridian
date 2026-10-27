@@ -11,7 +11,7 @@
 import { resolveDatabaseId, type MeridianEnv } from './db/config';
 import { createRepository } from './db/repository';
 import { pollFeedPartition } from './fetcher';
-import { handleStoryRequest } from './story-router.js';
+import { handleMediaRequest, handleOgRequest, handleStoryRequest } from './story-router.js';
 import { handleSubscribe } from './newsletter.js';
 import { handleFlagRequest, handleErrorRequest } from './reports.js';
 import { runAudit } from './audit.js';
@@ -34,6 +34,11 @@ export default {
     if (url.pathname.startsWith('/story/')) {
       return handleStoryRequest(request, env);
     }
+
+    if (url.pathname.startsWith('/media/')) {
+      return handleMediaRequest(request, env);
+    }
+    if (url.pathname.startsWith('/og/')) return handleOgRequest(request, env);
 
     // Newsletter subscription endpoints (GRO-01, GRO-04)
     if (url.pathname === '/api/newsletter/subscribe') {
@@ -72,14 +77,23 @@ export default {
     // OPS-15: Prune raw items daily at 02:00 UTC
     if (controller.cron === '0 2 * * *') {
       ctx.waitUntil(runPrune(env));
+      return;
     }
 
     // OPS-02/03: Daily audit at 03:00 UTC
     if (controller.cron === '0 3 * * *') {
       ctx.waitUntil(runAudit(env));
+      return;
     }
 
-    // Feed polling on the existing schedule
-    ctx.waitUntil(pollFeedPartition(env, controller.cron));
+    // Feed polling on the existing schedule. The summary is the only reliable
+    // production evidence that a cron partition ran and captured feeds.
+    ctx.waitUntil(pollFeedPartition(env, controller.cron).then((results) => {
+      const counts = results.reduce<Record<string, number>>((summary, result) => {
+        summary[result.status] = (summary[result.status] ?? 0) + 1;
+        return summary;
+      }, {});
+      console.log(JSON.stringify({ event: 'feed_poll_complete', cron: controller.cron, counts }));
+    }));
   },
 } satisfies ExportedHandler<MeridianEnv>;

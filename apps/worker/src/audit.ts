@@ -6,6 +6,7 @@
  */
 
 import type { MeridianEnv } from './db/config.js';
+import { readUsageTotals } from './db/repository.js';
 import freeTierLimits from '../../../config/free-tier-limits.json' with { type: 'json' };
 
 interface UsageMetric {
@@ -52,19 +53,7 @@ function getCeiling(id: string): number | null {
  * In production, this would query actual D1/R2/KV usage stats.
  */
 async function calculateMetrics(env: MeridianEnv): Promise<UsageMetric[]> {
-  const db = env.DB;
-
-  // Query current usage from D1 — use prepare for parameterized queries
-  const rowsReadStmt = db.prepare('SELECT SUM(rows_read) as total FROM usage_log WHERE date >= date("now", "-1 day")');
-  const rowsReadResult = await rowsReadStmt.all();
-  const rowsWrittenStmt = db.prepare('SELECT SUM(rows_written) as total FROM usage_log WHERE date >= date("now", "-1 day")');
-  const rowsWrittenResult = await rowsWrittenStmt.all();
-  const storageStmt = db.prepare('SELECT page_count * page_size as bytes FROM pragma_page_count(), pragma_page_size()');
-  const storageResult = await storageStmt.all();
-
-  const rowsRead = (rowsReadResult.results?.[0] as Record<string, unknown>)?.total as number ?? 0;
-  const rowsWritten = (rowsWrittenResult.results?.[0] as Record<string, unknown>)?.total as number ?? 0;
-  const storageBytes = (storageResult.results?.[0] as Record<string, unknown>)?.bytes as number ?? 0;
+  const { rowsRead, rowsWritten, storageBytes } = await readUsageTotals(env);
   const storageMB = Math.round(storageBytes / (1024 * 1024));
 
   const metrics: UsageMetric[] = [];

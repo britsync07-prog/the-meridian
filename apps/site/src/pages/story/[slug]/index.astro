@@ -3,9 +3,12 @@ import StoryLayout from '../../../layouts/StoryLayout.astro';
 import StoryList from '../../../components/StoryList.astro';
 import FlagSource from '../../../components/FlagSource.astro';
 import ReportError from '../../../components/ReportError.astro';
-import { getStoryPageData, getAllStorySlugs } from '../../../lib/page-data.ts';
+import MediaImage from '../../../components/MediaImage.astro';
+import { SITE_ORIGIN } from '../../../../../../shared/config/site.ts';
+import { getStoryPageData, getAllStorySlugs, loadPageSnapshot } from '../../../lib/page-data.ts';
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  await loadPageSnapshot();
   return getAllStorySlugs().map(slug => ({
     params: { slug },
     props: { slug }
@@ -43,15 +46,30 @@ try {
 ---
 <StoryLayout
   storyTitle={data.cluster.canonicalHeadline}
-  edition={data.section}
+  edition={data.edition}
   date={today}
   path={storyPath}
   description={storyDescription}
   publishedDate={publishedDate}
+  imageUrl={`${SITE_ORIGIN}/og/${slug}.jpg`}
   tags={data.topics}
   section={data.section}
 >
-  <div name="body" class="mb-8">
+  <div slot="body" class="mb-8">
+    {data.image && (
+      <>
+        <MediaImage
+          src={data.image.src}
+          srcset={data.image.srcset}
+          alt={data.image.alt}
+          width={1200}
+          height={675}
+          priority={true}
+          class="w-full h-auto object-cover mb-6"
+        />
+        {data.image.credit && <p class="text-caption text-muted -mt-4 mb-6">{data.image.credit}</p>}
+      </>
+    )}
     <div class="flex flex-wrap gap-4 text-caption text-muted mb-6">
       <span>Section: {data.sectionName}</span>
       <time datetime={publishedDate}>Published: {publishedDate}</time>
@@ -80,7 +98,7 @@ try {
         {data.sources.map(source => (
           <li key={`${source.sourceId}-${source.rank}`} class="mb-2">
             <a href={source.url} class="text-ink no-underline hover:text-accent" target="_blank" rel="noopener">
-              {source.sourceId} &mdash; {source.headline}
+              {source.sourceName} - {source.headline}
             </a>
             <span class="text-caption text-muted"> (Rank {source.rank})</span>
           </li>
@@ -93,7 +111,7 @@ try {
       </p>
 
       <div class="mt-8">
-        <StoryList stories={data.relatedStories} edition={data.section} />
+        <StoryList stories={data.relatedStories} edition={data.edition} />
       </div>
     </div>
 

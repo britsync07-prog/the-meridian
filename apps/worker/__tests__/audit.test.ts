@@ -12,9 +12,9 @@ function createMockEnv() {
         meta: { changes: 0 },
       };
 
-      if (sql.includes('SUM(rows_read)')) {
+      if (sql.includes('SUM(d1_rows_read)')) {
         result.results = [{ total: 1500000 }];
-      } else if (sql.includes('SUM(rows_written)')) {
+      } else if (sql.includes('SUM(d1_rows_written)')) {
         result.results = [{ total: 5000 }];
       } else if (sql.includes('pragma_page_count')) {
         result.results = [{ bytes: 25 * 1024 * 1024 }]; // 25MB
@@ -25,6 +25,10 @@ function createMockEnv() {
       return Promise.resolve(result);
     },
   };
+  mockDb.prepare = (sql: string) => ({
+    all: () => mockDb.exec(sql),
+    bind: () => ({ all: () => mockDb.exec(sql) }),
+  });
 
   const mockKV = {
     get: (key: string) => Promise.resolve(null),
@@ -56,9 +60,9 @@ describe('audit.ts', () => {
       // Override to simulate 50%+ usage
       env.DB.exec = (sql: string) => {
         const result: Record<string, unknown> = { results: [], meta: { changes: 0 } };
-        if (sql.includes('SUM(rows_read)')) {
+        if (sql.includes('SUM(d1_rows_read)')) {
           result.results = [{ total: 2500001 }]; // ~50% of 5M
-        } else if (sql.includes('SUM(rows_written)')) {
+        } else if (sql.includes('SUM(d1_rows_written)')) {
           result.results = [{ total: 50000 }];
         } else if (sql.includes('pragma_page_count')) {
           result.results = [{ bytes: 250 * 1024 * 1024 }]; // 250MB
@@ -76,9 +80,9 @@ describe('audit.ts', () => {
       const env = createMockEnv();
       env.DB.exec = (sql: string) => {
         const result: Record<string, unknown> = { results: [], meta: { changes: 0 } };
-        if (sql.includes('SUM(rows_read)')) {
+        if (sql.includes('SUM(d1_rows_read)')) {
           result.results = [{ total: 4000000 }]; // 80% of 5M
-        } else if (sql.includes('SUM(rows_written)')) {
+        } else if (sql.includes('SUM(d1_rows_written)')) {
           result.results = [{ total: 50000 }];
         } else if (sql.includes('pragma_page_count')) {
           result.results = [{ bytes: 250 * 1024 * 1024 }];

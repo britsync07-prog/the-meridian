@@ -31,7 +31,7 @@ export default defineConfig({
   compressHTML: true,
   build: { concurrency: 1 },
   experimental: { incrementalBuild: true },
-  cacheDir: './.astro-cache',
+  cacheDir: process.env.ASTRO_CACHE_DIR ?? './.astro-cache',
   site: SITE_ORIGIN,
   integrations: [mdx()],
   vite: {

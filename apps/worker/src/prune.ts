@@ -6,6 +6,7 @@
  */
 
 import type { MeridianEnv } from './db/config.js';
+import { countRawItemsBefore, pruneRawItemsBefore } from './db/repository.js';
 
 const PRUNE_WINDOW_DAYS = 30;
 
@@ -17,12 +18,11 @@ interface PruneResult {
 }
 
 /**
- * Delete raw_item rows older than PRUNE_WINDOW_DAYS from their merge date.
+ * Remove raw-item rows older than PRUNE_WINDOW_DAYS from their merge date.
  * Safe: only deletes raw_items that have no associated permanent cluster data
  * (i.e., not referenced in story_sources).
  */
 export async function pruneRawItems(env: MeridianEnv): Promise<PruneResult> {
-  const db = env.DB;
   const deletedAt = new Date().toISOString();
 
   // Calculate cutoff date
@@ -32,32 +32,9 @@ export async function pruneRawItems(env: MeridianEnv): Promise<PruneResult> {
 
   console.log(`Pruning raw_items older than ${PRUNE_WINDOW_DAYS} days (cutoff: ${cutoffISO})`);
 
-  // First, count how many raw_items are referenced by story_sources (permanent data)
-  const referencedStmt = db.prepare(`
-    SELECT COUNT(DISTINCT raw_item_id) as count
-    FROM story_sources
-    WHERE raw_item_id IS NOT NULL
-  `);
-  const referencedResult = await referencedStmt.all<{ count: number }>();
-  const referencedCount = referencedResult.results?.[0]?.count ?? 0;
+  const { deleted: deletedCount, referenced: referencedCount, clusters: preservedClusters } = await pruneRawItemsBefore(env, cutoffISO);
   console.log(`Found ${referencedCount} raw_items referenced by story_sources (permanent data)`);
-
-  // Delete old raw items that are NOT referenced by story_sources
-  // This ensures we never delete raw items that have been promoted to permanent clusters
-  const deleteStmt = db.prepare(`
-    DELETE FROM raw_items
-    WHERE published_at < ?
-    AND id NOT IN (SELECT raw_item_id FROM story_sources WHERE raw_item_id IS NOT NULL)
-  `).bind(cutoffISO);
-
-  const deleteResult = await deleteStmt.all();
-  const deletedCount = deleteResult.meta?.changes ?? 0;
-  console.log(`Deleted ${deletedCount} raw_item rows`);
-
-  // Verify no clusters were affected (safety check)
-  const clusterStmt = db.prepare(`SELECT COUNT(*) as count FROM clusters`);
-  const clusterCount = await clusterStmt.all<{ count: number }>();
-  const preservedClusters = clusterCount.results?.[0]?.count ?? 0;
+  console.log(`Removed ${deletedCount} raw_item rows`);
 
   const result: PruneResult = {
     deleted_raw_items: deletedCount,
@@ -66,7 +43,7 @@ export async function pruneRawItems(env: MeridianEnv): Promise<PruneResult> {
     deleted_at: deletedAt,
   };
 
-  console.log(`Prune complete: ${deletedCount} items deleted, ${preservedClusters} clusters preserved, ${referencedCount} referenced items skipped`);
+  console.log(`Prune complete: ${deletedCount} items removed, ${preservedClusters} clusters preserved, ${referencedCount} referenced items skipped`);
   return result;
 }
 
@@ -74,19 +51,11 @@ export async function pruneRawItems(env: MeridianEnv): Promise<PruneResult> {
  * Dry-run mode: show what would be deleted without actually deleting.
  */
 export async function dryRunPrune(env: MeridianEnv): Promise<{ estimated_deletions: number; cutoff_date: string }> {
-  const db = env.DB;
-  
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - PRUNE_WINDOW_DAYS);
   const cutoffISO = cutoffDate.toISOString().split('T')[0];
 
-  const countStmt = db.prepare(`
-    SELECT COUNT(*) as count FROM raw_items
-    WHERE published_at < ?
-  `).bind(cutoffISO);
-
-  const result = await countStmt.all<{ count: number }>();
-  const estimatedDeletions = result.results?.[0]?.count ?? 0;
+  const estimatedDeletions = await countRawItemsBefore(env, cutoffISO);
 
   return {
     estimated_deletions: estimatedDeletions,
@@ -100,7 +69,7 @@ export async function dryRunPrune(env: MeridianEnv): Promise<{ estimated_deletio
 export async function runPrune(env: MeridianEnv, dryRun = false): Promise<PruneResult> {
   if (dryRun) {
     const estimate = await dryRunPrune(env);
-    console.log(`Dry run: would delete ${estimate.estimated_deletions} raw_item rows`);
+    console.log(`Dry run: would remove ${estimate.estimated_deletions} raw_item rows`);
     return {
       deleted_raw_items: 0,
       preserved_clusters: 0,

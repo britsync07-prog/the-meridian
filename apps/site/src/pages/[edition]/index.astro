@@ -30,14 +30,18 @@ const frontTitle = data?.leadStory?.cluster.canonicalHeadline
   <FrontLayout edition={edition} date={today} path={path} title={frontTitle} description="Top stories from today's edition.">
     {data.leadStory && <LeadStory story={data.leadStory} edition={edition} />}
     <SectionGrid data={data} />
-    <hr class="hairline my-6" />
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="front-supplement">
       <MostCovered stories={data.mostCovered} title={`Most Covered in ${edition.toUpperCase()}`} edition={edition} />
       {data.editorPicks.length > 0 && <EditorPicks stories={data.editorPicks} edition={edition} />}
     </div>
   </FrontLayout>
 ) : (
-  <FrontLayout edition={edition} date={today}>
-    <p class="text-muted">No stories for this edition yet.</p>
+  <FrontLayout edition={edition} date={today} path={path} title={frontTitle} description="Top stories from today's edition.">
+    <section class="publication-pause">
+      <p class="story-kicker">Publication paused</p>
+      <h1>This edition has not passed today&rsquo;s publication checks.</h1>
+      <p>We keep the last verified edition live rather than filling the paper with incomplete coverage.</p>
+      <a href="/">Choose another edition</a>
+    </section>
   </FrontLayout>
 )}

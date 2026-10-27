@@ -149,6 +149,17 @@ describe('Bilingual Entity Gazetteer & Lexicons (CUR-12, CUR-15, Task 1)', () =>
   });
 
   describe('Cross-Country Edition Flagging (CUR-13, Task 3)', () => {
+    it('routes native Hindi coverage only to the Hindi India edition', () => {
+      const flags = determineEditionFlags({
+        outletCountries: ['IN'],
+        matchedEntities: [GAZETTEER_ENTITIES.find((e) => e.slug === 'united-nations')!],
+        isWireBreaking: true,
+        language: 'hi',
+      });
+
+      expect(flags).toEqual([{ editionId: 'in-hi', reason: 'source', confidence: 1.0 }]);
+    });
+
     it('flags edition based on outlet country with reason "source"', () => {
       const flags = determineEditionFlags({
         outletCountries: ['GB'],

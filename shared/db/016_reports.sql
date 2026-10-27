@@ -17,14 +17,6 @@ CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_story ON reports(story_slug);
 CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(type);
 
--- Usage log table for audit worker (OPS-02)
-CREATE TABLE IF NOT EXISTS usage_log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  date TEXT NOT NULL,
-  resource TEXT NOT NULL,
-  value INTEGER NOT NULL,
-  unit TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_usage_log_date ON usage_log(date);
+-- `usage_log` already exists in 0001_init.sql. An `IF NOT EXISTS` table
+-- declaration cannot alter it, so this migration only adds its read index.
+CREATE INDEX IF NOT EXISTS idx_usage_log_date ON usage_log(usage_date);

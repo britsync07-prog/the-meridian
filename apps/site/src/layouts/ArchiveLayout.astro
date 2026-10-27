@@ -11,8 +11,9 @@ interface Props {
 const { archiveDate = new Date().toISOString().split('T')[0], edition = 'UK', date = new Date().toISOString().split('T')[0], path = '/', title, description } = Astro.props;
 ---
 <Base edition={edition} date={date} path={path} title={title} description={description}>
-  <header class="mb-6 border-b hairline-md pb-3">
-    <h1 class="font-masthead text-display font-bold italic">Archive &mdash; {archiveDate}</h1>
+  <header class="listing-header">
+    <p class="story-kicker">Past edition</p>
+    <h1>Archive — {archiveDate}</h1>
   </header>
   <main class="front-grid">
     <slot name="story-list" />

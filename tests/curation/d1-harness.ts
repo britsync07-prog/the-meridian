@@ -13,12 +13,7 @@
  * a `prepare/bind/all/first/run/batch` object and never learns it is not
  * talking to Cloudflare.
  *
- * Foreign keys are switched OFF for the test connection, exactly as the local
- * ingest runner does it. The reason is the schema's own `cluster_id = 0`
- * sentinel: an unclustered story points at a cluster that does not exist yet,
- * which the `stories.cluster_id` foreign key forbids. The semantic
- * correctness of the join tables is asserted by the tests themselves rather
- * than by the pragma, so nothing is hidden by turning it off.
+ * Foreign keys remain enabled so the harness matches production D1 behavior.
  */
 
 import { DatabaseSync } from 'node:sqlite';
@@ -138,10 +133,6 @@ export function createTestDatabase(filePath = ':memory:'): DatabaseSync {
     db.exec(readFileSync(path.join(migrationDir, migration), 'utf8'));
   }
   db.exec(readFileSync(path.join(REPO_ROOT, 'shared', 'db', 'seed.sql'), 'utf8'));
-  // The `cluster_id = 0` sentinel points at a cluster that does not exist yet,
-  // so the foreign key is switched off for the test connection — the same
-  // choice the local ingest runner makes. See the note at the top of the file.
-  db.exec('PRAGMA foreign_keys = OFF;');
   return db;
 }
 

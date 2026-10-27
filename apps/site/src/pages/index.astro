@@ -5,6 +5,7 @@ import MostCovered from '../components/MostCovered.astro';
 import EditorPicks from '../components/EditorPicks.astro';
 import SectionGrid from '../components/SectionGrid.astro';
 import { getFrontPageData } from '../lib/page-data.ts';
+import { SITE_NAME } from '../../../../shared/config/site.ts';
 
 const edition = 'uk';
 const data = getFrontPageData(edition);
@@ -16,17 +17,18 @@ const today = data?.date ?? new Date().toISOString().split('T')[0];
     <>
       {data.leadStory && <LeadStory story={data.leadStory} edition={edition} />}
       <SectionGrid data={data} />
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+      <div class="front-supplement">
         <MostCovered stories={data.mostCovered} title="Most Covered" edition={edition} />
         {data.editorPicks.length > 0 && <EditorPicks stories={data.editorPicks} edition={edition} />}
       </div>
     </>
   ) : (
-    <section class="col-span-full py-16 text-center">
-      <h1 class="font-masthead text-h1 font-bold italic">The Meridian</h1>
-      <p class="text-deck text-muted mt-4">Today’s edition is being prepared. Choose an edition to explore the paper.</p>
-      <nav aria-label="Editions" class="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-3">
-        <a href="/uk/">United Kingdom</a><a href="/us/">United States</a><a href="/au/">Australia</a><a href="/ca/">Canada</a><a href="/ie/">Ireland</a><a href="/nz/">New Zealand</a><a href="/in/">India</a><a href="/in-hi/">भारत</a>
+    <section class="publication-pause">
+      <p class="story-kicker">The daily paper</p>
+      <h1>{SITE_NAME}</h1>
+      <p>Today&rsquo;s editions are being verified. Choose a published country edition when it is ready.</p>
+      <nav aria-label="Editions" class="edition-picker">
+        <a href="/uk/">United Kingdom</a><a href="/us/">United States</a><a href="/au/">Australia</a><a href="/ca/">Canada</a><a href="/ie/">Ireland</a><a href="/nz/">New Zealand</a><a href="/in/">India</a><a href="/in-hi/">हिंदी</a>
       </nav>
     </section>
   )}

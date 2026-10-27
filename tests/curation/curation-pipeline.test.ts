@@ -289,6 +289,11 @@ async function runPipeline(): Promise<PipelineFixture> {
 }
 
 describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
+  it('writes the resolved desk as a topic for every clustered story', async () => {
+    const { db } = await runPipeline();
+    expect(db.prepare('SELECT COUNT(*) AS n FROM story_topics').get()).toEqual({ n: BATCH.length });
+  });
+
   it('processes every unclustered story in the batch', async () => {
     const { summary } = await runPipeline();
 
@@ -300,7 +305,7 @@ describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
     const { db, summary } = await runPipeline();
 
     const clusters = db
-      .prepare('SELECT id, outlet_count, mention_count FROM clusters ORDER BY id ASC')
+      .prepare('SELECT id, outlet_count, mention_count FROM clusters WHERE id > 0 ORDER BY id ASC')
       .all() as Array<{ id: number; outlet_count: number; mention_count: number }>;
 
     expect(clusters).toHaveLength(10);
@@ -334,7 +339,7 @@ describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
     const clusters = db
       .prepare(
         `SELECT id, canonical_headline, primary_section_id, section_confidence, section_method
-           FROM clusters`,
+           FROM clusters WHERE id > 0`,
       )
       .all() as Array<{
       id: number;
@@ -369,7 +374,7 @@ describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
     const { db } = await runPipeline();
 
     const clusters = db
-      .prepare('SELECT id, published_at FROM clusters')
+      .prepare('SELECT id, published_at FROM clusters WHERE id > 0')
       .all() as Array<{ id: number; published_at: string }>;
 
     for (const cluster of clusters) {
@@ -393,7 +398,7 @@ describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
     const { db } = await runPipeline();
 
     const clusters = db
-      .prepare('SELECT id, outlet_count, editorial_rank FROM clusters')
+      .prepare('SELECT id, outlet_count, editorial_rank FROM clusters WHERE id > 0')
       .all() as Array<{ id: number; outlet_count: number; editorial_rank: number | null }>;
 
     for (const cluster of clusters) {
@@ -430,14 +435,13 @@ describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
     );
     expect(multiEdition.length).toBeGreaterThan(0);
 
-    // The Hindi pair is covered by a GB publisher and an IN publisher, so it
-    // appears in more than one edition.
+    // Hindi coverage is deliberately isolated from English editions.
     const hindiCluster = db
       .prepare(
         `SELECT cluster_id FROM stories WHERE external_guid = 'guid-p4a'`,
       )
       .get() as { cluster_id: number };
-    expect(editionsByCluster.get(hindiCluster.cluster_id)!.length).toBeGreaterThan(1);
+    expect(editionsByCluster.get(hindiCluster.cluster_id)).toEqual(['in-hi']);
   });
 
   it('tags gazetteer entities onto the story rows (CUR-12)', async () => {
@@ -534,7 +538,7 @@ describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
     });
 
     const clusters = db
-      .prepare('SELECT COUNT(*) AS n FROM clusters')
+      .prepare('SELECT COUNT(*) AS n FROM clusters WHERE id > 0')
       .get() as { n: number };
     expect(clusters.n).toBe(2);
   });
@@ -553,7 +557,7 @@ describe('processCurationPipeline (CUR-01..CUR-15, CON-15)', () => {
 
     // The cluster is now two clusters again, and the outlet list survived.
     const clusterCount = db
-      .prepare('SELECT COUNT(*) AS n FROM clusters')
+      .prepare('SELECT COUNT(*) AS n FROM clusters WHERE id > 0')
       .get() as { n: number };
     expect(clusterCount.n).toBe(11);
 

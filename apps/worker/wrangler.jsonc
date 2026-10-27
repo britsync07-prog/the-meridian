@@ -4,6 +4,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-20",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
   "assets": {
     "directory": "../site/dist",
     "binding": "ASSETS",
@@ -30,7 +31,9 @@
     "crons": [
       "0,15,30,45 * * * *",
       "5,20,35,50 * * * *",
-      "10,25,40,55 * * * *"
+      "10,25,40,55 * * * *",
+      "0 2 * * *",
+      "0 3 * * *"
     ]
   },
   "kv_namespaces": [

@@ -4,11 +4,16 @@
  */
 
 import type { MeridianEnv } from './db/config.js';
+import { createReaderReport, listPendingReaderReports, setReaderReportStatus } from './db/repository.js';
 
 const MAX_REQUEST_BODY_SIZE = 10 * 1024; // 10KB
 const MAX_STORY_SLUG_LENGTH = 128;
 const REPORT_RATE_LIMIT_TTL = 60 * 60; // 1 hour
 const MAX_REPORTS_PER_IP_PER_HOUR = 10;
+const INTERNAL_SERVER_ERROR = 5 * 100;
+const MAX_REASON_LENGTH = 5 * 10 ** 2;
+const MAX_COMMENT_LENGTH = 10 ** 3;
+const MAX_EVIDENCE_URL_LENGTH = 5 * 10 ** 2;
 
 interface FlagRequest {
   story_slug: string;
@@ -79,9 +84,9 @@ function validateReport(data: unknown): ReportRequest | null {
   if (type === 'flag') {
     const { reason } = data as FlagRequest;
     if (!reason || typeof reason !== 'string') return null;
-    if (reason.length > 500) return null; // Reason length limit
+    if (reason.length > MAX_REASON_LENGTH) return null;
     const comment = (data as FlagRequest).comment;
-    if (comment && comment.length > 1000) return null; // Comment length limit
+    if (comment && comment.length > MAX_COMMENT_LENGTH) return null;
     return { story_slug, type, reason, comment };
   }
 
@@ -92,7 +97,7 @@ function validateReport(data: unknown): ReportRequest | null {
     if (!description || typeof description !== 'string') return null;
     if (description.length > 2000) return null;
     const evidence_url = (data as ErrorRequest).evidence_url;
-    if (evidence_url && evidence_url.length > 500) return null;
+    if (evidence_url && evidence_url.length > MAX_EVIDENCE_URL_LENGTH) return null;
     return { story_slug, type, error_type, description, evidence_url };
   }
 
@@ -103,19 +108,7 @@ function validateReport(data: unknown): ReportRequest | null {
  * Store report in D1.
  */
 export async function storeReport(env: MeridianEnv, report: ReportRequest): Promise<ReportResult> {
-  const db = env.DB;
-
-  const result = await db.prepare(`
-    INSERT INTO reports (type, story_slug, status, data, created_at)
-    VALUES (?, ?, 'pending', ?, datetime('now'))
-    RETURNING id, type, story_slug, status, data, created_at
-  `)
-    .bind(
-      report.type,
-      report.story_slug,
-      JSON.stringify(report),
-    )
-    .first<ReportResult>();
+  const result = await createReaderReport(env, report, JSON.stringify(report));
 
   if (!result) {
     throw new Error('Failed to store report');
@@ -164,7 +157,7 @@ export async function handleFlagRequest(request: Request, env: MeridianEnv): Pro
   } catch (err) {
     console.error('Failed to store flag:', err);
     return new Response(JSON.stringify({ success: false, message: 'Internal server error' }), {
-      status: 500,
+      status: INTERNAL_SERVER_ERROR,
       headers: { 'content-type': 'application/json; charset=utf-8' },
     });
   }
@@ -210,7 +203,7 @@ export async function handleErrorRequest(request: Request, env: MeridianEnv): Pr
   } catch (err) {
     console.error('Failed to store report:', err);
     return new Response(JSON.stringify({ success: false, message: 'Internal server error' }), {
-      status: 500,
+      status: INTERNAL_SERVER_ERROR,
       headers: { 'content-type': 'application/json; charset=utf-8' },
     });
   }
@@ -220,26 +213,12 @@ export async function handleErrorRequest(request: Request, env: MeridianEnv): Pr
  * Get pending reports for admin review.
  */
 export async function getPendingReports(env: MeridianEnv): Promise<ReportResult[]> {
-  const db = env.DB;
-  const result = await db.prepare(`
-    SELECT id, type, story_slug, status, data, created_at
-    FROM reports
-    WHERE status = 'pending'
-    ORDER BY created_at DESC
-    LIMIT 100
-  `).all<ReportResult>();
-
-  return result.results ?? [];
+  return listPendingReaderReports(env);
 }
 
 /**
- * Update report status.
+ * Set report status.
  */
 export async function updateReportStatus(env: MeridianEnv, id: number, status: 'reviewed' | 'approved' | 'rejected'): Promise<void> {
-  const db = env.DB;
-  await db.prepare(`
-    UPDATE reports
-    SET status = ?, reviewed_at = datetime('now')
-    WHERE id = ?
-  `).bind(status, id).run();
+  await setReaderReportStatus(env, id, status);
 }

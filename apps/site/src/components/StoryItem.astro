@@ -13,22 +13,20 @@ const publishedDate = new Date(cluster.publishedAt).toISOString().split('T')[0];
 const primarySource = sources[0];
 ---
 
-<article class={`border-b hairline pb-4 ${isSecondary ? 'mb-4' : 'mb-6'}`}>
-  <h3 class={`font-masthead text-h2 font-bold italic mb-1 ${isSecondary ? 'text-base' : 'text-lg'}`}>
-    <a href={`/story/${cluster.slug}/`} class="text-ink no-underline hover:text-accent">
+<article class:list={['story-item', { 'story-item-compact': isSecondary }]}>
+  <h3 class="story-item-headline">
+    <a href={`/story/${cluster.slug}/`}>
       {cluster.canonicalHeadline}
     </a>
   </h3>
   {primarySource && (
-    <p class="text-caption text-muted mb-1">
-      {primarySource.sourceId} &middot; <time datetime={publishedDate}>{publishedDate}</time>
+    <p class="story-meta">
+      {primarySource.sourceName} <time datetime={publishedDate}>{publishedDate} · {story.section ?? edition} · {cluster.coverageCount} outlets</time>
     </p>
   )}
-  <p class="text-deck text-muted mb-2">
-    A developing story with {cluster.coverageCount} coverage{cluster.coverageCount > 1 ? 's' : ''}.
-  </p>
+  {cluster.canonicalExcerpt && <p class="story-item-deck">{cluster.canonicalExcerpt}</p>}
   {cluster.trendingScore > 9 && (
-    <span class="inline-block text-caption font-medium text-accent bg-accent/10 px-2 py-0.5 rounded">
+    <span class="story-trending">
       Trending
     </span>
   )}

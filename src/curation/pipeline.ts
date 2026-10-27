@@ -28,6 +28,7 @@ import { resolveSection } from './sections.js';
 import { matchGazetteerEntities, determineEditionFlags } from './tagging.js';
 import { calculateTrendingScore, evaluateEditorialRank } from './ranking.js';
 import { GAZETTEER_ENTITIES } from '../../config/gazetteer.js';
+import { SECTIONS } from '../../shared/config/editions.js';
 
 export interface PipelineExecutionOptions {
   batchSize?: number;
@@ -92,17 +93,12 @@ export async function processCurationPipeline(
   // ── Section and edition lookups ─────────────────────────────────────────
   // The numeric ids come from the database, never from a hard-coded table:
   // a section added to the seed must not need a code change to be addressable.
-  const sectionRows = await repository.listSections();
-  const sectionIdBySlug = new Map(sectionRows.map((s) => [s.slug, s.id]));
-  const editionRows = await repository.listEditions();
-  const editionIdBySlug = new Map(editionRows.map((e) => [e.slug, e.id]));
-
   // The gazetteer is the curated entity list (CUR-12). It is written into D1
   // once per run so entity ids can be resolved, and only gazetteer entities
   // are ever resolved — a model-extracted name never reaches this table.
   if (!dryRun) {
     await repository.syncTaxonomyAndEntities(
-      [],
+      SECTIONS.map((section) => ({ slug: section.id, name: section.name })),
       GAZETTEER_ENTITIES.map((entity) => ({
         slug: entity.slug,
         name: entity.canonicalName,
@@ -111,6 +107,11 @@ export async function processCurationPipeline(
       })),
     );
   }
+
+  const sectionRows = await repository.listSections();
+  const sectionIdBySlug = new Map(sectionRows.map((s) => [s.slug, s.id]));
+  const editionRows = await repository.listEditions();
+  const editionIdBySlug = new Map(editionRows.map((e) => [e.slug, e.id]));
 
   // Stage 3: Fetch unclustered stories ordered by published_at ASC (CUR-01, CON-15)
   const stories = await repository.listUnclusteredStories(batchSize);
@@ -221,7 +222,10 @@ export async function processCurationPipeline(
       excerpt: story.excerpt ?? null,
       language,
     });
-    const primarySectionId = sectionIdBySlug.get(sectionResult.sectionId) ?? 6;
+    const primarySectionId = sectionIdBySlug.get(sectionResult.sectionId);
+    if (primarySectionId === undefined) {
+      throw new Error(`Missing section seed for ${sectionResult.sectionId}`);
+    }
 
     // ── Stage 3e: Determine edition flags ───────────────────────────────────
     const matchedEntities = matchGazetteerEntities(story.headline, language).map(
@@ -231,6 +235,7 @@ export async function processCurationPipeline(
       outletCountries: [story.country_code],
       matchedEntities,
       isWireBreaking: false,
+      language,
     });
 
     if (dryRun) {
@@ -340,6 +345,7 @@ export async function processCurationPipeline(
 
     // ── Stage 4: Assign taxonomy, editions and entities ─────────────────────
     const entityIdBySlug = await repository.findEntityIdsBySlugs(incomingEntitySlugs);
+    const topicIdBySlug = await repository.findTopicIdsBySlugs([sectionResult.sectionId]);
     const entityRows = incomingEntitySlugs
       .map((slug) => entityIdBySlug.get(slug))
       .filter((id): id is number => id !== undefined)
@@ -362,7 +368,7 @@ export async function processCurationPipeline(
         method: sectionResult.method,
       },
       editionFlagRows,
-      [], // topic ids: the topic taxonomy lands in a later tagging pass
+      topicIdBySlug.get(sectionResult.sectionId) ? [topicIdBySlug.get(sectionResult.sectionId)!] : [],
       entityRows,
     );
 

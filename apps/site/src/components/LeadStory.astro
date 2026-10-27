@@ -12,28 +12,29 @@ const { cluster, sources } = story;
 const publishedDate = new Date(cluster.publishedAt).toISOString().split('T')[0];
 ---
 
-<article class="grid-column-span-5 mb-8">
-  <MediaImage
-    src="/images/lead-placeholder.jpg"
-    alt={cluster.canonicalHeadline}
-    width={800}
-    height={450}
-    priority={true}
-    class="w-full h-auto object-cover rounded-lg mb-4"
-  />
-  <h1 class="font-masthead text-h1 font-bold italic mb-3">
-    <a href={`/story/${cluster.slug}/`} class="text-ink no-underline hover:text-accent">
+<article class:list={['lead-story', { 'lead-story-no-image': !story.image }]}>
+  {story.image && (
+    <>
+      <MediaImage
+        src={story.image.src}
+        srcset={story.image.srcset}
+        alt={story.image.alt}
+        width={800}
+        height={450}
+        priority={true}
+        class="lead-story-image"
+      />
+      {story.image.credit && <p class="image-credit">{story.image.credit}</p>}
+    </>
+  )}
+  <h1 class="lead-story-headline">
+    <a href={`/story/${cluster.slug}/`}>
       {cluster.canonicalHeadline}
     </a>
   </h1>
-  <p class="text-deck text-muted mb-4 max-w-3xl">
-    This is the leading story for the {edition.toUpperCase()} edition. {sources.length} source{sources.length !== 1 ? 's are' : ' is'} covering this development.
-  </p>
-  <div class="flex flex-wrap gap-4 text-caption text-muted">
-    <time datetime={publishedDate}>{publishedDate}</time>
-    <span>Edition: {edition.toUpperCase()}</span>
-    {cluster.coverageCount > 0 && (
-      <span>{cluster.coverageCount} outlet{cluster.coverageCount > 1 ? 's' : ''} covering</span>
-    )}
+  {cluster.canonicalExcerpt && <p class="lead-story-deck">{cluster.canonicalExcerpt}</p>}
+  <div class="story-meta">
+    <time datetime={publishedDate}>{publishedDate} · {edition.toUpperCase()} · {cluster.coverageCount} reporting outlet{cluster.coverageCount === 1 ? '' : 's'}</time>
+    {sources.slice(0, 3).map(source => <span>{source.sourceName}</span>)}
   </div>
 </article>

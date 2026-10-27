@@ -10,12 +10,10 @@
  */
 
 import { createReadStream, existsSync, readFileSync } from 'node:fs';
-import { inflateSync } from 'node:zlib';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { gunzipSync } from 'node:zlib';
+import { join } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = join(__dirname, '..', '..', '..', '..');
+const REPO_ROOT = process.cwd();
 
 /* ------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -25,6 +23,7 @@ export interface SnapshotCluster {
   id: number;
   slug: string;
   canonical_headline: string;
+  canonical_excerpt?: string | null;
   published_at: string;
   is_prominent: boolean;
   trending_score: number;
@@ -35,6 +34,7 @@ export interface SnapshotCluster {
 export interface SnapshotStorySource {
   cluster_id: number;
   source_id: string;
+  source_name?: string;
   rank: number;
   headline: string;
   url: string;
@@ -55,6 +55,14 @@ export interface SnapshotSection {
   sortOrder: number;
 }
 
+export interface SnapshotImage {
+  cluster_id: number;
+  source_url: string;
+  alt_text: string | null;
+  credit: string | null;
+  media_key: string;
+}
+
 export interface SnapshotData {
   generated_at: string;
   schema_version: number;
@@ -69,6 +77,7 @@ export interface SnapshotData {
   topics: { id: number; name: string }[];
   entities: { id: number; slug: string; name: string; entity_type: string; country_code: string | null }[];
   sources: { id: number; slug: string; name: string; feed_url: string; country_code: string; language: string }[];
+  images?: SnapshotImage[];
   manifest: {
     hash: string;
     content_length: number;
@@ -94,7 +103,7 @@ export async function loadSnapshot(): Promise<SnapshotData | null> {
   const buffer = readFileSync(snapshotPath);
   // Auto-detect compression
   if (buffer[0] === 0x1f && buffer[1] === 0x8b) {
-    return JSON.parse(inflateSync(buffer).toString('utf8'));
+    return JSON.parse(gunzipSync(buffer).toString('utf8'));
   }
   return JSON.parse(buffer.toString('utf8'));
 }

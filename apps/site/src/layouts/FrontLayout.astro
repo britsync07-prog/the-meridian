@@ -10,7 +10,7 @@ interface Props {
 const { edition = 'UK', date = new Date().toISOString().split('T')[0], path = '/', title, description } = Astro.props;
 ---
 <Base edition={edition} date={date} path={path} title={title} description={description}>
-  <div class="front-grid">
+  <div class="front-page">
     <slot />
   </div>
 </Base>

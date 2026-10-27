@@ -37,7 +37,7 @@ export const GET: APIRoute = async (context) => {
     edition,
     feedTitle: `${SITE_NAME} — ${editionInfo.countryName}`,
     feedDescription: `Latest stories from ${SITE_NAME} ${editionInfo.countryName} edition`,
-    siteOrigin: 'https://meridian.workers.dev',
+    siteOrigin: 'https://meridian-worker.mehedy303.workers.dev',
   });
 
   return new Response(rss, {

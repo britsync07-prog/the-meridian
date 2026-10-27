@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { handleStoryRequest } from '../story-router.js';
+import { handleMediaRequest, handleOgRequest, handleStoryRequest } from '../story-router.js';
 
 function bucket() {
   const get = async (key: string) => key === 'story/example/index.html'
@@ -23,5 +23,28 @@ describe('handleStoryRequest', () => {
     const response = await handleStoryRequest(request, { R2: bucket() } as never);
 
     expect(response.status).toBe(304);
+  });
+
+  it('serves only content-addressed media keys from R2', async () => {
+    const key = `${'a'.repeat(64)}-960.webp`;
+    const mediaBucket = { get: async (value: string) => value === `media/${key}`
+      ? { body: new ReadableStream(), httpEtag: '"media-etag"' }
+      : null };
+
+    const response = await handleMediaRequest(new Request(`https://example.test/media/${key}`), { R2: mediaBucket } as never);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('image/webp');
+    expect((await handleMediaRequest(new Request('https://example.test/media/not-an-image'), { R2: mediaBucket } as never)).status).toBe(404);
+  });
+
+  it('serves generated Open Graph cards from the permanent R2 prefix only', async () => {
+    const ogBucket = { get: async (value: string) => value === 'og/example-story.jpg'
+      ? { body: new ReadableStream(), httpEtag: '"og-etag"' }
+      : null };
+
+    const response = await handleOgRequest(new Request('https://example.test/og/example-story.jpg'), { R2: ogBucket } as never);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('image/jpeg');
+    expect((await handleOgRequest(new Request('https://example.test/og/not-a-card.png'), { R2: ogBucket } as never)).status).toBe(404);
   });
 });

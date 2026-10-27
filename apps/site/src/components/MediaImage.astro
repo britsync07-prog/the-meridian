@@ -5,10 +5,11 @@ interface Props {
   width: number;
   height: number;
   priority?: boolean;
+  srcset?: string;
   class?: string;
 }
 
-const { src, alt, width, height, priority = false, class: className = '' } = Astro.props;
+const { src, alt, width, height, priority = false, srcset, class: className = '' } = Astro.props;
 ---
 
 <img
@@ -18,5 +19,8 @@ const { src, alt, width, height, priority = false, class: className = '' } = Ast
   height={height}
   loading={priority ? 'eager' : 'lazy'}
   fetchpriority={priority ? 'high' : 'low'}
+  decoding="async"
+  srcset={srcset}
+  sizes={srcset ? '(min-width: 1024px) 800px, 100vw' : undefined}
   class={className}
 />

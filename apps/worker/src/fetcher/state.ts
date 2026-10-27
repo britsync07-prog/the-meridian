@@ -12,6 +12,7 @@ export interface FeedState {
   lastStatus: number;
   consecutiveFailures: number;
   disabledUntil: string | null; // ISO timestamp
+  latestRawKey?: string | null;
 }
 
 export interface FetchResult {
@@ -32,6 +33,7 @@ export function createDefaultFeedState(): FeedState {
     lastStatus: 0,
     consecutiveFailures: 0,
     disabledUntil: null,
+    latestRawKey: null,
   };
 }
 

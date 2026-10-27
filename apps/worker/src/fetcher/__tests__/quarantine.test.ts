@@ -218,6 +218,7 @@ describe('Response sniffing, 2 MB body ceiling, and quarantine (ING-01, ING-02, 
     expect(savedState?.etag).toBe('"bbc-etag-1"');
     expect(savedState?.lastModified).toBe('Wed, 21 Oct 2026 09:00:00 GMT');
     expect(savedState?.lastStatus).toBe(200);
+    expect(savedState?.latestRawKey).toBe(result.r2Key);
   });
 
   it('stores quarantined payloads under raw/quarantine/{YYYY-MM-DD}/{feedId}_{reason}_{timestamp}.xml', async () => {

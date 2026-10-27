@@ -34,13 +34,13 @@ const DATABASE_NAME = 'meridian';
  * The schema contract. These are the numbers the free-tier budget was
  * calculated against: a dropped index or table fails this script loudly.
  *
- * `INDEX_COUNT` is 32, not the research's 31: the research DDL carries 31
+ * `INDEX_COUNT` is 36, not the research's 31: later reports and audit migrations add indexes.
  * `CREATE INDEX` statements and this plan additionally mandates
  * `idx_edition_clusters_edition`, which the research schema did not have
  * because `edition_clusters` had no `published_at` column to sort by.
  */
-const TABLE_COUNT = 19;
-const INDEX_COUNT = 32;
+const TABLE_COUNT = 20;
+const INDEX_COUNT = 36;
 
 /** The indexes whose absence would breach the D1 read budget. */
 const REQUIRED_INDEXES = [

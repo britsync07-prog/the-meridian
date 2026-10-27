@@ -7,7 +7,7 @@
  */
 import type { EditionId, SectionId } from '../../../../shared/config/editions.js';
 import { EDITIONS, SECTIONS } from '../../../../shared/config/editions.js';
-import type { SnapshotData, SnapshotCluster, SnapshotStorySource } from './snapshot.js';
+import type { SnapshotData, SnapshotCluster, SnapshotImage, SnapshotStorySource } from './snapshot.js';
 import { loadSnapshot, getEditionFrontData, getSectionPageData as _getSectionPageData, getStoryPageData as _getStoryPageData, getAllStorySlugs as _getAllStorySlugs, getArchivePaths as _getArchivePaths, getEntityPaths } from './snapshot.js';
 
 /* ------------------------------------------------------------------------- */
@@ -18,6 +18,7 @@ export interface PageCluster {
   id: number;
   slug: string;
   canonicalHeadline: string;
+  canonicalExcerpt: string | null;
   publishedAt: string;
   isProminent: boolean;
   trendingScore: number;
@@ -28,6 +29,7 @@ export interface PageCluster {
 export interface PageSource {
   clusterId: number;
   sourceId: string;
+  sourceName: string;
   rank: number;
   headline: string;
   url: string;
@@ -37,8 +39,16 @@ export interface PageSource {
 export interface PageStory {
   cluster: PageCluster;
   sources: PageSource[];
+  image?: PageImage;
   section?: SectionId;
   edition?: EditionId;
+}
+
+export interface PageImage {
+  alt: string;
+  credit: string | null;
+  src: string;
+  srcset: string;
 }
 
 export interface FrontPageData {
@@ -62,6 +72,7 @@ export interface SectionPageData {
 
 export interface StoryPageData {
   slug: string;
+  edition: EditionId;
   cluster: PageCluster;
   sources: PageSource[];
   section: SectionId;
@@ -103,6 +114,7 @@ function toPageCluster(c: SnapshotCluster): PageCluster {
     id: c.id,
     slug: c.slug,
     canonicalHeadline: c.canonical_headline,
+    canonicalExcerpt: c.canonical_excerpt ?? null,
     publishedAt: c.published_at,
     isProminent: c.is_prominent,
     trendingScore: c.trending_score,
@@ -115,6 +127,7 @@ function toPageSources(clusterId: number, sources: SnapshotStorySource[]): PageS
   return sources.map(s => ({
     clusterId: s.cluster_id,
     sourceId: s.source_id,
+    sourceName: s.source_name ?? s.source_id,
     rank: s.rank,
     headline: s.headline,
     url: s.url,
@@ -122,8 +135,26 @@ function toPageSources(clusterId: number, sources: SnapshotStorySource[]): PageS
   }));
 }
 
-function buildStoryMap(snapshot: SnapshotData): Map<number, PageStory[]> {
-  const map = new Map<number, PageStory[]>();
+function toPageImage(image: SnapshotImage | undefined, headline: string): PageImage | undefined {
+  if (!image) return undefined;
+  return {
+    alt: image.alt_text || headline,
+    credit: image.credit,
+    src: `/media/${image.media_key}-960.webp`,
+    srcset: [480, 960, 1440].map(width => `/media/${image.media_key}-${width}.webp ${width}w`).join(', '),
+  };
+}
+
+function storyKey(edition: string, clusterId: number): string {
+  return `${edition}:${clusterId}`;
+}
+
+function buildStoryMap(snapshot: SnapshotData): Map<string, PageStory> {
+  const map = new Map<string, PageStory>();
+  const images = new Map<number, SnapshotImage>();
+  for (const image of snapshot.images ?? []) {
+    if (!images.has(image.cluster_id)) images.set(image.cluster_id, image);
+  }
   for (const ec of snapshot.edition_clusters) {
     const cluster = snapshot.clusters.find(c => c.id === ec.cluster_id);
     if (!cluster) continue;
@@ -132,12 +163,11 @@ function buildStoryMap(snapshot: SnapshotData): Map<number, PageStory[]> {
     const story: PageStory = {
       cluster: toPageCluster(cluster),
       sources: toPageSources(ec.cluster_id, sources),
+      image: toPageImage(images.get(cluster.id), cluster.canonical_headline),
       section: sectionAssignment?.section_id as SectionId | undefined,
       edition: ec.edition_id as EditionId | undefined,
     };
-    const arr = map.get(ec.cluster_id) ?? [];
-    arr.push(story);
-    map.set(ec.cluster_id, arr);
+    map.set(storyKey(ec.edition_id, ec.cluster_id), story);
   }
   return map;
 }
@@ -165,8 +195,8 @@ export function getFrontPageData(edition: string): FrontPageData | null {
   const storyMap = buildStoryMap(snapshot);
   const clusters = frontData.clusters;
   const stories = clusters.map(c => {
-    const arr = storyMap.get(c.id) ?? [];
-    return arr[0] ?? { cluster: toPageCluster(c), sources: [], section: undefined, edition: editionId as EditionId };
+    return storyMap.get(storyKey(editionId, c.id))
+      ?? { cluster: toPageCluster(c), sources: [], section: undefined, edition: editionId };
   });
 
   const prominent = stories.filter(s => s.cluster.isProminent);
@@ -198,8 +228,8 @@ export function getSectionPageData(edition: string, section: string): SectionPag
 
   const storyMap = buildStoryMap(snapshot);
   const stories: PageStory[] = secData.clusters.map(c => {
-    const arr = storyMap.get(c.id) ?? [];
-    return arr[0] ?? { cluster: toPageCluster(c), sources: [], section: secData.section as SectionId, edition: editionId };
+    return storyMap.get(storyKey(editionId, c.id))
+      ?? { cluster: toPageCluster(c), sources: [], section: secData.section as SectionId, edition: editionId };
   });
 
   const leadStory = stories.find(s => s.cluster.isProminent) ?? stories[0] ?? null;
@@ -246,6 +276,7 @@ export function getStoryPageData(slug: string): StoryPageData | null {
       relatedStories.push({
         cluster: toPageCluster(rd.cluster),
         sources: toPageSources(rd.cluster.id, rd.sources),
+        image: toPageImage(snapshot.images?.find(image => image.cluster_id === rd.cluster.id), rd.cluster.canonical_headline),
         section: (sectionMap.get(rd.cluster.id) as SectionId) ?? storyData.section as SectionId,
         edition: undefined,
       });
@@ -253,9 +284,18 @@ export function getStoryPageData(slug: string): StoryPageData | null {
   }
 
   const sectionName = snapshot.sections.find(s => s.id === storyData.section)?.name ?? '';
+  const primarySource = storyData.sources[0];
+  const primarySourceRecord = primarySource
+    ? snapshot.sources.find((source) => source.slug === primarySource.source_id)
+    : undefined;
+  const edition = snapshot.editions.find((candidate) =>
+    candidate.country_code === primarySourceRecord?.country_code
+    && candidate.language === primarySourceRecord?.language,
+  )?.id as EditionId | undefined;
 
   return {
     slug,
+    edition: edition ?? snapshot.edition_clusters.find((item) => item.cluster_id === storyData.cluster.id)?.edition_id as EditionId ?? 'uk',
     cluster,
     sources,
     section: (storyData.section as SectionId) ?? 'general',

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { USER_AGENT } from '../../../../../shared/config/site';
 import {
   HostRateLimiter,
+  fetchWithTimeout,
   parseRetryAfter,
   politeFetch,
 } from '../polite-fetch';
@@ -26,6 +27,21 @@ function createMockKv(): KVNamespace {
 }
 
 describe('Polite HTTP fetcher (ING-01, ING-10, D-02, D-03, D-04, D-05)', () => {
+  it('aborts a hung request at the configured timeout', async () => {
+    const hangingFetch = vi.fn((_url: string, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      const signal = init?.signal;
+      signal?.addEventListener('abort', () => reject(signal.reason));
+    }));
+
+    await expect(fetchWithTimeout(
+      'https://example.com/hung.xml',
+      { 'User-Agent': USER_AGENT },
+      1,
+      hangingFetch as unknown as typeof fetch,
+    )).rejects.toThrow(/timed out/i);
+    expect(hangingFetch).toHaveBeenCalledOnce();
+  });
+
   it('sends exact USER_AGENT from shared/config/site.ts and correct Accept header', async () => {
     const kv = createMockKv();
     let capturedHeaders: Record<string, string> = {};

@@ -167,6 +167,9 @@ export interface RawStoryInsert {
   publishedAt: string;
   fetchedAt: string;
   countryCode: string;
+  imageUrl?: string | null;
+  imageCredit?: string | null;
+  imageContentHash?: string | null;
 }
 
 /** One row returned for LSH candidate matching. */
@@ -270,6 +273,8 @@ export interface Repository {
   updateStoryFingerprint(storyId: number, fingerprint: StoryFingerprint): Promise<void>;
   /** Resolve gazetteer entity slugs to their D1 row ids (CUR-12). */
   findEntityIdsBySlugs(slugs: readonly string[]): Promise<Map<string, number>>;
+  /** Resolve topic slugs to their D1 row ids. */
+  findTopicIdsBySlugs(slugs: readonly string[]): Promise<Map<string, number>>;
   /** Create a new cluster and link the initial story (CUR-01, CON-15). */
   createClusterWithStory(
     cluster: {
@@ -440,7 +445,7 @@ export function createRepository(env: MeridianEnv): Repository {
            cluster_id, source_id, external_guid, headline, excerpt, url, slug, language,
            published_at, fetched_at, simhash_hi, simhash_lo, band0, band1, band2, band3, country_code, is_primary
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(source_id, external_guid) DO NOTHING`,
+         ON CONFLICT DO NOTHING`,
       );
 
       const CHUNK_SIZE = 50;
@@ -480,6 +485,23 @@ export function createRepository(env: MeridianEnv): Repository {
             totalInserted += 1;
           }
         }
+      }
+
+      for (const story of stories) {
+        if (!story.imageUrl || !story.imageContentHash) continue;
+        const inserted = await db
+          .prepare('SELECT id FROM stories WHERE source_id = ? AND external_guid = ?')
+          .bind(story.sourceId, story.externalGuid)
+          .first<{ id: number }>();
+        if (!inserted) continue;
+        await db
+          .prepare(
+            `INSERT INTO images (story_id, source_url, content_hash, credit, status)
+             VALUES (?, ?, ?, ?, 'pending')
+             ON CONFLICT(source_url) DO NOTHING`,
+          )
+          .bind(inserted.id, story.imageUrl, story.imageContentHash, story.imageCredit ?? null)
+          .run();
       }
 
       return totalInserted;
@@ -556,6 +578,9 @@ export function createRepository(env: MeridianEnv): Repository {
     },
 
     async syncSources(sources: readonly SourceRegistryEntry[]): Promise<void> {
+      // The registry is authoritative; retired feeds must never be polled.
+      await db.prepare('UPDATE sources SET is_active = 0').run();
+
       const statement = db.prepare(
         `INSERT INTO sources (
            slug, name, homepage_url, feed_url, country_code, language,
@@ -1005,6 +1030,18 @@ export function createRepository(env: MeridianEnv): Repository {
       return resolved;
     },
 
+    async findTopicIdsBySlugs(slugs: readonly string[]): Promise<Map<string, number>> {
+      const resolved = new Map<string, number>();
+      if (slugs.length === 0) return resolved;
+      const placeholders = slugs.map(() => '?').join(', ');
+      const rows = await db
+        .prepare(`SELECT id, slug FROM topics WHERE slug IN (${placeholders})`)
+        .bind(...slugs)
+        .all<{ id: number; slug: string }>();
+      for (const row of rows.results ?? []) resolved.set(row.slug, row.id);
+      return resolved;
+    },
+
     async createClusterWithStory(
       cluster: {
         slug: string;
@@ -1381,4 +1418,62 @@ export function createRepository(env: MeridianEnv): Repository {
       return { newClusterId, correctionId };
     },
   };
+}
+
+/** Daily D1 usage totals used by the operational audit. */
+export async function readUsageTotals(env: MeridianEnv): Promise<{
+  rowsRead: number;
+  rowsWritten: number;
+  storageBytes: number;
+}> {
+  const [reads, writes, storage] = await Promise.all([
+    env.DB.prepare('SELECT SUM(d1_rows_read) AS total FROM usage_log WHERE usage_date >= date("now", "-1 day")').all<{ total: number | null }>(),
+    env.DB.prepare('SELECT SUM(d1_rows_written) AS total FROM usage_log WHERE usage_date >= date("now", "-1 day")').all<{ total: number | null }>(),
+    env.DB.prepare('SELECT page_count * page_size AS bytes FROM pragma_page_count(), pragma_page_size()').all<{ bytes: number | null }>(),
+  ]);
+
+  return {
+    rowsRead: reads.results?.[0]?.total ?? 0,
+    rowsWritten: writes.results?.[0]?.total ?? 0,
+    storageBytes: storage.results?.[0]?.bytes ?? 0,
+  };
+}
+
+export async function pruneRawItemsBefore(env: MeridianEnv, cutoff: string): Promise<{
+  deleted: number;
+  referenced: number;
+  clusters: number;
+}> {
+  const referenced = await env.DB.prepare('SELECT COUNT(DISTINCT raw_item_id) AS count FROM story_sources WHERE raw_item_id IS NOT NULL').all<{ count: number }>();
+  const deleted = await env.DB.prepare('DELETE FROM raw_items WHERE published_at < ? AND id NOT IN (SELECT raw_item_id FROM story_sources WHERE raw_item_id IS NOT NULL)').bind(cutoff).run();
+  const clusters = await env.DB.prepare('SELECT COUNT(*) AS count FROM clusters').all<{ count: number }>();
+  return {
+    deleted: deleted.meta.changes ?? 0,
+    referenced: referenced.results?.[0]?.count ?? 0,
+    clusters: clusters.results?.[0]?.count ?? 0,
+  };
+}
+
+export async function countRawItemsBefore(env: MeridianEnv, cutoff: string): Promise<number> {
+  const result = await env.DB.prepare('SELECT COUNT(*) AS count FROM raw_items WHERE published_at < ?').bind(cutoff).all<{ count: number }>();
+  return result.results?.[0]?.count ?? 0;
+}
+
+export async function createReaderReport(
+  env: MeridianEnv,
+  report: { type: string; story_slug: string },
+  data: string,
+): Promise<{ id: number; type: string; story_slug: string; status: 'pending'; data: Record<string, unknown>; created_at: string } | null> {
+  return env.DB.prepare("INSERT INTO reports (type, story_slug, status, data, created_at) VALUES (?, ?, 'pending', ?, datetime('now')) RETURNING id, type, story_slug, status, data, created_at")
+    .bind(report.type, report.story_slug, data)
+    .first();
+}
+
+export async function listPendingReaderReports(env: MeridianEnv): Promise<Array<{ id: number; type: string; story_slug: string; status: 'pending'; data: Record<string, unknown>; created_at: string }>> {
+  const result = await env.DB.prepare("SELECT id, type, story_slug, status, data, created_at FROM reports WHERE status = 'pending' ORDER BY created_at DESC LIMIT 100").all<{ id: number; type: string; story_slug: string; status: 'pending'; data: Record<string, unknown>; created_at: string }>();
+  return result.results ?? [];
+}
+
+export async function setReaderReportStatus(env: MeridianEnv, id: number, status: 'reviewed' | 'approved' | 'rejected'): Promise<void> {
+  await env.DB.prepare("UPDATE reports SET status = ?, reviewed_at = datetime('now') WHERE id = ?").bind(status, id).run();
 }

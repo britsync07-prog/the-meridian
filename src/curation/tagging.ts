@@ -159,6 +159,7 @@ export function determineEditionFlags(cluster: {
   outletCountries: string[];
   matchedEntities: GazetteerEntity[];
   isWireBreaking?: boolean;
+  language?: 'en' | 'hi';
 }): EditionFlag[] {
   const flagsByEdition = new Map<EditionId, EditionFlag>();
 
@@ -170,6 +171,15 @@ export function determineEditionFlags(cluster: {
   }
 
   // 1. Outlet countries ('source') — confidence 1.0
+  // Hindi is its own native-source edition. It must never spill into the
+  // English India paper or be expanded through English-only global flags.
+  if (cluster.language === 'hi') {
+    if (cluster.outletCountries.some((country) => country.toUpperCase() === 'IN')) {
+      addFlag('in-hi', 'source', 1.0);
+    }
+    return Array.from(flagsByEdition.values());
+  }
+
   for (const country of cluster.outletCountries) {
     const upperCountry = country.toUpperCase() as CountryCode;
     const editionId = COUNTRY_TO_EDITION[upperCountry];

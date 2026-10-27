@@ -21,5 +21,8 @@ export default defineConfig({
     ],
     environment: 'node',
     globals: false,
+    // Node 24 + D1's SQLite harness becomes slower than the per-test timeout
+    // when Vitest forks one worker for nearly every file on this workstation.
+    maxWorkers: 4,
   },
 });

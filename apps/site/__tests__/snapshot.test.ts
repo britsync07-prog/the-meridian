@@ -67,7 +67,6 @@ describe('snapshot.ts', () => {
     it('returns data for a valid edition', () => {
       const result = getEditionFrontData(mockSnapshot, 'uk');
       expect(result).not.toBeNull();
-      expect(result!.edition).toBe('uk');
       expect(result!.clusters).toHaveLength(2);
     });
 

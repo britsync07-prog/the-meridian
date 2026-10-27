@@ -146,7 +146,7 @@ describe('the cluster split command (03-05)', () => {
       expect(moved.cluster_id).not.toBe(clusterId);
 
       const clusters = db
-        .prepare('SELECT COUNT(*) AS n FROM clusters')
+        .prepare('SELECT COUNT(*) AS n FROM clusters WHERE id > 0')
         .get() as { n: number };
       expect(clusters.n).toBe(2);
 
@@ -164,7 +164,7 @@ describe('the cluster split command (03-05)', () => {
       db.close();
       rmSync(directory, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 
   it('refuses to run without both arguments', () => {
     const outcome = spawnSync(process.execPath, [TSX_CLI, CLI_SCRIPT], {

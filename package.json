@@ -11,7 +11,7 @@
   "scripts": {
     "test": "vitest",
     "test:visual": "playwright test --config=apps/site/playwright.config.ts",
-    "test:lighthouse": "node tests/lighthouse.test.mjs",
+    "test:lighthouse": "node apps/site/tests/lighthouse.test.mjs",
     "typecheck": "tsc --noEmit",
     "build": "astro build --root apps/site",
     "build:site": "astro build --root apps/site",
@@ -23,7 +23,11 @@
     "shards:deploy": "node scripts/shards/deploy-all.mjs",
     "build:spike:s4": "node spikes/s-4-astro-throughput/generate.mjs",
     "ingest:local": "tsx scripts/ingest/run-local.ts",
-    "cluster:split": "tsx scripts/curation/split-cluster.ts"
+    "ingest:publish": "tsx scripts/ingest/publish-remote.ts",
+    "cluster:split": "tsx scripts/curation/split-cluster.ts",
+    "media:generate": "node scripts/media/generate-images.mjs",
+    "og:generate": "node scripts/media/generate-og.mjs",
+    "assert:build": "tsx scripts/assert/run-assertions.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "4.3.3",
@@ -39,6 +43,7 @@
     "@playwright/test": "1.54.2",
     "@types/node": "24.19.2",
     "lighthouse": "^12.7.0",
+    "sharp": "^0.35.5",
     "tsx": "4.22.4",
     "ttf2woff2": "^8.0.1",
     "typescript": "5.9.3",

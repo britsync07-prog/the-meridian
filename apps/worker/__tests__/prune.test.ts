@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { pruneRawItems, dryRunPrune } from '../src/prune.js';
 
 // Mock env for testing
-function createMockEnv(tableExists = true, currentCount = 100) {
+function createMockEnv(tableExists = true, currentCount = 100, referencedCount = 0) {
   const mockDb = {
     exec: (sql: string, params?: unknown[]) => {
       const result: Record<string, unknown> = {
@@ -10,19 +10,26 @@ function createMockEnv(tableExists = true, currentCount = 100) {
         meta: { changes: 0 },
       };
 
-      if (sql.includes('sqlite_master')) {
+      const query = sql.toLowerCase();
+      if (query.includes('count(distinct raw_item_id)')) {
+        result.results = [{ count: referencedCount }];
+      } else if (query.includes('sqlite_master')) {
         result.results = tableExists ? [{ name: 'raw_items' }] : [];
-      } else if (sql.includes('DELETE FROM raw_items')) {
+      } else if (query.includes('delete from raw_items')) {
         result.meta = { changes: currentCount };
-      } else if (sql.includes('COUNT(*) as count FROM raw_items')) {
+      } else if (query.includes('count(*) as count from raw_items')) {
         result.results = [{ count: currentCount }];
-      } else if (sql.includes('COUNT(*) as count FROM clusters')) {
+      } else if (query.includes('count(*) as count from clusters')) {
         result.results = [{ count: 500 }];
       }
 
       return Promise.resolve(result);
     },
   };
+  mockDb.prepare = (sql: string) => ({
+    all: () => mockDb.exec(sql),
+    bind: () => ({ all: () => mockDb.exec(sql), run: () => mockDb.exec(sql) }),
+  });
 
   return {
     DB: mockDb,
@@ -48,7 +55,7 @@ describe('prune.ts', () => {
       const result = await pruneRawItems(env as any);
 
       expect(result.deleted_raw_items).toBe(0);
-      expect(result.preserved_clusters).toBe(0);
+      expect(result.preserved_clusters).toBe(500);
       expect(result.skipped_referenced).toBe(0);
     });
 

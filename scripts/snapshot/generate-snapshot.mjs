@@ -15,10 +15,12 @@
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const WRANGLER = path.join(REPO_ROOT, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
 
 // ---------------------------------------------------------------------------
 // Environment validation
@@ -57,86 +59,113 @@ async function fetchD1Rows(endpoint, sql, params = []) {
     throw new Error(`D1 query failed: ${response.status} — ${text}`);
   }
   const json = await response.json();
-  if (json.error) {
-    throw new Error(`D1 error: ${JSON.stringify(json.error)}`);
+  const result = json.result?.[0];
+  if (!json.success || !result?.success) {
+    throw new Error(`D1 error: ${JSON.stringify(result?.error ?? json.errors ?? json.error)}`);
   }
-  return json.result;
+  return result;
 }
 
 async function queryClusters(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
-    `SELECT id, slug, canonical_headline, canonical_excerpt, published_at, is_prominent, trending_score, outlet_count, editorial_rank FROM clusters ORDER BY published_at DESC`
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
+    `SELECT id, slug, canonical_headline, canonical_excerpt, published_at, is_prominent, trending_score, outlet_count, editorial_rank FROM clusters WHERE id > 0 ORDER BY published_at DESC`
   );
 }
 
 async function queryStorySources(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
-    `SELECT story_id as cluster_id, source_id, rank, headline, url, published_at FROM story_sources ORDER BY story_id, rank`
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
+    `SELECT story_sources.cluster_id, sources.name AS source_name, sources.slug AS source_id,
+            story_sources.rank, story_sources.headline, story_sources.url, story_sources.published_at
+       FROM story_sources JOIN sources ON sources.id = story_sources.source_id
+      ORDER BY story_sources.cluster_id, story_sources.rank`
   );
 }
 
 async function querySections(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
     `SELECT id, slug, name, sort_order FROM sections ORDER BY sort_order`
   );
 }
 
 async function queryEditions(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
     `SELECT id, slug, name, country_code, language FROM editions ORDER BY id`
   );
 }
 
 async function querySources(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
     `SELECT id, slug as source_id, name, feed_url, country_code, language FROM sources WHERE is_active = 1 ORDER BY id`
   );
 }
 
 async function queryEditionClusters(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
     `SELECT edition_id, cluster_id FROM edition_clusters ORDER BY edition_id, cluster_id`
   );
 }
 
 async function queryClusterSections(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
     `SELECT cluster_id, section_id, confidence, method FROM cluster_sections ORDER BY cluster_id`
   );
 }
 
 async function queryClusterTopics(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
-    `SELECT cluster_id, topic_id FROM cluster_topics ORDER BY cluster_id, topic_id`
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
+    `SELECT DISTINCT stories.cluster_id, story_topics.topic_id
+       FROM story_topics JOIN stories ON stories.id = story_topics.story_id
+      WHERE stories.cluster_id > 0
+      ORDER BY stories.cluster_id, story_topics.topic_id`
   );
 }
 
 async function queryClusterEntities(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
-    `SELECT cluster_id, entity_id, is_primary, weight FROM cluster_entities ORDER BY cluster_id, entity_id`
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
+    `SELECT stories.cluster_id, story_entities.entity_id,
+            MAX(story_entities.is_primary) AS is_primary, MAX(story_entities.weight) AS weight
+       FROM story_entities JOIN stories ON stories.id = story_entities.story_id
+      WHERE stories.cluster_id > 0
+      GROUP BY stories.cluster_id, story_entities.entity_id
+      ORDER BY stories.cluster_id, story_entities.entity_id`
   );
 }
 
 async function queryTopics(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
     `SELECT id, slug, name FROM topics ORDER BY id`
   );
 }
 
 async function queryEntities(dbId) {
   return fetchD1Rows(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/results`,
-    `SELECT id, slug, name, entity_type, country_code FROM entities ORDER BY id`
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
+    `SELECT id, slug, name, type AS entity_type, country_code FROM entities ORDER BY id`
+  );
+}
+
+async function queryImages(dbId) {
+  const imageStatusFilter = process.env.INCLUDE_PENDING_IMAGES
+    ? "images.status IN ('pending', 'ready')"
+    : "images.status = 'ready'";
+  return fetchD1Rows(
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
+    `SELECT COALESCE(images.cluster_id, stories.cluster_id) AS cluster_id, images.source_url, images.alt_text, images.credit
+     FROM images
+     LEFT JOIN stories ON stories.id = images.story_id
+     WHERE ${imageStatusFilter}
+       AND COALESCE(images.cluster_id, stories.cluster_id) IS NOT NULL
+     ORDER BY cluster_id`,
   );
 }
 
@@ -173,6 +202,17 @@ function writeLocalSnapshot(snapshot) {
   return snapshotPath;
 }
 
+function uploadSnapshotToR2(bucket, key, file) {
+  const result = spawnSync(
+    process.execPath,
+    [WRANGLER, 'r2', 'object', 'put', `${bucket}/${key}`, '--file', file, '--remote'],
+    { cwd: REPO_ROOT, encoding: 'utf8' },
+  );
+  if (result.status !== 0) {
+    throw new Error(result.stderr || result.stdout || `wrangler exited ${result.status}`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -193,6 +233,7 @@ async function main() {
     clusterEntities,
     topics,
     entities,
+    images,
   ] = await Promise.all([
     queryClusters(DB_ID),
     queryStorySources(DB_ID),
@@ -205,9 +246,12 @@ async function main() {
     queryClusterEntities(DB_ID),
     queryTopics(DB_ID),
     queryEntities(DB_ID),
+    queryImages(DB_ID),
   ]);
 
   // Build snapshot document
+  const editionSlugById = new Map(editions.results.map((edition) => [edition.id, edition.slug]));
+  const sectionSlugById = new Map(sections.results.map((section) => [section.id, section.slug]));
   const snapshot = {
     generated_at: new Date().toISOString(),
     schema_version: 1,
@@ -227,6 +271,7 @@ async function main() {
       id: r.id,
       slug: r.slug,
       canonical_headline: r.canonical_headline,
+      canonical_excerpt: r.canonical_excerpt,
       published_at: r.published_at,
       is_prominent: Boolean(r.is_prominent),
       trending_score: r.trending_score,
@@ -236,18 +281,19 @@ async function main() {
     story_sources: storySources.results.map((r) => ({
       cluster_id: r.cluster_id,
       source_id: r.source_id,
+      source_name: r.source_name,
       rank: r.rank,
       headline: r.headline,
       url: r.url,
       published_at: r.published_at,
     })),
     edition_clusters: editionClusters.results.map((r) => ({
-      edition_id: r.edition_id,
+      edition_id: editionSlugById.get(r.edition_id),
       cluster_id: r.cluster_id,
     })),
     cluster_sections: clusterSections.results.map((r) => ({
       cluster_id: r.cluster_id,
-      section_id: r.section_id,
+      section_id: sectionSlugById.get(r.section_id),
       confidence: r.confidence,
       method: r.method,
     })),
@@ -277,6 +323,13 @@ async function main() {
       country_code: r.country_code,
       language: r.language,
     })),
+    images: images.results.map((r) => ({
+      cluster_id: r.cluster_id,
+      source_url: r.source_url,
+      alt_text: r.alt_text,
+      credit: r.credit,
+      media_key: createHash('sha256').update(r.source_url).digest('hex'),
+    })),
   };
 
   // Compute hash and compress
@@ -291,9 +344,9 @@ async function main() {
 
   // Upload to R2
   const objectKey = `snapshot/${hash}.json.gz`;
-  console.log(`Uploading to R2: ${objectKey}...`);
-  await uploadToR2(R2_BUCKET, objectKey, compressed);
   const localSnapshotPath = writeLocalSnapshot(compressed);
+  console.log(`Uploading to R2: ${objectKey}...`);
+  uploadSnapshotToR2(R2_BUCKET, objectKey, localSnapshotPath);
 
   // Write local manifest
   const manifest = {

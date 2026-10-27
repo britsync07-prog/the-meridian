@@ -65,7 +65,7 @@ function importSpecifiers(source: string): string[] {
 }
 
 describe('Worker configuration and purity (ING-02, D-01, D-02)', () => {
-  it('wrangler.jsonc declares 3 cron triggers for partitioned feed polling (D-01)', () => {
+  it('wrangler.jsonc declares partitioned polling plus dedicated daily maintenance triggers', () => {
     expect(existsSync(WRANGLER_JSONC)).toBe(true);
     const content = readFileSync(WRANGLER_JSONC, 'utf8');
     // Strip simple comments for JSON parsing
@@ -75,7 +75,14 @@ describe('Worker configuration and purity (ING-02, D-01, D-02)', () => {
     expect(config.triggers).toBeDefined();
     expect(config.triggers.crons).toBeDefined();
     expect(Array.isArray(config.triggers.crons)).toBe(true);
-    expect(config.triggers.crons.length).toBe(3);
+    expect(config.triggers.crons).toHaveLength(5);
+    expect(config.triggers.crons).toEqual(expect.arrayContaining([
+      '0,15,30,45 * * * *',
+      '5,20,35,50 * * * *',
+      '10,25,40,55 * * * *',
+      '0 2 * * *',
+      '0 3 * * *',
+    ]));
   });
 
   it('wrangler.jsonc binds KV namespace KV for feed polling state (D-02)', () => {

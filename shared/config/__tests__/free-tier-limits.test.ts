@@ -19,7 +19,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -251,10 +252,6 @@ function formatHits(hits: readonly LimitLiteralHit[]): string {
   return hits.map((hit) => `${hit.file}:${hit.line} — ${hit.token}`).join('\n');
 }
 
-/** The file the self-proving step plants a violation in. */
-const PLANTED_FILE = join(REPO_ROOT, 'wrangler', '__planted_ceiling.jsonc');
-const PLANTED_RELATIVE_PATH = 'wrangler/__planted_ceiling.jsonc';
-
 /* ------------------------------------------------------------------------- */
 /* Group A — registry integrity                                              */
 /* ------------------------------------------------------------------------- */
@@ -411,28 +408,27 @@ describe('the single-source scan', () => {
 
 describe('the self-proving step', () => {
   it('detects equivalent forbidden literals in Wrangler JSONC and is clean once removed', () => {
-    // The planted file lives in a scanned root and is not a test fixture, so the
-    // scan sees it. It is removed in the `finally` block, and the scan is run
-    // once more afterwards to prove the tree is clean again.
-    expect(existsSync(PLANTED_FILE)).toBe(false);
+    // Keep the deliberate violation outside the shared scan roots: other test
+    // files run concurrently and must never observe this temporary fixture.
+    const temporaryDirectory = mkdtempSync(join(tmpdir(), 'meridian-ceiling-'));
+    const plantedFile = join(temporaryDirectory, 'ceiling.jsonc');
 
     try {
       for (const spelling of ['100000', '100_000', '1e5']) {
-        writeFileSync(PLANTED_FILE, `{ "ceiling": ${spelling} }\n`, 'utf8');
-        const hits = scanForLimitLiterals(scannableFiles(false));
-        const planted = hits.filter((hit) => hit.file === PLANTED_RELATIVE_PATH);
+        writeFileSync(plantedFile, `{ "ceiling": ${spelling} }\n`, 'utf8');
+        const planted = scanForLimitLiterals([plantedFile]);
 
-        expect(planted).toEqual([{ file: PLANTED_RELATIVE_PATH, line: 1, token: spelling }]);
+        expect(planted).toHaveLength(1);
+        expect(planted[0]).toMatchObject({ line: 1, token: spelling });
         if (spelling !== '100000') continue;
 
         expect(planted.length).toBeGreaterThan(0);
-      expect(formatHits(planted)).toContain(`${PLANTED_RELATIVE_PATH}:1 — 100000`);
+        expect(formatHits(planted)).toContain(':1 — 100000');
       }
     } finally {
-      rmSync(PLANTED_FILE, { force: true });
+      rmSync(temporaryDirectory, { recursive: true, force: true });
     }
 
-    expect(existsSync(PLANTED_FILE)).toBe(false);
     expect(scanForLimitLiterals(scannableFiles(false))).toEqual([]);
   });
 

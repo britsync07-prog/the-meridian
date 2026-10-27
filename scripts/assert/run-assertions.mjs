@@ -6,7 +6,7 @@
  * Exits non-zero if any assertion fails.
  *
  * Usage:
- *   node scripts/assert/run-assertions.mjs [snapshot-path] [build-dir]
+ *   npm run assert:build -- [snapshot-path] [build-dir]
  */
 
 import { resolve, dirname } from 'node:path';
@@ -23,7 +23,7 @@ const buildDir = process.argv[3]
   ? resolve(process.cwd(), process.argv[3])
   : resolve(REPO_ROOT, 'apps', 'site', 'dist');
 
-// Import assertions dynamically to avoid TS import issues in .mjs
+// tsx resolves the TypeScript implementation through this .js specifier.
 const { runAssertions } = await import('./build-assertions.js');
 
 try {

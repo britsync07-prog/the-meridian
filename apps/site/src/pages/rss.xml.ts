@@ -17,7 +17,7 @@ export const GET: APIRoute = async (_context) => {
   const rss = buildRssFeed(snapshot, {
     feedTitle: `${SITE_NAME} — Global`,
     feedDescription: `All stories from all ${SITE_NAME} editions`,
-    siteOrigin: 'https://meridian.workers.dev',
+    siteOrigin: 'https://meridian-worker.mehedy303.workers.dev',
   });
 
   return new Response(rss, {

@@ -9,7 +9,7 @@ import { writeFileSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 const LOCK_FILE = '.build-lock';
-const LOCK_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const LOCK_TTL_MS = 30 * 60 * 10 ** 3; // 30 minutes
 
 interface LockData {
   pid: number;

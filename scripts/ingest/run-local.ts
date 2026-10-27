@@ -7,6 +7,7 @@
  * Zero database query strings or keywords may exist in this file.
  */
 
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
@@ -16,6 +17,7 @@ import { USER_AGENT } from '../../shared/config/site';
 import type { RawItem, SourceRegistryEntry } from '../../shared/types';
 import { createRepository, type RawStoryInsert, type Repository } from '../../apps/worker/src/db/repository';
 import type { MeridianEnv } from '../../apps/worker/src/db/config';
+import { DEFAULT_FETCH_TIMEOUT_MS, fetchWithTimeout } from '../../apps/worker/src/fetcher/polite-fetch';
 import { normalizeFeed } from '../../src/ingest/normalizer';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -63,11 +65,9 @@ function findLocalSqlitePath(): string | null {
 function createSqliteD1Binding(sqliteDb: DatabaseSync): any {
   return {
     prepare(statementString: string) {
-      let boundParams: any[] = [];
-      return {
+      const statement = (boundParams: any[] = []) => ({
         bind(...args: any[]) {
-          boundParams = args;
-          return this;
+          return statement(args);
         },
         async all<T = unknown>() {
           const statement = sqliteDb.prepare(statementString);
@@ -86,7 +86,8 @@ function createSqliteD1Binding(sqliteDb: DatabaseSync): any {
           const info = statement.run(...boundParams);
           return { success: true, meta: { changes: Number(info.changes) } };
         },
-      };
+      });
+      return statement();
     },
     async batch(statements: any[]) {
       const results = [];
@@ -120,6 +121,7 @@ export interface IngestRunOptions {
   edition?: string;
   live?: boolean;
   customSources?: readonly SourceRegistryEntry[];
+  capturedXmlBySource?: ReadonlyMap<string, string>;
   repo?: Repository;
   nowMs?: number;
 }
@@ -148,7 +150,6 @@ export async function runLocalIngest(options: IngestRunOptions = {}): Promise<In
       );
     }
     const sqliteDb = new DatabaseSync(dbPath);
-    sqliteDb.exec('PRAGMA foreign_keys = OFF;');
     const d1Binding = createSqliteD1Binding(sqliteDb);
     const env: MeridianEnv = {
       DB: d1Binding,
@@ -181,6 +182,9 @@ export async function runLocalIngest(options: IngestRunOptions = {}): Promise<In
       targets = targets.filter((s) => s.countryCode.toLowerCase() === ed);
     }
   }
+  if (options.capturedXmlBySource) {
+    targets = targets.filter((source) => options.capturedXmlBySource!.has(source.slug));
+  }
 
   let feedsProcessed = 0;
   let itemsNormalized = 0;
@@ -191,10 +195,15 @@ export async function runLocalIngest(options: IngestRunOptions = {}): Promise<In
     try {
       let xmlText = '';
 
-      if (options.live) {
-        const resp = await fetch(source.feedUrl, {
-          headers: { 'User-Agent': USER_AGENT },
-        });
+      if (options.capturedXmlBySource) {
+        xmlText = options.capturedXmlBySource.get(source.slug) ?? '';
+        if (!xmlText) throw new Error('Captured feed was empty');
+      } else if (options.live) {
+        const resp = await fetchWithTimeout(
+          source.feedUrl,
+          { 'User-Agent': USER_AGENT },
+          DEFAULT_FETCH_TIMEOUT_MS,
+        );
         if (!resp.ok) {
           throw new Error(`HTTP error ${resp.status}`);
         }
@@ -232,6 +241,10 @@ export async function runLocalIngest(options: IngestRunOptions = {}): Promise<In
         publishedAt: item.publishedAt,
         fetchedAt: snapshotIso,
         countryCode: source.countryCode,
+        imageUrl: item.imageUrl,
+        imageCredit: item.imageCredit,
+        // The source URL hash is the pre-fetch dedupe key; CI replaces it with image variants.
+        imageContentHash: item.imageUrl ? createHash('sha256').update(item.imageUrl).digest('hex') : null,
       }));
 
       const added = await repository.batchInsertStories(storyRows);

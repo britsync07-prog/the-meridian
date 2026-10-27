@@ -65,7 +65,7 @@ describe('the single site-name value (D-12)', () => {
   });
 
   it('exposes a single origin and locale beside the name', () => {
-    expect(SITE_ORIGIN).toBe('https://meridian.workers.dev');
+    expect(SITE_ORIGIN).toBe('https://meridian-worker.mehedy303.workers.dev');
     expect(SITE_LOCALE).toBe('en');
   });
 });

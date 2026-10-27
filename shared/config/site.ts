@@ -17,7 +17,7 @@ export const SITE_NAME = 'The Meridian';
  * built and run on a `workers.dev` subdomain, and the migration to a custom domain
  * happens later with 301 redirects, never with canonicals (D-14).
  */
-export const SITE_ORIGIN = 'https://meridian.workers.dev';
+export const SITE_ORIGIN = 'https://meridian-worker.mehedy303.workers.dev';
 
 /** The default document language for the English editions. */
 export const SITE_LOCALE = 'en';

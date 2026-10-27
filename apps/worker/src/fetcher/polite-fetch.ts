@@ -12,6 +12,7 @@ import {
 } from './state';
 
 const MS_PER_SECOND = 250 * 4;
+export const DEFAULT_FETCH_TIMEOUT_MS = 10 * MS_PER_SECOND;
 
 export interface HostRateLimiterOptions {
   minDelayMs?: number;
@@ -135,11 +136,11 @@ export interface PoliteFetchOptions {
   retryDelayMs?: number;
 }
 
-async function executeFetchWithTimeout(
+export async function fetchWithTimeout(
   url: string,
   headers: Record<string, string>,
   timeoutMs: number,
-  fetchFn: typeof fetch,
+  fetchFn: typeof fetch = fetch,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => {
@@ -190,7 +191,7 @@ export async function politeFetch(
     rateLimiter = defaultHostRateLimiter,
     sleepFn = (ms: number) => new Promise((r) => setTimeout(r, ms)),
     nowFn = () => Date.now(),
-    timeoutMs = 10 * MS_PER_SECOND,
+    timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
     retryDelayMs = 2 * MS_PER_SECOND,
   } = options;
 
@@ -239,12 +240,12 @@ export async function politeFetch(
 
   let response: Response;
   try {
-    response = await executeFetchWithTimeout(url, headers, timeoutMs, fetchFn);
+    response = await fetchWithTimeout(url, headers, timeoutMs, fetchFn);
   } catch (firstErr) {
     // Retry at most once after retryDelayMs upon socket/timeout glitch (D-05)
     await sleepFn(retryDelayMs);
     try {
-      response = await executeFetchWithTimeout(url, headers, timeoutMs, fetchFn);
+      response = await fetchWithTimeout(url, headers, timeoutMs, fetchFn);
     } catch (secondErr) {
       const durationMs = nowFn() - startTime;
       const state = existingState || createDefaultFeedState();

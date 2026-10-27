@@ -25,7 +25,9 @@ export function buildHreflang(
   const edition = EDITIONS.find((e) => e.id === editionId);
   if (!edition) return [];
 
-  const baseOrigin = 'https://meridian.workers.dev';
+  const baseOrigin = 'https://meridian-worker.mehedy303.workers.dev';
+  const editionPrefix = `/${edition.slug}`;
+  const suffix = path.startsWith(editionPrefix) ? path.slice(editionPrefix.length) || '/' : path;
   const alternates: HreflangAlternate[] = [];
 
   // x-default always points to global front page
@@ -34,15 +36,15 @@ export function buildHreflang(
   // Only India EN and India HI get hreflang links to each other
   if (edition.id === 'in') {
     // India English → India Hindi
-    alternates.push({ hreflang: 'en-IN', href: `${baseOrigin}/in${path}` });
-    alternates.push({ hreflang: 'hi-IN', href: `${baseOrigin}/in-hi${path}` });
+    alternates.push({ hreflang: 'en-IN', href: `${baseOrigin}/in${suffix}` });
+    alternates.push({ hreflang: 'hi-IN', href: `${baseOrigin}/in-hi${suffix}` });
   } else if (edition.id === 'in-hi') {
     // India Hindi → India English
-    alternates.push({ hreflang: 'hi-IN', href: `${baseOrigin}/in-hi${path}` });
-    alternates.push({ hreflang: 'en-IN', href: `${baseOrigin}/in${path}` });
+    alternates.push({ hreflang: 'hi-IN', href: `${baseOrigin}/in-hi${suffix}` });
+    alternates.push({ hreflang: 'en-IN', href: `${baseOrigin}/in${suffix}` });
   } else {
     // Other editions: only self + x-default (no hreflang between editions)
-    alternates.push({ hreflang: edition.htmlLang, href: `${baseOrigin}/${edition.slug}${path}` });
+    alternates.push({ hreflang: edition.htmlLang, href: `${baseOrigin}/${edition.slug}${suffix}` });
   }
 
   return alternates;

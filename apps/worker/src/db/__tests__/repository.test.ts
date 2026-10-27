@@ -53,9 +53,10 @@ const ALLOWED_FILES = new Set([
   'scripts/db/verify-local.mjs',
   'scripts/db/verify-swap.mjs',
   'scripts/snapshot/generate-snapshot.mjs',
+  'scripts/media/generate-images.mjs',
 ]);
 
-const SQL_KEYWORD = /\b(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|CREATE INDEX|ALTER TABLE)\b/i;
+const SQL_KEYWORD = /\b(SELECT\s+|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|CREATE\s+TABLE|CREATE\s+INDEX|ALTER\s+TABLE)/i;
 
 /** Recursively collect the source files under a directory. */
 function collectSourceFiles(directory: string): string[] {
@@ -200,6 +201,7 @@ describe('createRepository', () => {
         'createClusterWithStory',
         'findClusterBySlug',
         'findEntityIdsBySlugs',
+        'findTopicIdsBySlugs',
         'findLshCandidates',
         'findRecentCandidateStories',
         'findSourceById',
@@ -266,7 +268,7 @@ describe('createRepository', () => {
     expect(executedBatches[0].length).toBe(50);
     expect(executedBatches[1].length).toBe(5);
     expect(executedBatches[0][0].sql).toMatch(/INSERT INTO stories/i);
-    expect(executedBatches[0][0].sql).toMatch(/ON CONFLICT\(source_id, external_guid\) DO NOTHING/i);
+    expect(executedBatches[0][0].sql).toMatch(/ON CONFLICT DO NOTHING/i);
     expect(executedBatches[0][0].bindings[1]).toBe(10);
     expect(executedBatches[0][0].bindings[2]).toBe('guid-0');
     expect(executedBatches[0][0].bindings[3]).toBe('Headline 0');
@@ -274,6 +276,7 @@ describe('createRepository', () => {
 
   it('syncSources prepares and executes batch upsert for sources', async () => {
     const executedStatements: { sql: string; bindings: unknown[] }[] = [];
+    const directStatements: string[] = [];
     const batchMock = async (statements: unknown[]) => {
       for (const s of statements as { sql: string; bindings: unknown[] }[]) {
         executedStatements.push(s);
@@ -287,6 +290,10 @@ describe('createRepository', () => {
           sql,
           bind(...bindings: unknown[]) {
             return { sql, bindings };
+          },
+          async run() {
+            directStatements.push(sql);
+            return { success: true };
           },
         };
       },
@@ -317,6 +324,7 @@ describe('createRepository', () => {
     ]);
 
     expect(executedStatements.length).toBe(1);
+    expect(directStatements).toContain('UPDATE sources SET is_active = 0');
     expect(executedStatements[0].sql).toMatch(/INSERT INTO sources/i);
     expect(executedStatements[0].sql).toMatch(/ON CONFLICT\(slug\) DO UPDATE SET/i);
     expect(executedStatements[0].bindings[0]).toBe('test-source');

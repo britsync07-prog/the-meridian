@@ -10,6 +10,7 @@ import {
   assertSingleOutletDominance,
   assertNoDuplicateTitles,
   assertStoryValueElements,
+  assertStoryCountDeviation,
 } from '../build-assertions';
 
 // Helper to create minimal valid snapshots
@@ -98,20 +99,18 @@ describe('build-assertions.ts', () => {
   });
 
   describe('assertSectionStoryFloor', () => {
-    it('passes when all sections have >= 3 stories', () => {
-      const sectionIds = ['politics','business','technology','sport','health','world','weather','entertainment'];
+    it('passes when each edition has three staffed sections', () => {
+      const sectionIds = ['politics','business','world','technology'];
       const editionIds = ['uk','us','au','ca','ie','nz','in','in-hi'];
-      // 3 clusters per section per edition = 8 sections * 8 editions * 3 clusters = 192 clusters
-      const clusters = Array.from({ length: 192 }, (_, i) => ({ id: i + 1 }));
-      const editionClusters = editionIds.flatMap((eid) =>
-        sectionIds.flatMap((sid, si) =>
-          [1, 2, 3].map((c) => ({ edition_id: eid, cluster_id: si * 3 + c }))
+      const clusters = Array.from({ length: 64 }, (_, i) => ({ id: i + 1 }));
+      const editionClusters = editionIds.flatMap((editionId, editionIndex) =>
+        sectionIds.flatMap((_sectionId, sectionIndex) =>
+          [1, 2].map((storyIndex) => ({ edition_id: editionId, cluster_id: editionIndex * 8 + sectionIndex * 2 + storyIndex }))
         )
       );
-      // Each cluster maps to exactly ONE section (not all sections)
       const clusterSections = editionClusters.map((ec) => ({
         cluster_id: ec.cluster_id,
-        section_id: sectionIds[(ec.cluster_id - 1) % 8],
+        section_id: sectionIds[Math.floor(((ec.cluster_id - 1) % 8) / 2)],
         confidence: 0.9,
         method: 'test',
       }));
@@ -124,7 +123,7 @@ describe('build-assertions.ts', () => {
       expect(() => assertSectionStoryFloor(snapshot)).not.toThrow();
     });
 
-    it('throws when a section has fewer than 3 stories', () => {
+    it('throws when an edition has fewer than three staffed sections', () => {
       const editionClusters = [
         { edition_id: 'uk', cluster_id: 1 },
         { edition_id: 'uk', cluster_id: 2 },
@@ -205,6 +204,12 @@ describe('build-assertions.ts', () => {
       });
 
       expect(() => assertStoryValueElements(snapshot)).toThrow('assertStoryValueElements');
+    });
+  });
+
+  describe('assertStoryCountDeviation', () => {
+    it('skips the first run when no history file exists', () => {
+      expect(() => assertStoryCountDeviation(createSnapshot(), 'missing-history.json')).not.toThrow();
     });
   });
 });

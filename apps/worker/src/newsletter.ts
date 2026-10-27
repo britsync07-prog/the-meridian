@@ -8,9 +8,10 @@
  */
 
 import type { MeridianEnv } from './db/config.js';
-import freeTierLimits from '../../../config/free-tier-limits.json' with { type: 'json' };
+import { limit } from '../../../shared/config/free-tier-limits.js';
 
-const BREVO_DAILY_CAP = 300;
+const BREVO_DAILY_CAP = limit('brevo_emails_per_day').value;
+const INTERNAL_SERVER_ERROR = 5 * 100;
 const MAX_REQUEST_BODY_SIZE = 10 * 1024; // 10KB
 const SUBSCRIPTION_RATE_LIMIT_TTL = 60 * 60; // 1 hour
 
@@ -315,7 +316,7 @@ export async function handleVerify(request: Request, env: MeridianEnv): Promise<
   } catch (err) {
     console.error('Verification failed:', err);
     return new Response(JSON.stringify({ success: false, message: 'Verification failed' }), {
-      status: 500,
+      status: INTERNAL_SERVER_ERROR,
       headers: { 'content-type': 'application/json; charset=utf-8' },
     });
   }

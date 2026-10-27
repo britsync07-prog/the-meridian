@@ -150,6 +150,7 @@ export async function pollFeed(
   state.lastFetchedAt = new Date(now).toISOString();
   state.lastStatus = 200;
   state.consecutiveFailures = 0;
+  state.latestRawKey = r2Key;
   await updateFeedState(env.KV, source.slug, state);
 
   return {

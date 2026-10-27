@@ -2,10 +2,11 @@
 import { SITE_NAME, SITE_ORIGIN } from '../../../../shared/config/site.ts';
 import { pageMeta, renderHead } from '../../../../shared/templates/head.ts';
 import { buildHreflang } from '../../../../shared/templates/hreflang.ts';
-import { renderOpenGraph } from '../../../../shared/templates/og-meta.ts';
+import { renderOpenGraph, renderStoryOpenGraph } from '../../../../shared/templates/og-meta.ts';
 import { buildOrganizationSchema, renderSchema } from '../../../../shared/templates/schema.ts';
 import type { PageMetaInput } from '../../../../shared/types.ts';
 import type { EditionId } from '../../../../shared/config/editions.ts';
+import { EDITIONS } from '../../../../shared/config/editions.ts';
 import '../styles/global.css';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
   date?: string;
   path?: string;
   alternates?: { hreflang: string; href: string }[];
+  storyImageUrl?: string;
 }
 
 const {
@@ -26,6 +28,7 @@ const {
   date = new Date().toISOString().split('T')[0],
   path = '/',
   alternates = [],
+  storyImageUrl,
 } = Astro.props;
 
 // Build page metadata using the single source of truth
@@ -45,35 +48,36 @@ const meta = pageMeta(metaInput);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <Fragment set:html={renderHead(meta)} />
-    <Fragment set:html={renderOpenGraph(meta)} />
+    <Fragment set:html={storyImageUrl ? renderStoryOpenGraph(meta, storyImageUrl) : renderOpenGraph(meta)} />
     <Fragment set:html={renderSchema(buildOrganizationSchema({ name: SITE_NAME, url: SITE_ORIGIN, logoUrl: `${SITE_ORIGIN}/favicon.ico`, sameAs: [] }))} />
+    <slot name="head" />
     <link rel="preload" href="/fonts/PlayfairDisplay-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/NotoSerifDevanagari-Regular.woff2" as="font" type="font/woff2" crossorigin />
   </head>
-  <body class="min-h-screen flex flex-col">
+  <body>
     <!-- DSN-06: skip-to-content link, first Tab stop -->
     <a href="#main-content" class="skip-to-content">Skip to content</a>
 
-    <!-- DSN-05: sticky masthead at 56px -->
     <header class="masthead">
-      <div class="flex items-center gap-4">
-        <span class="text-edition font-semibold tracking-wide uppercase">
-          {edition}
-        </span>
-        <span class="font-masthead text-2xl font-bold italic">{SITE_NAME}</span>
-        <time datetime={date} class="text-muted text-sm">{date}</time>
+      <div class="masthead-inner">
+        <a class="masthead-mark" href="/" aria-label={`${SITE_NAME} home`}>{SITE_NAME}</a>
+        <p class="masthead-edition">{EDITIONS.find(item => item.id === edition)?.countryName ?? edition}</p>
+        <time datetime={date} class="masthead-date">{new Date(`${date}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</time>
       </div>
+      <nav class="edition-nav" aria-label="Country editions">
+        {EDITIONS.map(item => (
+          <a href={item.path} aria-current={item.id === edition ? 'page' : undefined}>{item.id === 'in-hi' ? 'हिंदी' : item.id.toUpperCase()}</a>
+        ))}
+      </nav>
     </header>
 
-    <main id="main-content" class="container flex-grow">
+    <main id="main-content" class="site-main">
       <slot />
     </main>
 
-    <!-- Print-style footer -->
-    <footer class="border-t hairline-md py-6 mt-auto">
-      <p class="text-center text-caption text-muted">
-        {SITE_NAME} &mdash; automatically curated daily paper. No human editor.
-      </p>
+    <footer class="site-footer">
+      <p><strong>{SITE_NAME}</strong> is an automated daily briefing. We link every story to its original reporting.</p>
+      <p>Not a publisher. No article body is copied.</p>
     </footer>
   </body>
 </html>
