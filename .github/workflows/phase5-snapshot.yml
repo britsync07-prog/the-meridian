@@ -16,7 +16,11 @@ on:
       - 'scripts/snapshot/**'
       - 'scripts/assert/**'
       - 'apps/site/src/lib/snapshot.ts'
+      - 'config/**'
+      - 'package.json'
+      - 'package-lock.json'
       - 'shared/**/*'
+      - '.github/workflows/phase5-snapshot.yml'
 
 concurrency:
   group: meridian-publication
