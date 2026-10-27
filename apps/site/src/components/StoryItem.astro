@@ -21,7 +21,9 @@ const primarySource = sources[0];
   </h3>
   {primarySource && (
     <p class="story-meta">
-      {primarySource.sourceName} <time datetime={publishedDate}>{publishedDate} · {story.section ?? edition} · {cluster.coverageCount} outlets</time>
+      <span>{primarySource.sourceName}</span>
+      <time datetime={publishedDate}>{publishedDate}</time>
+      <span>{cluster.coverageCount} outlet{cluster.coverageCount === 1 ? '' : 's'}</span>
     </p>
   )}
   {cluster.canonicalExcerpt && <p class="story-item-deck">{cluster.canonicalExcerpt}</p>}

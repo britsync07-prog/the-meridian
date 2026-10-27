@@ -40,6 +40,7 @@ const metaInput: PageMetaInput = {
   alternates: buildHreflang(edition, path),
 };
 const meta = pageMeta(metaInput);
+const editionLanguage = EDITIONS.find((item) => item.id === edition)?.language ?? 'en';
 ---
 
 <!doctype html>
@@ -54,7 +55,7 @@ const meta = pageMeta(metaInput);
     <link rel="preload" href="/fonts/PlayfairDisplay-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/NotoSerifDevanagari-Regular.woff2" as="font" type="font/woff2" crossorigin />
   </head>
-  <body>
+  <body data-language={editionLanguage}>
     <!-- DSN-06: skip-to-content link, first Tab stop -->
     <a href="#main-content" class="skip-to-content">Skip to content</a>
 

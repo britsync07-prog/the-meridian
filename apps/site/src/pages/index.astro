@@ -18,8 +18,8 @@ const today = data?.date ?? new Date().toISOString().split('T')[0];
       {data.leadStory && <LeadStory story={data.leadStory} edition={edition} />}
       <SectionGrid data={data} />
       <div class="front-supplement">
-        <MostCovered stories={data.mostCovered} title="Most Covered" edition={edition} />
-        {data.editorPicks.length > 0 && <EditorPicks stories={data.editorPicks} edition={edition} />}
+        <MostCovered stories={data.mostCovered} title="Most Covered" edition={edition} limit={5} excludeSlug={data.leadStory?.cluster.slug} />
+        {data.editorPicks.length > 0 && <EditorPicks stories={data.editorPicks} edition={edition} excludeSlug={data.leadStory?.cluster.slug} />}
       </div>
     </>
   ) : (

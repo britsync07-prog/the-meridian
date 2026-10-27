@@ -1,5 +1,6 @@
 ---
 import type { FrontPageData } from '../lib/page-data.ts';
+import { SECTIONS } from '../../../../shared/config/editions.ts';
 import StoryItem from './StoryItem.astro';
 
 interface Props {
@@ -8,12 +9,26 @@ interface Props {
 
 const { data } = Astro.props;
 const { sectionStories, edition } = data;
-const entries = Array.from(sectionStories.entries()).filter(([, stories]) => stories.length > 0);
+const hindiSectionNames: Partial<Record<string, string>> = {
+  politics: 'राजनीति',
+  business: 'व्यापार',
+  technology: 'तकनीक',
+  sport: 'खेल',
+  health: 'स्वास्थ्य',
+  world: 'दुनिया',
+  weather: 'मौसम',
+  entertainment: 'मनोरंजन',
+};
+const entries = Array.from(sectionStories.entries())
+  .map(([section, stories]) => [section, stories.filter((story) => story.cluster.slug !== data.leadStory?.cluster.slug)] as const)
+  .filter(([, stories]) => stories.length > 0);
 ---
 
 <div class="section-grid">
   {entries.map(([section, stories]) => {
-    const sectionName = stories[0]?.section ?? section;
+    const sectionName = edition === 'in-hi'
+      ? hindiSectionNames[section] ?? section
+      : SECTIONS.find((item) => item.id === section)?.name ?? section;
     return (
       <section class="section-panel">
         <h2 class="section-heading">

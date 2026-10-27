@@ -6,9 +6,12 @@ interface Props {
   stories: PageStory[];
   title: string;
   edition: string;
+  limit?: number;
+  excludeSlug?: string;
 }
 
-const { stories, title, edition } = Astro.props;
+const { stories, title, edition, limit, excludeSlug } = Astro.props;
+const visibleStories = stories.filter((story) => story.cluster.slug !== excludeSlug).slice(0, limit);
 ---
 
 <aside class="coverage-panel">
@@ -16,7 +19,7 @@ const { stories, title, edition } = Astro.props;
     {title}
   </h2>
   <div>
-    {stories.map(story => (
+    {visibleStories.map(story => (
       <StoryItem story={story} edition={edition} isSecondary={true} />
     ))}
   </div>

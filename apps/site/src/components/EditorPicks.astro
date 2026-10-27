@@ -5,17 +5,20 @@ import StoryItem from './StoryItem.astro';
 interface Props {
   stories: PageStory[];
   edition: string;
+  excludeSlug?: string;
+  title?: string;
 }
 
-const { stories, edition } = Astro.props;
+const { stories, edition, excludeSlug, title = 'Editor\'s Picks' } = Astro.props;
+const visibleStories = stories.filter((story) => story.cluster.slug !== excludeSlug);
 ---
 
 <aside class="coverage-panel">
   <h2 class="panel-heading">
-    Editor&rsquo;s Picks
+    {title}
   </h2>
   <div>
-    {stories.map(story => (
+    {visibleStories.map(story => (
       <StoryItem story={story} edition={edition} isSecondary={true} />
     ))}
   </div>

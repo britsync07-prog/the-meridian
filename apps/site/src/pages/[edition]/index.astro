@@ -31,8 +31,8 @@ const frontTitle = data?.leadStory?.cluster.canonicalHeadline
     {data.leadStory && <LeadStory story={data.leadStory} edition={edition} />}
     <SectionGrid data={data} />
     <div class="front-supplement">
-      <MostCovered stories={data.mostCovered} title={`Most Covered in ${edition.toUpperCase()}`} edition={edition} />
-      {data.editorPicks.length > 0 && <EditorPicks stories={data.editorPicks} edition={edition} />}
+      <MostCovered stories={data.mostCovered} title={edition === 'in-hi' ? 'सबसे ज़्यादा कवरेज' : 'Most Covered'} edition={edition} limit={5} excludeSlug={data.leadStory?.cluster.slug} />
+      {data.editorPicks.length > 0 && <EditorPicks stories={data.editorPicks} edition={edition} excludeSlug={data.leadStory?.cluster.slug} title={edition === 'in-hi' ? 'संपादक की पसंद' : undefined} />}
     </div>
   </FrontLayout>
 ) : (
