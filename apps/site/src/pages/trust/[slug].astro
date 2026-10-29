@@ -12,7 +12,7 @@ interface Props {
 }
 
 const { edition, slug } = Astro.props;
-const path = '/';
+const path = `/trust/${slug}/`;
 const today = new Date().toISOString().split('T')[0];
 
 // Import the MDX content

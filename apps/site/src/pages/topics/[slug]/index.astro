@@ -32,7 +32,7 @@ const topicDescription = `All stories tagged with ${topicName}. Stay updated wit
 ---
 {topicStories.length >= 5 ? (
   <TopicEntityLayout edition={topicStories[0]?.edition ?? 'uk'} topicName={topicName} date={today} path={topicPath} title={topicTitle} description={topicDescription}>
-    <div name="story-list" class="mt-6">
+    <div class="mt-6">
       <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2">
         Stories tagged: {topicName}
       </h2>
@@ -53,7 +53,7 @@ const topicDescription = `All stories tagged with ${topicName}. Stay updated wit
     </div>
   </TopicEntityLayout>
 ) : (
-  <TopicEntityLayout edition="uk" topicName={topicName} date={today}>
+  <TopicEntityLayout edition="uk" topicName={topicName} date={today} path={topicPath} title={topicTitle} description={topicDescription}>
     <p class="text-muted">Not enough stories found for this topic.</p>
   </TopicEntityLayout>
 )}

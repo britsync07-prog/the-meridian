@@ -132,13 +132,26 @@ export async function handleFlagRequest(request: Request, env: MeridianEnv): Pro
   }
 
   let data: unknown;
-  try {
-    data = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ success: false, message: 'Invalid JSON' }), {
-      status: 400,
-      headers: { 'content-type': 'application/json; charset=utf-8' },
-    });
+  const contentType = request.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    try {
+      data = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ success: false, message: 'Invalid JSON' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
+  } else {
+    try {
+      const formData = await request.formData();
+      data = Object.fromEntries(formData.entries());
+    } catch {
+      return new Response(JSON.stringify({ success: false, message: 'Invalid form data' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
   }
 
   const validated = validateReport(data);
@@ -151,6 +164,12 @@ export async function handleFlagRequest(request: Request, env: MeridianEnv): Pro
 
   try {
     const report = await storeReport(env, validated);
+    const referer = request.headers.get('referer');
+    if (!contentType.includes('application/json') && referer) {
+      const redirectUrl = new URL(referer);
+      redirectUrl.searchParams.set('flag', 'submitted');
+      return Response.redirect(redirectUrl.toString(), 303);
+    }
     return new Response(JSON.stringify({ success: true, id: report.id }), {
       headers: { 'content-type': 'application/json; charset=utf-8' },
     });
@@ -178,13 +197,26 @@ export async function handleErrorRequest(request: Request, env: MeridianEnv): Pr
   }
 
   let data: unknown;
-  try {
-    data = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ success: false, message: 'Invalid JSON' }), {
-      status: 400,
-      headers: { 'content-type': 'application/json; charset=utf-8' },
-    });
+  const contentType = request.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    try {
+      data = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ success: false, message: 'Invalid JSON' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
+  } else {
+    try {
+      const formData = await request.formData();
+      data = Object.fromEntries(formData.entries());
+    } catch {
+      return new Response(JSON.stringify({ success: false, message: 'Invalid form data' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
   }
 
   const validated = validateReport(data);
@@ -197,6 +229,12 @@ export async function handleErrorRequest(request: Request, env: MeridianEnv): Pr
 
   try {
     const report = await storeReport(env, validated);
+    const referer = request.headers.get('referer');
+    if (!contentType.includes('application/json') && referer) {
+      const redirectUrl = new URL(referer);
+      redirectUrl.searchParams.set('report', 'submitted');
+      return Response.redirect(redirectUrl.toString(), 303);
+    }
     return new Response(JSON.stringify({ success: true, id: report.id }), {
       headers: { 'content-type': 'application/json; charset=utf-8' },
     });

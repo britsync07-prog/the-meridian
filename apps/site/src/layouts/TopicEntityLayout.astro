@@ -15,7 +15,7 @@ const { topicName = 'Topic', edition = 'UK', date = new Date().toISOString().spl
     <p class="story-kicker">Topic index</p>
     <h1>{topicName}</h1>
   </header>
-  <main class="front-grid">
-    <slot name="story-list" />
-  </main>
+  <div class="front-grid">
+    <slot />
+  </div>
 </Base>

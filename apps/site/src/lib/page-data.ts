@@ -7,6 +7,8 @@
  */
 import type { EditionId, SectionId } from '../../../../shared/config/editions.js';
 import { EDITIONS, SECTIONS } from '../../../../shared/config/editions.js';
+import { SITE_NAME } from '../../../../shared/config/site.js';
+export { EDITIONS, SECTIONS, SITE_NAME };
 import type { SnapshotData, SnapshotCluster, SnapshotImage, SnapshotStorySource } from './snapshot.js';
 import { loadSnapshot, getEditionFrontData, getSectionPageData as _getSectionPageData, getStoryPageData as _getStoryPageData, getAllStorySlugs as _getAllStorySlugs, getArchivePaths as _getArchivePaths, getEntityPaths } from './snapshot.js';
 

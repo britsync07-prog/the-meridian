@@ -53,6 +53,10 @@ graphify-out/cache/
 apps/site/dist/
 apps/site/.astro/
 .astro-cache/
+apps/site/.astro-cache*/
+.taste-skill/
+tests/lighthouse-tmp.json
+scripts/snapshot/latest.json*
 
 # Local environment overrides
 *.local

@@ -20,8 +20,8 @@ const crumbs = [
     <p class="story-kicker">{edition} edition</p>
     <h1>{sectionName}</h1>
   </header>
-  <main class="front-grid">
-    <slot name="story-list" />
-  </main>
-  {renderSchema([buildBreadcrumbSchema(crumbs)])}
+  <div class="front-grid">
+    <slot />
+  </div>
+  <Fragment set:html={renderSchema([buildBreadcrumbSchema(crumbs)])} />
 </Base>

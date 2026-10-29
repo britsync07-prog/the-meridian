@@ -45,6 +45,19 @@ async function main() {
     }
   }
 
+  // Upload edition-specific story pages
+  const editions = ['uk', 'us', 'au', 'ca', 'ie', 'nz', 'in', 'in-hi'];
+  for (const ed of editions) {
+    const edStoryDir = join(distDir, ed, 'story');
+    if (existsSync(edStoryDir)) {
+      for (const slug of readdirSync(edStoryDir)) {
+        const file = join(edStoryDir, slug, 'index.html');
+        if (!existsSync(file)) continue;
+        objects.push({ key: `${ed}/story/${slug}/index.html`, file });
+      }
+    }
+  }
+
   const mediaDir = join(distDir, 'media');
   if (existsSync(mediaDir)) {
     for (const file of readdirSync(mediaDir)) {
@@ -61,6 +74,10 @@ async function main() {
   }
   await uploadAll(accountId, apiToken, bucketName, objects);
   if (existsSync(storyDir)) rmSync(storyDir, { recursive: true, force: true });
+  for (const ed of editions) {
+    const edStoryDir = join(distDir, ed, 'story');
+    if (existsSync(edStoryDir)) rmSync(edStoryDir, { recursive: true, force: true });
+  }
   if (existsSync(mediaDir)) rmSync(mediaDir, { recursive: true, force: true });
   if (existsSync(ogDir)) rmSync(ogDir, { recursive: true, force: true });
   console.log(`Upload complete: ${objects.length} story page and image object(s) uploaded to R2.`);

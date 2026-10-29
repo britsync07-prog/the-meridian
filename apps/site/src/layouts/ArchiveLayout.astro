@@ -15,7 +15,7 @@ const { archiveDate = new Date().toISOString().split('T')[0], edition = 'UK', da
     <p class="story-kicker">Past edition</p>
     <h1>Archive — {archiveDate}</h1>
   </header>
-  <main class="front-grid">
-    <slot name="story-list" />
-  </main>
+  <div class="front-grid">
+    <slot />
+  </div>
 </Base>

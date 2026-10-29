@@ -29,7 +29,7 @@ const { title, description, edition, path, date, lastReviewed } = Astro.props;
     <slot />
 
     <footer class="mt-12 border-t hairline-md pt-6 text-sm text-muted">
-      <p><a href="/{edition}/" class="underline hover:no-underline">← Back to {edition.toUpperCase()} edition</a></p>
+      <p><a href={`/${edition}/`} class="underline hover:no-underline">← Back to {edition.toUpperCase()} edition</a></p>
     </footer>
   </article>
 </Base>

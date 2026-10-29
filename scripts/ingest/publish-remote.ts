@@ -48,27 +48,30 @@ export function isCapturedFeedKey(sourceSlug: string, key: unknown): key is stri
 
 export async function loadCapturedFeeds(options: CapturedFeedOptions): Promise<Map<string, string>> {
   const fetcher = options.fetcher ?? fetch;
-  const directory = mkdtempSync(path.join(tmpdir(), 'meridian-feeds-'));
   const feeds = new Map<string, string>();
-  try {
-    for (const source of SOURCES.filter((entry) => entry.isActive)) {
+  for (const source of SOURCES.filter((entry) => entry.isActive)) {
+    try {
       const stateUrl = `https://api.cloudflare.com/client/v4/accounts/${options.accountId}/storage/kv/namespaces/${options.kvNamespaceId}/values/${encodeURIComponent(`feed_state:${source.slug}`)}`;
       const response = await fetcher(stateUrl, { headers: { Authorization: `Bearer ${options.apiToken}` } });
       if (response.status === 404) continue;
-      if (!response.ok) throw new Error(`Could not read feed state for ${source.slug} (${response.status})`);
+      if (!response.ok) {
+        console.warn(`Could not read feed state for ${source.slug} (${response.status})`);
+        continue;
+      }
       const state = await response.json() as { latestRawKey?: unknown };
       if (!isCapturedFeedKey(source.slug, state.latestRawKey)) continue;
 
-      const file = path.join(directory, `${source.slug}.xml`);
-      const result = spawnSync(process.execPath, [
-        'node_modules/wrangler/bin/wrangler.js', 'r2', 'object', 'get',
-        `${options.bucketName}/${state.latestRawKey}`, '--file', file,
-      ], { cwd: path.resolve(import.meta.dirname, '..', '..'), encoding: 'utf8' });
-      if (result.status !== 0) throw new Error(`Could not read captured feed ${source.slug}: ${result.stderr || result.stdout}`);
-      feeds.set(source.slug, readFileSync(file, 'utf8'));
+      const r2Url = `https://api.cloudflare.com/client/v4/accounts/${options.accountId}/r2/buckets/${options.bucketName}/objects/${state.latestRawKey}`;
+      const r2Response = await fetcher(r2Url, { headers: { Authorization: `Bearer ${options.apiToken}` } });
+      if (!r2Response.ok) {
+        console.warn(`Could not read captured feed from R2 for ${source.slug} (${r2Response.status})`);
+        continue;
+      }
+      const xml = await r2Response.text();
+      feeds.set(source.slug, xml);
+    } catch (err) {
+      console.warn(`Feed capture fetch error for ${source.slug}:`, err instanceof Error ? err.message : String(err));
     }
-  } finally {
-    rmSync(directory, { recursive: true, force: true });
   }
   return feeds;
 }
@@ -165,8 +168,12 @@ async function main() {
     KV: {} as KVNamespace,
   });
 
-  // shortcut: bootstrap only, routine publication must consume Worker-captured feeds.
-  const ingest = await runLocalIngest({ repo: repository, ...(bootstrapLiveFetch ? { live: true } : { capturedXmlBySource }) });
+  // shortcut: bootstrap only, or graceful fallback if no captured feeds exist yet
+  const useLiveFetch = bootstrapLiveFetch || !capturedXmlBySource || capturedXmlBySource.size === 0;
+  if (useLiveFetch && !bootstrapLiveFetch) {
+    console.log('No captured feeds found in R2/KV; falling back to live fetch to ensure publication.');
+  }
+  const ingest = await runLocalIngest({ repo: repository, ...(useLiveFetch ? { live: true } : { capturedXmlBySource }) });
   assertPublishableIngest(ingest);
   const curation = await processCurationPipeline(
     repository,

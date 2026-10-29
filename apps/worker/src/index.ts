@@ -30,8 +30,8 @@ export default {
     const databaseId = resolveDatabaseId(env);
     const url = new URL(request.url);
 
-    // Story tier: serve /story/* from R2 (OPS-11)
-    if (url.pathname.startsWith('/story/')) {
+    // Story tier: serve /story/* and /:edition/story/* from R2 (OPS-11)
+    if (url.pathname.startsWith('/story/') || /^\/[a-z]{2}(?:-[a-z]{2})?\/story\//.test(url.pathname)) {
       return handleStoryRequest(request, env);
     }
 

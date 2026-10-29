@@ -357,6 +357,12 @@ async function main() {
     cluster_count: snapshot.clusters.length,
   };
   await writeManifest(manifest);
+  try {
+    await uploadToR2(R2_BUCKET, 'snapshot/latest.json', JSON.stringify(manifest, null, 2));
+    console.log('Manifest uploaded to R2: snapshot/latest.json');
+  } catch (err) {
+    console.warn('Warning: Could not upload manifest to R2:', err.message);
+  }
   console.log(`Local build snapshot written to ${path.relative(REPO_ROOT, localSnapshotPath)}`);
   console.log('Manifest written to scripts/snapshot/latest.json');
   console.log('Snapshot generation complete.');

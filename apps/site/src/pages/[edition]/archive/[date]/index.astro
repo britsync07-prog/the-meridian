@@ -26,10 +26,13 @@ const data = getFrontPageData(edition);
 const storiesForArchive = data?.leadStory
   ? [data.leadStory, ...data.secondaryStories]
   : [];
+const path = `/${edition}/archive/${date}/`;
+const title = `Archive — ${date} | ${edition.toUpperCase()}`;
+const description = `Historical coverage from ${date} for ${edition.toUpperCase()} edition.`;
 ---
-<ArchiveLayout edition={edition} archiveDate={date} date={date}>
+<ArchiveLayout edition={edition} archiveDate={date} date={date} path={path} title={title} description={description}>
   {storiesForArchive.length > 0 ? (
-    <div name="story-list" class="mt-6">
+    <div class="mt-6">
       <StoryList stories={storiesForArchive} edition={edition} />
     </div>
   ) : (

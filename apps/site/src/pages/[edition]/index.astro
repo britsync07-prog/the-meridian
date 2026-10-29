@@ -4,6 +4,8 @@ import LeadStory from '../../components/LeadStory.astro';
 import MostCovered from '../../components/MostCovered.astro';
 import EditorPicks from '../../components/EditorPicks.astro';
 import SectionGrid from '../../components/SectionGrid.astro';
+import NewsletterSignup from '../../components/NewsletterSignup.astro';
+import WeatherPanel from '../../components/WeatherPanel.astro';
 import { getFrontPageData, getEditions } from '../../lib/page-data.ts';
 
 export function getStaticPaths() {
@@ -33,6 +35,8 @@ const frontTitle = data?.leadStory?.cluster.canonicalHeadline
     <div class="front-supplement">
       <MostCovered stories={data.mostCovered} title={edition === 'in-hi' ? 'सबसे ज़्यादा कवरेज' : 'Most Covered'} edition={edition} limit={5} excludeSlug={data.leadStory?.cluster.slug} />
       {data.editorPicks.length > 0 && <EditorPicks stories={data.editorPicks} edition={edition} excludeSlug={data.leadStory?.cluster.slug} title={edition === 'in-hi' ? 'संपादक की पसंद' : undefined} />}
+      <WeatherPanel edition={edition} />
+      <NewsletterSignup edition={edition} />
     </div>
   </FrontLayout>
 ) : (

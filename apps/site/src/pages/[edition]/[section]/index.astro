@@ -32,12 +32,12 @@ const description = `Top ${data?.sectionName ?? section} stories from ${edition.
 ---
 {data ? (
   <SectionLayout edition={edition} sectionName={data.sectionName} date={today} path={path} title={title} description={description}>
-    <div name="splash" class="mb-6">
-      {data.leadStory && (
+    {data.leadStory && (
+      <div class="mb-6">
         <StoryItem story={data.leadStory} edition={edition} />
-      )}
-    </div>
-    <div name="story-list" class="mt-6">
+      </div>
+    )}
+    <div class="mt-6">
       <h2 class="font-masthead text-h2 font-bold italic mb-4 border-b hairline pb-2 capitalize">
         {data.sectionName}
       </h2>
@@ -51,7 +51,7 @@ const description = `Top ${data?.sectionName ?? section} stories from ${edition.
     )}
   </SectionLayout>
 ) : (
-  <SectionLayout edition={edition} sectionName={section} date={today}>
+  <SectionLayout edition={edition} sectionName={section} date={today} path={path} title={title} description={description}>
     <p class="text-muted">No stories for this section yet.</p>
   </SectionLayout>
 )}

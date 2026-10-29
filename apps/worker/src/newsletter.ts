@@ -186,13 +186,26 @@ export async function handleSubscribe(request: Request, env: MeridianEnv): Promi
 
   // Parse request body
   let data: unknown;
-  try {
-    data = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ success: false, message: 'Invalid JSON' }), {
-      status: 400,
-      headers: { 'content-type': 'application/json; charset=utf-8' },
-    });
+  const contentType = request.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    try {
+      data = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ success: false, message: 'Invalid JSON' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
+  } else {
+    try {
+      const formData = await request.formData();
+      data = Object.fromEntries(formData.entries());
+    } catch {
+      return new Response(JSON.stringify({ success: false, message: 'Invalid form data' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
   }
 
   // Validate
@@ -241,6 +254,13 @@ export async function handleSubscribe(request: Request, env: MeridianEnv): Promi
   if (process.env.DEBUG_NEWSLETTER === 'true') {
     const emailHash = email.split('@')[0].substring(0, 3) + '***' + '@' + email.split('@')[1];
     console.debug(`Newsletter verification initiated: email_hash=${emailHash}, token_prefix=${token.substring(0, 6)}, edition=${edition}`);
+  }
+
+  const referer = request.headers.get('referer');
+  if (!contentType.includes('application/json') && referer) {
+    const redirectUrl = new URL(referer);
+    redirectUrl.searchParams.set('newsletter', 'subscribed');
+    return Response.redirect(redirectUrl.toString(), 303);
   }
 
   return new Response(JSON.stringify({

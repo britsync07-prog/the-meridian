@@ -17,12 +17,20 @@ export async function handleStoryRequest(
   env: { R2: R2Bucket },
 ): Promise<Response> {
   const path = new URL(request.url).pathname;
-  const slug = decodeURIComponent(path.replace(/^\/story\//, '').replace(/\/+$/, ''));
-  if (!slug || slug.includes('/') || slug.includes('..') || !/^[a-zA-Z0-9_-]+$/.test(slug)) {
+  // Match either /story/:slug/ or /:edition/story/:slug/
+  const match = path.match(/^(?:\/([a-z]{2}(?:-[a-z]{2})?))?\/story\/([a-zA-Z0-9_-]+)\/?$/);
+  if (!match) {
     return new Response(null, { status: 404 });
   }
 
-  const object = await env.R2.get(`story/${slug}/index.html`);
+  const edition = match[1];
+  const slug = match[2];
+
+  // Try edition-specific story first if requested, otherwise fallback to global story
+  let object = edition ? await env.R2.get(`${edition}/story/${slug}/index.html`) : null;
+  if (!object) {
+    object = await env.R2.get(`story/${slug}/index.html`);
+  }
   if (!object) {
     return new Response(null, { status: 404 });
   }
