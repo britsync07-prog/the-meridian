@@ -86,14 +86,7 @@ try {
         {data.cluster.canonicalHeadline}
       </p>
 
-      <h2 class="font-masthead text-h2 font-bold italic mb-3">Key Points</h2>
-      <ul class="mb-6">
-        <li>Development trending with score {data.cluster.trendingScore.toFixed(1)}</li>
-        <li>Editorial rank: {data.cluster.editorialRank ?? 'Unranked'}</li>
-        <li>Topics: {data.topics.join(', ')}</li>
-      </ul>
-
-      <h2 class="font-masthead text-h2 font-bold italic mb-3">Coverage Sources</h2>
+      <h2 class="font-masthead text-h2 font-bold italic mb-3">Original reporting</h2>
       <ul class="mb-6">
         {data.sources.map(source => (
           <li key={`${source.sourceId}-${source.rank}`} class="mb-2">

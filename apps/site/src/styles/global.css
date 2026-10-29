@@ -44,12 +44,13 @@ a:hover { color: var(--color-accent); }
 .site-main { max-width: 84rem; margin: 0 auto; background: var(--color-paper); padding: 0 clamp(1rem, 3vw, 2.5rem) 3.5rem; }
 .front-page { padding-top: 1.7rem; }
 .lead-story { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(18rem, .72fr); gap: clamp(1.5rem, 3vw, 3.5rem); align-items: start; border-bottom: 4px solid var(--color-ink); padding-bottom: 2.4rem; }
-.lead-story > :not(.lead-story-image):not(.image-credit) { grid-column: 2; }
+.lead-story > :not(.lead-story-media) { grid-column: 2; }
 .lead-story-no-image { grid-template-columns: minmax(0, 1fr); max-width: 58rem; margin-inline: auto; text-align: center; }
-.lead-story-no-image > :not(.lead-story-image):not(.image-credit) { grid-column: 1; }
+.lead-story-no-image > :not(.lead-story-media) { grid-column: 1; }
 .lead-story-no-image .story-meta { justify-content: center; }
-.lead-story-image { grid-column: 1; grid-row: 1 / span 4; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #ddd4c5; }
-.image-credit { grid-column: 1; margin: .38rem 0 0; color: var(--color-muted); font: .65rem/1.2 Arial, sans-serif; }
+.lead-story-media { grid-column: 1; grid-row: 1 / span 4; margin: 0; }
+.lead-story-image { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #ddd4c5; }
+.image-credit { margin: .38rem 0 0; color: var(--color-muted); font: .65rem/1.2 Arial, sans-serif; }
 .story-kicker { margin: 0 0 .55rem; color: var(--color-accent); font: 700 .85rem/1.2 Arial, sans-serif; letter-spacing: .02em; }
 .lead-story-headline { margin: 0; font: 700 clamp(2.1rem, 4.4vw, 4.7rem)/.97 var(--font-masthead); letter-spacing: -.048em; }
 .lead-story-headline a, .story-item-headline a { text-decoration: none; }
@@ -104,7 +105,7 @@ textarea.reader-input { min-height: 6.5rem; resize: vertical; }
   .masthead-date { text-align: center; }
   .edition-nav { gap: .2rem 1rem; }
   .lead-story { grid-template-columns: 1fr; gap: 1.1rem; }
-  .lead-story > :not(.lead-story-image):not(.image-credit), .lead-story-image, .image-credit { grid-column: 1; grid-row: auto; }
+  .lead-story > :not(.lead-story-media), .lead-story-media { grid-column: 1; grid-row: auto; }
   .lead-story-image { aspect-ratio: 16 / 10; }
   .lead-story-headline { font-size: clamp(1.55rem, 6.8vw, 2.2rem); }
   .story-item-headline { font-size: 1.35rem; }

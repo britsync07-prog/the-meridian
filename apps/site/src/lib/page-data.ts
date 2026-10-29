@@ -250,7 +250,7 @@ export function getSectionPageData(edition: string, section: string): SectionPag
   };
 }
 
-export function getStoryPageData(slug: string): StoryPageData | null {
+export function getStoryPageData(slug: string, editionContext?: string): StoryPageData | null {
   const snapshot = getSnapshot();
   if (!snapshot) return null;
 
@@ -284,14 +284,11 @@ export function getStoryPageData(slug: string): StoryPageData | null {
   }
 
   const sectionName = snapshot.sections.find(s => s.id === storyData.section)?.name ?? '';
-  const primarySource = storyData.sources[0];
-  const primarySourceRecord = primarySource
-    ? snapshot.sources.find((source) => source.slug === primarySource.source_id)
-    : undefined;
-  const edition = snapshot.editions.find((candidate) =>
-    candidate.country_code === primarySourceRecord?.country_code
-    && candidate.language === primarySourceRecord?.language,
-  )?.id as EditionId | undefined;
+  const edition = editionContext && snapshot.edition_clusters.some((item) =>
+    item.edition_id === editionContext && item.cluster_id === storyData.cluster.id,
+  )
+    ? editionContext as EditionId
+    : snapshot.edition_clusters.find((item) => item.cluster_id === storyData.cluster.id)?.edition_id as EditionId | undefined;
 
   return {
     slug,
@@ -304,6 +301,22 @@ export function getStoryPageData(slug: string): StoryPageData | null {
     entities: storyData.entities,
     relatedStories,
   };
+}
+
+/** Permanent story routes retain the edition from which the reader opened it. */
+export function getEditionStoryPaths(): { edition: string; slug: string }[] {
+  const snapshot = getSnapshot();
+  if (!snapshot) return [];
+
+  const clusters = new Map(snapshot.clusters.map((cluster) => [cluster.id, cluster.slug]));
+  const paths = new Map<string, { edition: string; slug: string }>();
+  for (const membership of snapshot.edition_clusters) {
+    const slug = clusters.get(membership.cluster_id);
+    if (!slug) continue;
+    const key = `${membership.edition_id}:${slug}`;
+    paths.set(key, { edition: membership.edition_id, slug });
+  }
+  return [...paths.values()];
 }
 
 export function getAllStorySlugs(): string[] {

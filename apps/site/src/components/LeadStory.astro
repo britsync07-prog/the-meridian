@@ -14,7 +14,7 @@ const publishedDate = new Date(cluster.publishedAt).toISOString().split('T')[0];
 
 <article class:list={['lead-story', { 'lead-story-no-image': !story.image }]}>
   {story.image && (
-    <>
+    <figure class="lead-story-media">
       <MediaImage
         src={story.image.src}
         srcset={story.image.srcset}
@@ -24,11 +24,11 @@ const publishedDate = new Date(cluster.publishedAt).toISOString().split('T')[0];
         priority={true}
         class="lead-story-image"
       />
-      {story.image.credit && <p class="image-credit">{story.image.credit}</p>}
-    </>
+      {story.image.credit && <figcaption class="image-credit">{story.image.credit}</figcaption>}
+    </figure>
   )}
   <h1 class="lead-story-headline">
-    <a href={`/story/${cluster.slug}/`}>
+    <a href={`/${edition}/story/${cluster.slug}/`}>
       {cluster.canonicalHeadline}
     </a>
   </h1>
