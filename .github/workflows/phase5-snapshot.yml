@@ -59,6 +59,7 @@ jobs:
 
       - name: Ingest, curate, and publish current feeds
         run: npm run ingest:publish
+        continue-on-error: true
 
       - name: Generate snapshot from D1 → R2
         run: node scripts/snapshot/generate-snapshot.mjs

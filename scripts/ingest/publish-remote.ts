@@ -286,7 +286,13 @@ async function main() {
 
 if (process.argv[1]?.includes('publish-remote')) {
   main().catch(error => {
-    console.error(`Production ingest failed: ${error instanceof Error ? error.message : String(error)}`);
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('daily row write limit') || msg.includes('exceeded D1')) {
+      console.warn(`Warning: ${msg}`);
+      console.warn('Continuing publication workflow with currently stored D1 stories.');
+      process.exit(0);
+    }
+    console.error(`Production ingest failed: ${msg}`);
     process.exit(1);
   });
 }
