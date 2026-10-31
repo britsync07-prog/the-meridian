@@ -178,6 +178,16 @@ function buildStoryMap(snapshot: SnapshotData): Map<string, PageStory> {
   return map;
 }
 
+function matchesEdition(snapshot: SnapshotData, story: PageStory, edition: EditionId): boolean {
+  const config = EDITIONS.find((item) => item.id === edition);
+  if (!config) return false;
+  const sources = new Map(snapshot.sources.map((source) => [source.slug, source]));
+  return story.sources.some((source) => {
+    const configured = sources.get(source.sourceId);
+    return configured?.country_code === config.countryCode && configured.language === config.language;
+  });
+}
+
 function getStoryMap(snapshot: SnapshotData): Map<string, PageStory> {
   _storyMap ??= buildStoryMap(snapshot);
   return _storyMap;
@@ -208,7 +218,7 @@ export function getFrontPageData(edition: string): FrontPageData | null {
   const stories = clusters.map(c => {
     return storyMap.get(storyKey(editionId, c.id))
       ?? { cluster: toPageCluster(c), sources: [], section: undefined, edition: editionId };
-  });
+  }).filter((story) => matchesEdition(snapshot, story, editionId));
 
   const prominent = stories.filter(s => s.cluster.isProminent);
   const sectionStories = new Map<SectionId, PageStory[]>();
@@ -241,7 +251,7 @@ export function getSectionPageData(edition: string, section: string): SectionPag
   const stories: PageStory[] = secData.clusters.map(c => {
     return storyMap.get(storyKey(editionId, c.id))
       ?? { cluster: toPageCluster(c), sources: [], section: secData.section as SectionId, edition: editionId };
-  });
+  }).filter((story) => matchesEdition(snapshot, story, editionId));
 
   const leadStory = stories.find((story) => story.cluster.isProminent && story.image)
     ?? stories.find((story) => story.image)

@@ -227,7 +227,8 @@ export async function runLocalIngest(options: IngestRunOptions = {}): Promise<In
       }
 
       feedsProcessed++;
-      const normalizedItems = normalizeFeedForRunner(xmlText, source, snapshotIso, nowMs);
+      const rawNormalizedItems = normalizeFeedForRunner(xmlText, source, snapshotIso, nowMs);
+      const normalizedItems = rawNormalizedItems.slice(0, 20);
       itemsNormalized += normalizedItems.length;
 
       const dbSourceId = sourceIdBySlug.get(source.slug) ?? 1;

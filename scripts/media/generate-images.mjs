@@ -42,7 +42,7 @@ async function main() {
   const snapshot = await loadSnapshot();
   await mkdir(outputDir, { recursive: true });
   const maxAgeHours = Number(process.env.MEDIA_MAX_AGE_HOURS ?? 96);
-  const cutoff = Date.now() - maxAgeHours * 60 * 60 * 1000;
+  const cutoff = Date.now() - maxAgeHours * 3600000;
   const images = (snapshot.images ?? []).filter((image) => {
     const publishedAt = Date.parse(image.published_at ?? '');
     return Number.isNaN(publishedAt) || publishedAt >= cutoff;

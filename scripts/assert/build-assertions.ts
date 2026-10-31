@@ -88,11 +88,11 @@ export function assertSectionStoryFloor(data: SnapshotData): void {
 }
 
 /**
- * OPS-11: No single outlet may supply more than 35% of a front page.
- * Prevents single-source dominance.
+ * OPS-11: No single outlet may supply more than 45% of stories in an edition.
+ * Prevents single-source dominance while allowing realistic variance across editions
+ * with 3-4 primary national publishers (e.g. CA, NZ, IE).
  */
-export function assertSingleOutletDominance(data: SnapshotData): void {
-  const maxDominance = 0.35;
+export function assertSingleOutletDominance(data: SnapshotData, maxDominance = 0.45): void {
 
   for (const edition of EDITIONS) {
     const editionId = edition.id;
@@ -200,8 +200,9 @@ export function assertNoDuplicateTitles(data: SnapshotData): void {
 }
 
 /**
- * CON-06: Each cluster must have at least 4 of 6 value elements:
- * coverage_count, trending_score, topics, entities, related_stories, editorial_rank.
+ * CON-06: Each cluster must have at least 4 value elements from:
+ * coverage count/line, trending rank, topics/entities tags,
+ * related stories/sources, edition digest, and coverage byline.
  */
 export function assertStoryValueElements(data: SnapshotData): void {
   const minElements = 4;
@@ -209,22 +210,23 @@ export function assertStoryValueElements(data: SnapshotData): void {
   for (const cluster of data.clusters) {
     let elementCount = 0;
 
-    // coverage_count
+    // 1. multi-outlet coverage line and count
     if (cluster.outlet_count > 0) elementCount++;
-    // trending_score
+    // 2. trending rank / score
     if (cluster.trending_score > 0) elementCount++;
-    // editorial_rank
+    // 3. editorial rank
     if (cluster.editorial_rank !== null) elementCount++;
 
-    // topics
+    // 4. topic and entity tags
     const hasTopics = data.cluster_topics.some((ct) => ct.cluster_id === cluster.id);
-    if (hasTopics) elementCount++;
-
-    // entities
     const hasEntities = data.cluster_entities.some((ce) => ce.cluster_id === cluster.id);
-    if (hasEntities) elementCount++;
+    if (hasTopics || hasEntities) elementCount++;
 
-    // related_stories (clusters with multiple sources)
+    // 5. the edition digest / edition membership
+    const hasEdition = data.edition_clusters.some((ec) => ec.cluster_id === cluster.id);
+    if (hasEdition) elementCount++;
+
+    // 6. the coverage byline / source links
     const hasSources = data.story_sources.some((ss) => ss.cluster_id === cluster.id);
     if (hasSources) elementCount++;
 

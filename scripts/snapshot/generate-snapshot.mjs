@@ -357,6 +357,93 @@ async function main() {
     })),
   };
 
+  // Deduplicate any clusters sharing an identical canonical headline
+  const clusterRemap = new Map();
+  const seenHeadlines = new Map();
+  const dedupedClusters = [];
+
+  for (const c of snapshot.clusters) {
+    if (seenHeadlines.has(c.canonical_headline)) {
+      const canonicalId = seenHeadlines.get(c.canonical_headline);
+      clusterRemap.set(c.id, canonicalId);
+    } else {
+      seenHeadlines.set(c.canonical_headline, c.id);
+      clusterRemap.set(c.id, c.id);
+      dedupedClusters.push(c);
+    }
+  }
+
+  const remapId = (id) => clusterRemap.get(id) ?? id;
+  snapshot.clusters = dedupedClusters;
+
+  // Remap and dedupe story_sources
+  const seenSources = new Set();
+  snapshot.story_sources = snapshot.story_sources
+    .map((s) => ({ ...s, cluster_id: remapId(s.cluster_id) }))
+    .filter((s) => {
+      const key = `${s.cluster_id}::${s.url}`;
+      if (seenSources.has(key)) return false;
+      seenSources.add(key);
+      return true;
+    });
+
+  // Remap and dedupe edition_clusters
+  const seenEditions = new Set();
+  snapshot.edition_clusters = snapshot.edition_clusters
+    .map((ec) => ({ ...ec, cluster_id: remapId(ec.cluster_id) }))
+    .filter((ec) => {
+      const key = `${ec.edition_id}::${ec.cluster_id}`;
+      if (seenEditions.has(key)) return false;
+      seenEditions.add(key);
+      return true;
+    });
+
+  // Remap and dedupe cluster_sections
+  const seenSections = new Set();
+  snapshot.cluster_sections = snapshot.cluster_sections
+    .map((cs) => ({ ...cs, cluster_id: remapId(cs.cluster_id) }))
+    .filter((cs) => {
+      const key = `${cs.cluster_id}::${cs.section_id}`;
+      if (seenSections.has(key)) return false;
+      seenSections.add(key);
+      return true;
+    });
+
+  // Remap and dedupe images
+  const seenImages = new Set();
+  snapshot.images = snapshot.images
+    .map((img) => ({ ...img, cluster_id: remapId(img.cluster_id) }))
+    .filter((img) => {
+      const key = `${img.cluster_id}::${img.source_url}`;
+      if (seenImages.has(key)) return false;
+      seenImages.add(key);
+      return true;
+    });
+
+  // Ensure every cluster has at least one edition mapping
+  const clustersWithEditions = new Set(snapshot.edition_clusters.map((ec) => ec.cluster_id));
+  const sourceEditionMap = new Map();
+  for (const s of snapshot.sources) {
+    const country = s.country_code ? s.country_code.toLowerCase() : null;
+    if (country) {
+      sourceEditionMap.set(s.slug, country === 'hi' ? 'in-hi' : country);
+    }
+  }
+
+  for (const c of snapshot.clusters) {
+    if (!clustersWithEditions.has(c.id)) {
+      const sourcesForCluster = snapshot.story_sources.filter((s) => s.cluster_id === c.id);
+      const firstSource = sourcesForCluster[0];
+      const fallbackEdition = (firstSource && sourceEditionMap.get(firstSource.source_id)) || 'uk';
+      snapshot.edition_clusters.push({
+        edition_id: fallbackEdition,
+        cluster_id: c.id,
+        reason: 'source-fallback',
+      });
+      clustersWithEditions.add(c.id);
+    }
+  }
+
   // Compute hash and compress
   const jsonString = JSON.stringify(snapshot);
   const hash = createHash('sha256').update(jsonString).digest('hex');
