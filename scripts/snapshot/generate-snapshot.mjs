@@ -120,7 +120,7 @@ async function queryEditions(dbId) {
 async function querySources(dbId) {
   return fetchD1Rows(
     `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
-    `SELECT id, slug as source_id, name, feed_url, country_code, language FROM sources WHERE is_active = 1 ORDER BY id`
+    `SELECT id, slug, slug as source_id, name, feed_url, country_code, language FROM sources ORDER BY id`
   );
 }
 
@@ -341,7 +341,8 @@ async function main() {
     })),
     sources: sources.results.map((r) => ({
       id: r.id,
-      slug: r.source_id,
+      slug: r.slug ?? r.source_id,
+      source_id: r.source_id ?? r.slug,
       name: r.name,
       feed_url: r.feed_url,
       country_code: r.country_code,
