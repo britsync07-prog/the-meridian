@@ -38,6 +38,8 @@ jobs:
       CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
       CF_KV_NAMESPACE_ID: c7ee93b7d9a6497787f40b1d441469ae
       R2_BUCKET_NAME: meridian
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
