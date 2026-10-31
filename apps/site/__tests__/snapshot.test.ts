@@ -2,13 +2,14 @@
  * Tests for snapshot.ts — the snapshot reader and accessor module.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SnapshotData } from '../src/lib/snapshot.js';
 import {
   getEditionFrontData,
   getSectionPageData,
   getStoryPageData,
   getAllStorySlugs,
+  getEditionStoryPaths,
   getArchivePaths,
   getTopicPaths,
   getEntityPaths,
@@ -63,6 +64,9 @@ const mockSnapshot: SnapshotData = {
 };
 
 describe('snapshot.ts', () => {
+  beforeEach(() => vi.useFakeTimers({ now: new Date('2026-10-24T12:00:00Z') }));
+  afterEach(() => vi.useRealTimers());
+
   describe('getEditionFrontData', () => {
     it('returns data for a valid edition', () => {
       const result = getEditionFrontData(mockSnapshot, 'uk');
@@ -118,6 +122,16 @@ describe('snapshot.ts', () => {
     it('returns all cluster slugs', () => {
       const slugs = getAllStorySlugs(mockSnapshot);
       expect(slugs).toEqual(['cluster-1', 'cluster-2', 'cluster-3']);
+    });
+  });
+
+  describe('getEditionStoryPaths', () => {
+    it('keeps a story under every edition that publishes it', () => {
+      expect(getEditionStoryPaths(mockSnapshot)).toEqual([
+        { edition: 'uk', slug: 'cluster-1' },
+        { edition: 'uk', slug: 'cluster-2' },
+        { edition: 'us', slug: 'cluster-1' },
+      ]);
     });
   });
 

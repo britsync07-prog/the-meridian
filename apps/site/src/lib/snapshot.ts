@@ -261,6 +261,15 @@ export function getAllStorySlugs(data: SnapshotData): string[] {
   return data.clusters.map((c) => c.slug);
 }
 
+/** Return edition-scoped permanent story routes from valid cluster membership. */
+export function getEditionStoryPaths(data: SnapshotData): { edition: string; slug: string }[] {
+  const clusters = new Map(data.clusters.map((cluster) => [cluster.id, cluster.slug]));
+  return data.edition_clusters.flatMap(({ edition_id, cluster_id }) => {
+    const slug = clusters.get(cluster_id);
+    return slug ? [{ edition: edition_id, slug }] : [];
+  });
+}
+
 /**
  * Return archive paths (edition + date) for editions that have stories on that date.
  */

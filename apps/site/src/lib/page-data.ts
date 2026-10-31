@@ -10,7 +10,7 @@ import { EDITIONS, SECTIONS } from '../../../../shared/config/editions.js';
 import { SITE_NAME } from '../../../../shared/config/site.js';
 export { EDITIONS, SECTIONS, SITE_NAME };
 import type { SnapshotData, SnapshotCluster, SnapshotImage, SnapshotStorySource } from './snapshot.js';
-import { loadSnapshot, getEditionFrontData, getSectionPageData as _getSectionPageData, getStoryPageData as _getStoryPageData, getAllStorySlugs as _getAllStorySlugs, getArchivePaths as _getArchivePaths, getEntityPaths } from './snapshot.js';
+import { loadSnapshot, getEditionFrontData, getSectionPageData as _getSectionPageData, getStoryPageData as _getStoryPageData, getAllStorySlugs as _getAllStorySlugs, getEditionStoryPaths as _getEditionStoryPaths, getArchivePaths as _getArchivePaths, getEntityPaths } from './snapshot.js';
 
 /* ------------------------------------------------------------------------- */
 /* Public interfaces (unchanged for page compatibility)                        */
@@ -308,17 +308,7 @@ export function getStoryPageData(slug: string, editionContext?: string): StoryPa
 /** Permanent story routes retain the edition from which the reader opened it. */
 export function getEditionStoryPaths(): { edition: string; slug: string }[] {
   const snapshot = getSnapshot();
-  if (!snapshot) return [];
-
-  const clusters = new Map(snapshot.clusters.map((cluster) => [cluster.id, cluster.slug]));
-  const paths = new Map<string, { edition: string; slug: string }>();
-  for (const membership of snapshot.edition_clusters) {
-    const slug = clusters.get(membership.cluster_id);
-    if (!slug) continue;
-    const key = `${membership.edition_id}:${slug}`;
-    paths.set(key, { edition: membership.edition_id, slug });
-  }
-  return [...paths.values()];
+  return snapshot ? _getEditionStoryPaths(snapshot) : [];
 }
 
 export function getAllStorySlugs(): string[] {
