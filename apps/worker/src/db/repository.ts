@@ -194,7 +194,7 @@ export interface Repository {
   /** Record one raw mention. */
   insertStory(row: StoryInsert): Promise<void>;
   /** Bulk insert normalized raw stories, ignoring duplicate external GUIDs. */
-  batchInsertStories(stories: readonly RawStoryInsert[]): Promise<number>;
+  batchInsertStories(stories: readonly RawStoryInsert[], options?: { includeImages?: boolean }): Promise<number>;
   /** The cluster with this slug, or null. */
   findClusterBySlug(slug: string): Promise<ClusterRow | null>;
   /** The outlets that covered a cluster, in display order. */
@@ -437,7 +437,7 @@ export function createRepository(env: MeridianEnv): Repository {
         .run();
     },
 
-    async batchInsertStories(stories: readonly RawStoryInsert[]): Promise<number> {
+    async batchInsertStories(stories: readonly RawStoryInsert[], options: { includeImages?: boolean } = {}): Promise<number> {
       if (stories.length === 0) return 0;
 
       const statement = db.prepare(
@@ -486,6 +486,8 @@ export function createRepository(env: MeridianEnv): Repository {
           }
         }
       }
+
+      if (options.includeImages === false) return totalInserted;
 
       for (const story of stories) {
         if (!story.imageUrl || !story.imageContentHash) continue;

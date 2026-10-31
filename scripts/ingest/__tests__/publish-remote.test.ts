@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { assertPublishableIngest, createRemoteD1Binding, isBootstrapLiveFetch, isCapturedFeedKey } from '../publish-remote.js';
+import { assertPublishableIngest, createRemoteD1Binding, createWranglerD1Binding, isBootstrapLiveFetch, isCapturedFeedKey } from '../publish-remote.js';
 
 describe('createRemoteD1Binding', () => {
   it('uses the D1 query API and returns result rows', async () => {
@@ -37,6 +37,35 @@ describe('createRemoteD1Binding', () => {
       { sql: 'INSERT INTO sources (slug) VALUES (?)', params: ['first'] },
       { sql: 'INSERT INTO sources (slug) VALUES (?)', params: ['second'] },
     ] }));
+  });
+});
+
+describe('createWranglerD1Binding', () => {
+  it('binds values before executing a CLI D1 statement', async () => {
+    const sql: string[] = [];
+    const binding = createWranglerD1Binding({ execute: (statement) => {
+      sql.push(statement);
+      return [{ success: true, results: [{ id: 7 }], meta: {} }];
+    } });
+
+    const result = await binding.prepare('SELECT id FROM stories WHERE headline = ? AND id = ?').bind("Today's news", 7).all<{ id: number }>();
+    expect(result.results).toEqual([{ id: 7 }]);
+    expect(sql).toEqual(["SELECT id FROM stories WHERE headline = 'Today''s news' AND id = 7"]);
+  });
+
+  it('splits oversized CLI batches without using Wrangler file mode', async () => {
+    const calls: string[] = [];
+    const binding = createWranglerD1Binding({ execute: (statement) => {
+      calls.push(statement);
+      return statement.split(';\n').map(() => ({ success: true, results: [], meta: {} }));
+    } });
+    const payload = `'${'x'.repeat(3_600)}'`;
+    await binding.batch([
+      binding.prepare(`INSERT INTO reports (data) VALUES (${payload})`),
+      binding.prepare(`INSERT INTO reports (data) VALUES (${payload})`),
+    ]);
+
+    expect(calls).toHaveLength(2);
   });
 });
 

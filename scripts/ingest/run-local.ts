@@ -124,6 +124,7 @@ export interface IngestRunOptions {
   capturedXmlBySource?: ReadonlyMap<string, string>;
   repo?: Repository;
   nowMs?: number;
+  includeImages?: boolean;
 }
 
 export interface IngestSummary {
@@ -247,7 +248,7 @@ export async function runLocalIngest(options: IngestRunOptions = {}): Promise<In
         imageContentHash: item.imageUrl ? createHash('sha256').update(item.imageUrl).digest('hex') : null,
       }));
 
-      const added = await repository.batchInsertStories(storyRows);
+      const added = await repository.batchInsertStories(storyRows, { includeImages: options.includeImages });
       storiesAdded += added;
     } catch (err) {
       errorsCount++;
