@@ -83,6 +83,34 @@ a:hover { color: var(--color-accent); }
 .site-footer { max-width: 84rem; display: flex; justify-content: space-between; gap: 1rem 3rem; margin: 0 auto 1.25rem; padding: 1rem clamp(1rem, 3vw, 2.5rem); background: var(--color-ink); color: #e7dfd0; font: .82rem/1.4 Arial, sans-serif; }
 
 .site-footer p { margin: 0; }
+.story-page { max-width: 60rem; margin: 0 auto; padding: clamp(2rem, 5vw, 4.5rem) 0 1rem; }
+.story-page-header { border-bottom: 4px solid var(--color-ink); padding-bottom: 1.4rem; }
+.story-page-title { max-width: 18ch; margin: 0; font: 700 clamp(2.35rem, 5.8vw, 5.2rem)/.98 var(--font-masthead); letter-spacing: -.052em; }
+.story-page-date { display: block; margin-top: 1rem; color: var(--color-muted); font: 700 .76rem/1.3 Arial, sans-serif; letter-spacing: .02em; }
+.story-page-body { padding-top: 1.4rem; }
+.story-page-meta { display: flex; flex-wrap: wrap; gap: .35rem .8rem; color: var(--color-muted); font: .82rem/1.35 Arial, sans-serif; }
+.story-page-summary { max-width: 52rem; margin: 1.6rem 0 2rem; color: #454139; font: 1.2rem/1.55 Arial, sans-serif; }
+.story-brief { margin: 2rem 0 2.7rem; border-top: 4px solid var(--color-ink); border-bottom: 1px solid var(--color-border); padding: 1rem 0 1.35rem; }
+.story-brief-label { margin: 0 0 .35rem; color: var(--color-accent); font: 700 .72rem/1 Arial, sans-serif; letter-spacing: .09em; text-transform: uppercase; }
+.story-brief h2 { margin-top: 0; border-top: 0; padding-top: 0; }
+.story-brief-introduction { max-width: 48rem; margin: 0; font: 1.08rem/1.55 Arial, sans-serif; }
+.story-brief-context { max-width: 52rem; margin: 1.25rem 0; border-left: 3px solid var(--color-accent); padding: .1rem 0 .1rem 1rem; color: #454139; }
+.story-brief-context p { margin: 0; font: 1.14rem/1.55 Georgia, serif; }
+.story-brief-context cite { display: block; margin-top: .55rem; color: var(--color-muted); font: .74rem/1.3 Arial, sans-serif; font-style: normal; }
+.story-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin: 1.3rem 0; }
+.story-facts div { border-top: 1px solid var(--color-border); padding-top: .5rem; }
+.story-facts dt { color: var(--color-muted); font: 700 .7rem/1.2 Arial, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.story-facts dd { margin: .3rem 0 0; font: .92rem/1.4 Arial, sans-serif; }
+.story-brief-coverage { margin: 0; font: .96rem/1.5 Arial, sans-serif; }
+.story-brief-disclosure { margin: .85rem 0 0; color: var(--color-muted); font: .76rem/1.4 Arial, sans-serif; }
+.story-page-body h2 { margin: 2.25rem 0 .8rem; border-top: 2px solid var(--color-ink); padding-top: .55rem; font: 700 clamp(1.35rem, 2.2vw, 1.85rem)/1 var(--font-masthead); letter-spacing: -.03em; }
+.story-page-sources { margin: 0; padding: 0; list-style: none; }
+.story-page-sources li { padding: .85rem 0; border-bottom: 1px solid var(--color-border); font: 600 1rem/1.4 Arial, sans-serif; }
+.story-page-sources a { text-decoration-thickness: 1px; }
+.story-page-entities { margin: 0; color: var(--color-muted); font: 1rem/1.5 Arial, sans-serif; }
+.story-page-related { margin-top: 2.75rem; }
+.story-page-related .story-item { border-bottom: 1px solid var(--color-border); }
+.story-page-related .story-item + .story-item { margin-top: 0; padding-top: 1.15rem; }
 .listing-header { margin: 1.8rem 0 1.5rem; border-bottom: 4px solid var(--color-ink); padding-bottom: 1rem; }
 .listing-header .story-kicker { margin-bottom: .35rem; }
 .listing-header h1 { margin: 0; font: 700 clamp(2.25rem, 5vw, 4.8rem)/.95 var(--font-masthead); letter-spacing: -.05em; }
@@ -109,6 +137,10 @@ textarea.reader-input { min-height: 6.5rem; resize: vertical; }
   .lead-story-image { aspect-ratio: 16 / 10; }
   .lead-story-headline { font-size: clamp(1.55rem, 6.8vw, 2.2rem); }
   .story-item-headline { font-size: 1.35rem; }
+  .story-page { padding-top: 2rem; }
+  .story-page-title { font-size: clamp(2rem, 10vw, 3rem); }
+  .story-page-summary { font-size: 1.08rem; }
+  .story-facts { grid-template-columns: 1fr; gap: .55rem; }
   .section-grid { column-count: 1; }
   .front-supplement { grid-template-columns: 1fr; gap: 0; }
   .reader-form { grid-template-columns: 1fr; }

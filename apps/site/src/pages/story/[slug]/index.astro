@@ -55,7 +55,7 @@ try {
   tags={data.topics}
   section={data.section}
 >
-  <div slot="body" class="mb-8">
+  <div slot="body" class="story-page-body">
     {data.image && (
       <>
         <MediaImage
@@ -70,24 +70,32 @@ try {
         {data.image.credit && <p class="text-caption text-muted -mt-4 mb-6">{data.image.credit}</p>}
       </>
     )}
-    <div class="flex flex-wrap gap-4 text-caption text-muted mb-6">
-      <span>Section: {data.sectionName}</span>
-      <time datetime={publishedDate}>Published: {publishedDate}</time>
+    <div class="story-page-meta">
+      <span>{data.edition === 'in-hi' ? `खंड: ${data.brief.sectionName}` : `Section: ${data.sectionName}`}</span>
+      <time datetime={publishedDate}>{data.edition === 'in-hi' ? `प्रकाशित: ${publishedDate}` : `Published: ${publishedDate}`}</time>
       {data.cluster.coverageCount > 0 && (
-        <span>{data.cluster.coverageCount} outlet{data.cluster.coverageCount > 1 ? 's' : ''} covering</span>
+        <span>{data.edition === 'in-hi' ? `${data.cluster.coverageCount} स्रोतों की कवरेज` : `${data.cluster.coverageCount} outlet${data.cluster.coverageCount > 1 ? 's' : ''} covering`}</span>
       )}
       {data.cluster.trendingScore > 9 && (
         <span class="text-accent font-medium">Trending ({data.cluster.trendingScore.toFixed(1)})</span>
       )}
     </div>
 
-    <div class="prose lg:prose-xl max-w-none">
-      <p class="text-deck text-muted mb-6">
-        {data.cluster.canonicalHeadline}
-      </p>
+    <div>
+      <section class="story-brief" aria-labelledby="meridian-brief">
+        <p class="story-brief-label">{data.brief.label}</p>
+        <h2 id="meridian-brief">{data.brief.heading}</h2>
+        <p class="story-brief-introduction">{data.brief.introduction}</p>
+        {data.brief.reportedContext && <blockquote class="story-brief-context"><p>{data.brief.reportedContext}</p><cite>{data.brief.contextAttribution}</cite></blockquote>}
+        <dl class="story-facts">
+          {data.brief.keyFacts.map((fact) => <div><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}
+        </dl>
+        <p class="story-brief-coverage">{data.brief.coverage}</p>
+        <p class="story-brief-disclosure">{data.brief.disclosure}</p>
+      </section>
 
-      <h2 class="font-masthead text-h2 font-bold italic mb-3">Original reporting</h2>
-      <ul class="mb-6">
+      <h2>{data.brief.sourceHeading}</h2>
+      <ul class="story-page-sources">
         {data.sources.map(source => (
           <li key={`${source.sourceId}-${source.rank}`} class="mb-2">
             <a href={source.url} class="text-ink no-underline hover:text-accent" target="_blank" rel="noopener">
@@ -98,14 +106,7 @@ try {
         ))}
       </ul>
 
-      <h2 class="font-masthead text-h2 font-bold italic mb-3">Entities Mentioned</h2>
-      <p class="text-deck text-muted mb-6">
-        {data.entities.join(', ') || 'No entities identified'}
-      </p>
-
-      <div class="mt-8">
-        <StoryList stories={data.relatedStories} edition={data.edition} />
-      </div>
+      {data.relatedStories.length > 0 && <section class="story-page-related" aria-labelledby="related-stories"><h2 id="related-stories">{data.edition === 'in-hi' ? `${data.brief.relatedPrefix} ${data.brief.sectionName}` : `${data.brief.relatedPrefix} ${data.sectionName} from this edition`}</h2><StoryList stories={data.relatedStories} edition={data.edition} /></section>}
     </div>
 
     {/* OPS-22/23: User affordances */}

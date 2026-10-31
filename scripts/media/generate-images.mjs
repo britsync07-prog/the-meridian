@@ -12,7 +12,9 @@ const outputDir = process.env.MEDIA_OUTPUT_DIR ?? join(root, 'dist', 'media');
 const widths = [480, 960, 1440];
 
 async function markImageReady(sourceUrl) {
-  const { CF_API_TOKEN, CF_ACCOUNT_ID, CF_D1_DATABASE_ID } = process.env;
+  const CF_API_TOKEN = process.env.CF_API_TOKEN ?? process.env.CLOUDFLARE_API_TOKEN;
+  const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID ?? process.env.CLOUDFLARE_ACCOUNT_ID;
+  const CF_D1_DATABASE_ID = process.env.CF_D1_DATABASE_ID ?? process.env.D1_DATABASE_ID;
   if (!CF_API_TOKEN && !CF_ACCOUNT_ID && !CF_D1_DATABASE_ID) return;
   if (!CF_API_TOKEN || !CF_ACCOUNT_ID || !CF_D1_DATABASE_ID) {
     throw new Error('CF_API_TOKEN, CF_ACCOUNT_ID, and CF_D1_DATABASE_ID must be set together to publish image readiness');
@@ -39,7 +41,12 @@ async function loadSnapshot() {
 async function main() {
   const snapshot = await loadSnapshot();
   await mkdir(outputDir, { recursive: true });
-  const images = snapshot.images ?? [];
+  const maxAgeHours = Number(process.env.MEDIA_MAX_AGE_HOURS ?? 96);
+  const cutoff = Date.now() - maxAgeHours * 60 * 60 * 1000;
+  const images = (snapshot.images ?? []).filter((image) => {
+    const publishedAt = Date.parse(image.published_at ?? '');
+    return Number.isNaN(publishedAt) || publishedAt >= cutoff;
+  });
   const manifest = [];
 
   async function generateImage(image) {
@@ -70,7 +77,7 @@ async function main() {
   }
   manifest.sort((a, b) => a.clusterId - b.clusterId);
   await writeFile(join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
-  console.log(`Generated ${manifest.length} image set(s) in ${outputDir}`);
+  console.log(`Generated ${manifest.length}/${images.length} current image set(s) in ${outputDir}`);
 }
 
 main().catch((error) => { console.error(error); process.exit(1); });

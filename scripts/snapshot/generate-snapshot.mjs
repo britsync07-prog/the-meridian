@@ -127,7 +127,7 @@ async function querySources(dbId) {
 async function queryEditionClusters(dbId) {
   return fetchD1Rows(
     `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
-    `SELECT edition_id, cluster_id FROM edition_clusters ORDER BY edition_id, cluster_id`
+    `SELECT edition_id, cluster_id, reason FROM edition_clusters ORDER BY edition_id, cluster_id`
   );
 }
 
@@ -180,9 +180,11 @@ async function queryImages(dbId) {
     : "images.status = 'ready'";
   return fetchD1Rows(
     `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${dbId}/query`,
-    `SELECT COALESCE(images.cluster_id, stories.cluster_id) AS cluster_id, images.source_url, images.alt_text, images.credit
+    `SELECT COALESCE(images.cluster_id, stories.cluster_id) AS cluster_id, images.source_url, images.alt_text, images.credit,
+            clusters.published_at
      FROM images
      LEFT JOIN stories ON stories.id = images.story_id
+     LEFT JOIN clusters ON clusters.id = COALESCE(images.cluster_id, stories.cluster_id)
      WHERE ${imageStatusFilter}
        AND COALESCE(images.cluster_id, stories.cluster_id) IS NOT NULL
      ORDER BY cluster_id`,
@@ -311,6 +313,7 @@ async function main() {
     edition_clusters: editionClusters.results.map((r) => ({
       edition_id: editionSlugById.get(r.edition_id),
       cluster_id: r.cluster_id,
+      reason: r.reason,
     })),
     cluster_sections: clusterSections.results.map((r) => ({
       cluster_id: r.cluster_id,
@@ -349,6 +352,7 @@ async function main() {
       source_url: r.source_url,
       alt_text: r.alt_text,
       credit: r.credit,
+      published_at: r.published_at,
       media_key: createHash('sha256').update(r.source_url).digest('hex'),
     })),
   };

@@ -8,6 +8,7 @@
 import type { EditionId, SectionId } from '../../../../shared/config/editions.js';
 import { EDITIONS, SECTIONS } from '../../../../shared/config/editions.js';
 import { SITE_NAME } from '../../../../shared/config/site.js';
+import { buildStoryBrief, type StoryBrief } from './story-brief.js';
 export { EDITIONS, SECTIONS, SITE_NAME };
 import type { SnapshotData, SnapshotCluster, SnapshotImage, SnapshotStorySource } from './snapshot.js';
 import { loadSnapshot, getEditionFrontData, getSectionPageData as _getSectionPageData, getStoryPageData as _getStoryPageData, getAllStorySlugs as _getAllStorySlugs, getEditionStoryPaths as _getEditionStoryPaths, getArchivePaths as _getArchivePaths, getEntityPaths } from './snapshot.js';
@@ -81,6 +82,7 @@ export interface StoryPageData {
   sectionName: string;
   topics: string[];
   entities: string[];
+  brief: StoryBrief;
   relatedStories: PageStory[];
 }
 
@@ -89,11 +91,13 @@ export interface StoryPageData {
 /* ------------------------------------------------------------------------- */
 
 let _snapshot: SnapshotData | null = null;
+let _storyMap: Map<string, PageStory> | null = null;
 
 /** Pre-load the snapshot so synchronous accessors work in Astro pages. */
 export async function loadPageSnapshot(): Promise<void> {
   if (!_snapshot) {
     _snapshot = await loadSnapshot();
+    _storyMap = null;
   }
 }
 
@@ -174,6 +178,11 @@ function buildStoryMap(snapshot: SnapshotData): Map<string, PageStory> {
   return map;
 }
 
+function getStoryMap(snapshot: SnapshotData): Map<string, PageStory> {
+  _storyMap ??= buildStoryMap(snapshot);
+  return _storyMap;
+}
+
 /* ------------------------------------------------------------------------- */
 /* Public API (same signatures as before — pages unchanged)                   */
 /* ------------------------------------------------------------------------- */
@@ -194,7 +203,7 @@ export function getFrontPageData(edition: string): FrontPageData | null {
   const frontData = getEditionFrontData(snapshot, edition);
   if (!frontData) return null;
 
-  const storyMap = buildStoryMap(snapshot);
+  const storyMap = getStoryMap(snapshot);
   const clusters = frontData.clusters;
   const stories = clusters.map(c => {
     return storyMap.get(storyKey(editionId, c.id))
@@ -210,7 +219,7 @@ export function getFrontPageData(edition: string): FrontPageData | null {
   return {
     edition: editionId,
     date: new Date().toISOString().split('T')[0],
-    leadStory: prominent[0] || stories[0] || null,
+    leadStory: prominent.find((story) => story.image) ?? stories.find((story) => story.image) ?? prominent[0] ?? stories[0] ?? null,
     secondaryStories: stories.filter(s => s.cluster.coverageCount >= 2).slice(0, 6),
     sectionStories,
     mostCovered: [...stories].sort((a, b) => b.cluster.coverageCount - a.cluster.coverageCount).slice(0, 10),
@@ -228,13 +237,17 @@ export function getSectionPageData(edition: string, section: string): SectionPag
   const secData = _getSectionPageData(snapshot, edition, section);
   if (!secData) return null;
 
-  const storyMap = buildStoryMap(snapshot);
+  const storyMap = getStoryMap(snapshot);
   const stories: PageStory[] = secData.clusters.map(c => {
     return storyMap.get(storyKey(editionId, c.id))
       ?? { cluster: toPageCluster(c), sources: [], section: secData.section as SectionId, edition: editionId };
   });
 
-  const leadStory = stories.find(s => s.cluster.isProminent) ?? stories[0] ?? null;
+  const leadStory = stories.find((story) => story.cluster.isProminent && story.image)
+    ?? stories.find((story) => story.image)
+    ?? stories.find((story) => story.cluster.isProminent)
+    ?? stories[0]
+    ?? null;
   const rest = stories.filter(s => s !== leadStory);
   const sectionName = snapshot.sections.find(s => s.id === section)?.name ?? section;
 
@@ -261,19 +274,30 @@ export function getStoryPageData(slug: string, editionContext?: string): StoryPa
 
   const cluster = toPageCluster(storyData.cluster);
   const sources = toPageSources(storyData.cluster.id, storyData.sources);
+  const edition = editionContext && snapshot.edition_clusters.some((item) =>
+    item.edition_id === editionContext && item.cluster_id === storyData.cluster.id,
+  )
+    ? editionContext as EditionId
+    : snapshot.edition_clusters.find((item) => item.cluster_id === storyData.cluster.id)?.edition_id as EditionId | undefined;
 
-  // Build related stories from same section
-  const allSlugs = _getAllStorySlugs(snapshot);
+  // Related stories must remain in the edition the reader opened.
   const sectionMap = new Map<number, string>();
   for (const cs of snapshot.cluster_sections) sectionMap.set(cs.cluster_id, cs.section_id);
 
-  const relatedSlugs = allSlugs
-    .filter(s => s !== slug)
-    .slice(0, 5);
+  const relatedCandidates = snapshot.edition_clusters
+    .filter((item) => item.edition_id === edition && item.cluster_id !== storyData.cluster.id)
+    .filter((item) => item.reason !== 'gazetteer' && item.reason !== 'wire')
+    .map((item) => item.cluster_id);
+  const relatedIds = [
+    ...relatedCandidates.filter((id) => sectionMap.get(id) === storyData.section),
+    ...relatedCandidates.filter((id) => sectionMap.get(id) !== storyData.section),
+  ].slice(0, 5);
 
   const relatedStories: PageStory[] = [];
-  for (const rs of relatedSlugs) {
-    const rd = _getStoryPageData(snapshot, rs);
+  for (const relatedId of relatedIds) {
+    const relatedCluster = snapshot.clusters.find((item) => item.id === relatedId);
+    if (!relatedCluster) continue;
+    const rd = _getStoryPageData(snapshot, relatedCluster.slug);
     if (rd) {
       relatedStories.push({
         cluster: toPageCluster(rd.cluster),
@@ -286,21 +310,24 @@ export function getStoryPageData(slug: string, editionContext?: string): StoryPa
   }
 
   const sectionName = snapshot.sections.find(s => s.id === storyData.section)?.name ?? '';
-  const edition = editionContext && snapshot.edition_clusters.some((item) =>
-    item.edition_id === editionContext && item.cluster_id === storyData.cluster.id,
-  )
-    ? editionContext as EditionId
-    : snapshot.edition_clusters.find((item) => item.cluster_id === storyData.cluster.id)?.edition_id as EditionId | undefined;
-
+  const resolvedEdition = edition ?? snapshot.edition_clusters.find((item) => item.cluster_id === storyData.cluster.id)?.edition_id as EditionId ?? 'uk';
   return {
     slug,
-    edition: edition ?? snapshot.edition_clusters.find((item) => item.cluster_id === storyData.cluster.id)?.edition_id as EditionId ?? 'uk',
+    edition: resolvedEdition,
     cluster,
     sources,
     section: (storyData.section as SectionId) ?? 'general',
     sectionName,
     topics: storyData.topics,
     entities: storyData.entities,
+    brief: buildStoryBrief({
+      sectionName,
+      publishedAt: cluster.publishedAt,
+      excerpt: cluster.canonicalExcerpt,
+      entities: storyData.entities,
+      sources,
+      language: resolvedEdition === 'in-hi' ? 'hi' : 'en',
+    }),
     relatedStories,
   };
 }
@@ -314,6 +341,30 @@ export function getEditionStoryPaths(): { edition: string; slug: string }[] {
 export function getAllStorySlugs(): string[] {
   const snapshot = getSnapshot();
   return snapshot ? _getAllStorySlugs(snapshot) : [];
+}
+
+/** Entity listings only need compact cards, not every story page's related-story work. */
+export function getEntityStories(entitySlug: string): PageStory[] {
+  const snapshot = getSnapshot();
+  if (!snapshot) return [];
+  const entity = snapshot.entities.find((item) => item.slug === entitySlug);
+  if (!entity) return [];
+
+  const clusterIds = new Set(
+    snapshot.cluster_entities.filter((item) => item.entity_id === entity.id).map((item) => item.cluster_id),
+  );
+  const storyMap = getStoryMap(snapshot);
+  const seen = new Set<number>();
+  const stories: PageStory[] = [];
+  for (const membership of snapshot.edition_clusters) {
+    if (!clusterIds.has(membership.cluster_id) || seen.has(membership.cluster_id)) continue;
+    const story = storyMap.get(storyKey(membership.edition_id, membership.cluster_id));
+    if (story) {
+      stories.push(story);
+      seen.add(membership.cluster_id);
+    }
+  }
+  return stories;
 }
 
 export function getAllSectionPaths(): { edition: string; section: string }[] {

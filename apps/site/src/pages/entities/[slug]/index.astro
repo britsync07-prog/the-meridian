@@ -1,7 +1,7 @@
 ---
 import TopicEntityLayout from '../../../layouts/TopicEntityLayout.astro';
 import StoryItem from '../../../components/StoryItem.astro';
-import { getAllStorySlugs, getStoryPageData } from '../../../lib/page-data.ts';
+import { getEntityStories } from '../../../lib/page-data.ts';
 
 export function getStaticPaths() {
   const entities = ['bbc', 'guardian', 'reuters', 'wsj', 'abc-au', 'cnbc', 'cbc', 'globe', 'ndtv', 'irishtimes'];
@@ -18,11 +18,7 @@ interface Props {
 const { slug } = Astro.props;
 
 // Collect stories from this entity
-const allSlugs = getAllStorySlugs();
-const entityStories = allSlugs
-  .map(s => getStoryPageData(s))
-  .filter((s): s is NonNullable<typeof s> => s !== null)
-  .filter(s => s.entities.includes(slug));
+const entityStories = getEntityStories(slug);
 
 const entityName = slug.charAt(0).toUpperCase() + slug.slice(1);
 const today = new Date().toISOString().split('T')[0];

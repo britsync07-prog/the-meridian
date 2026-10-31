@@ -36,27 +36,36 @@ const storyDescription = data?.sources.length
   tags={data.topics}
   section={data.section}
 >
-  <div slot="body" class="mb-8">
+  <div slot="body" class="story-page-body">
     {data.image && (
       <>
         <MediaImage src={data.image.src} srcset={data.image.srcset} alt={data.image.alt} width={1200} height={675} priority={true} class="w-full h-auto object-cover mb-6" />
         {data.image.credit && <p class="text-caption text-muted -mt-4 mb-6">{data.image.credit}</p>}
       </>
     )}
-    <div class="flex flex-wrap gap-4 text-caption text-muted mb-6">
-      <span>{data.sectionName}</span>
-      <time datetime={publishedDate}>Published: {publishedDate}</time>
-      {data.cluster.coverageCount > 0 && <span>{data.cluster.coverageCount} reporting outlet{data.cluster.coverageCount === 1 ? '' : 's'}</span>}
+    <div class="story-page-meta">
+      <span>{data.brief.sectionName}</span>
+      <time datetime={publishedDate}>{data.edition === 'in-hi' ? `प्रकाशित: ${publishedDate}` : `Published: ${publishedDate}`}</time>
+      {data.cluster.coverageCount > 0 && <span>{data.edition === 'in-hi' ? `${data.cluster.coverageCount} स्रोत` : `${data.cluster.coverageCount} reporting outlet${data.cluster.coverageCount === 1 ? '' : 's'}`}</span>}
     </div>
-    {data.cluster.canonicalExcerpt && <p class="text-deck text-muted mb-6">{data.cluster.canonicalExcerpt}</p>}
-    <h2 class="font-masthead text-h2 font-bold italic mb-3">Original reporting</h2>
-    <ul class="mb-6">
+    <section class="story-brief" aria-labelledby="meridian-brief">
+      <p class="story-brief-label">{data.brief.label}</p>
+      <h2 id="meridian-brief">{data.brief.heading}</h2>
+      <p class="story-brief-introduction">{data.brief.introduction}</p>
+      {data.brief.reportedContext && <blockquote class="story-brief-context"><p>{data.brief.reportedContext}</p><cite>{data.brief.contextAttribution}</cite></blockquote>}
+      <dl class="story-facts">
+        {data.brief.keyFacts.map((fact) => <div><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}
+      </dl>
+      <p class="story-brief-coverage">{data.brief.coverage}</p>
+      <p class="story-brief-disclosure">{data.brief.disclosure}</p>
+    </section>
+    <h2>{data.brief.sourceHeading}</h2>
+    <ul class="story-page-sources">
       {data.sources.map((source) => (
         <li class="mb-2"><a href={source.url} class="text-ink no-underline hover:text-accent" target="_blank" rel="noopener">{source.sourceName} — {source.headline}</a></li>
       ))}
     </ul>
-    {data.entities.length > 0 && <><h2 class="font-masthead text-h2 font-bold italic mb-3">People and places</h2><p class="text-deck text-muted mb-6">{data.entities.join(', ')}</p></>}
-    <div class="mt-8"><StoryList stories={data.relatedStories} edition={edition} /></div>
+    {data.relatedStories.length > 0 && <section class="story-page-related" aria-labelledby="related-stories"><h2 id="related-stories">{data.edition === 'in-hi' ? `${data.brief.relatedPrefix} ${data.brief.sectionName}` : `${data.brief.relatedPrefix} ${data.sectionName} from this edition`}</h2><StoryList stories={data.relatedStories} edition={edition} /></section>}
     <FlagSource storySlug={slug} />
     <ReportError storySlug={slug} />
   </div>

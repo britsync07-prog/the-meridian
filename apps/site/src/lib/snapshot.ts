@@ -60,6 +60,7 @@ export interface SnapshotImage {
   source_url: string;
   alt_text: string | null;
   credit: string | null;
+  published_at?: string;
   media_key: string;
 }
 
@@ -70,7 +71,7 @@ export interface SnapshotData {
   sections: SnapshotSection[];
   clusters: SnapshotCluster[];
   story_sources: SnapshotStorySource[];
-  edition_clusters: { edition_id: string; cluster_id: number }[];
+  edition_clusters: { edition_id: string; cluster_id: number; reason?: string }[];
   cluster_sections: { cluster_id: number; section_id: string; confidence: number; method: string }[];
   cluster_topics: { cluster_id: number; topic_id: number }[];
   cluster_entities: { cluster_id: number; entity_id: number; is_primary: boolean; weight: number }[];
@@ -170,6 +171,30 @@ function buildEntityMap(
   return map;
 }
 
+interface SnapshotIndexes {
+  clustersBySlug: Map<string, SnapshotCluster>;
+  sourcesByCluster: Map<number, SnapshotStorySource[]>;
+  sectionsByCluster: Map<number, string>;
+  topicsByCluster: Map<number, string[]>;
+  entitiesByCluster: Map<number, string[]>;
+}
+
+const snapshotIndexes = new WeakMap<SnapshotData, SnapshotIndexes>();
+
+function getIndexes(data: SnapshotData): SnapshotIndexes {
+  const existing = snapshotIndexes.get(data);
+  if (existing) return existing;
+  const indexes = {
+    clustersBySlug: new Map(data.clusters.map((cluster) => [cluster.slug, cluster])),
+    sourcesByCluster: buildSourceMap(data.story_sources),
+    sectionsByCluster: buildSectionMap(data.cluster_sections),
+    topicsByCluster: buildTopicMap(data.cluster_topics, data.topics),
+    entitiesByCluster: buildEntityMap(data.cluster_entities, data.entities),
+  };
+  snapshotIndexes.set(data, indexes);
+  return indexes;
+}
+
 /** Get edition ID from slug. */
 function getEditionId(data: SnapshotData, edition: string): string | null {
   return data.editions.find((e) => e.slug === edition)?.id ?? null;
@@ -237,20 +262,16 @@ export function getStoryPageData(
   data: SnapshotData,
   slug: string,
 ): { cluster: SnapshotCluster; sources: SnapshotStorySource[]; section?: string; topics: string[]; entities: string[] } | null {
-  const cluster = data.clusters.find((c) => c.slug === slug);
+  const indexes = getIndexes(data);
+  const cluster = indexes.clustersBySlug.get(slug);
   if (!cluster) return null;
-
-  const sourceMap = buildSourceMap(data.story_sources);
-  const sectionMap = buildSectionMap(data.cluster_sections);
-  const topicMap = buildTopicMap(data.cluster_topics, data.topics);
-  const entityMap = buildEntityMap(data.cluster_entities, data.entities);
 
   return {
     cluster,
-    sources: sourceMap.get(cluster.id) ?? [],
-    section: sectionMap.get(cluster.id),
-    topics: topicMap.get(cluster.id) ?? [],
-    entities: entityMap.get(cluster.id) ?? [],
+    sources: indexes.sourcesByCluster.get(cluster.id) ?? [],
+    section: indexes.sectionsByCluster.get(cluster.id),
+    topics: indexes.topicsByCluster.get(cluster.id) ?? [],
+    entities: indexes.entitiesByCluster.get(cluster.id) ?? [],
   };
 }
 

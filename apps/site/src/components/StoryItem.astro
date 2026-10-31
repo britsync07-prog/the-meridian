@@ -11,6 +11,7 @@ const { story, edition, isSecondary = false } = Astro.props;
 const { cluster, sources } = story;
 const publishedDate = new Date(cluster.publishedAt).toISOString().split('T')[0];
 const primarySource = sources[0];
+const isHindi = edition === 'in-hi';
 ---
 
 <article class:list={['story-item', { 'story-item-compact': isSecondary }]}>
@@ -23,13 +24,13 @@ const primarySource = sources[0];
     <p class="story-meta">
       <span>{primarySource.sourceName}</span>
       <time datetime={publishedDate}>{publishedDate}</time>
-      <span>{cluster.coverageCount} outlet{cluster.coverageCount === 1 ? '' : 's'}</span>
+      <span>{isHindi ? `${cluster.coverageCount} स्रोत` : `${cluster.coverageCount} outlet${cluster.coverageCount === 1 ? '' : 's'}`}</span>
     </p>
   )}
   {cluster.canonicalExcerpt && <p class="story-item-deck">{cluster.canonicalExcerpt}</p>}
   {cluster.trendingScore > 9 && (
     <span class="story-trending">
-      Trending
+      {isHindi ? 'ट्रेंडिंग' : 'Trending'}
     </span>
   )}
 </article>
