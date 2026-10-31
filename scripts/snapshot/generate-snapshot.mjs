@@ -35,16 +35,36 @@ function requireEnv(name) {
   return value;
 }
 
-const CF_API_TOKEN = requireEnv('CF_API_TOKEN');
-const CF_ACCOUNT_ID = requireEnv('CF_ACCOUNT_ID');
-const DB_ID = requireEnv('CF_D1_DATABASE_ID');
-const R2_BUCKET = requireEnv('R2_BUCKET_NAME');
+const CF_API_TOKEN = process.env.CF_API_TOKEN;
+const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
+const DB_ID = process.env.CF_D1_DATABASE_ID;
+const R2_BUCKET = process.env.R2_BUCKET_NAME ?? 'meridian';
+const USE_API_TOKEN = Boolean(CF_API_TOKEN || CF_ACCOUNT_ID || DB_ID);
+
+if (USE_API_TOKEN && (!CF_API_TOKEN || !CF_ACCOUNT_ID || !DB_ID)) {
+  requireEnv('CF_API_TOKEN');
+  requireEnv('CF_ACCOUNT_ID');
+  requireEnv('CF_D1_DATABASE_ID');
+}
 
 // ---------------------------------------------------------------------------
 // D1 snapshot queries (direct SQL — this script runs in CI, not on Worker)
 // ---------------------------------------------------------------------------
 
 async function fetchD1Rows(endpoint, sql, params = []) {
+  if (!USE_API_TOKEN) {
+    if (params.length) throw new Error('Wrangler D1 fallback does not support bound query parameters');
+    const result = spawnSync(
+      process.execPath,
+      [WRANGLER, 'd1', 'execute', 'meridian', '--remote', '--json', '--command', sql],
+      { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+    );
+    if (result.status !== 0) throw new Error(result.stderr || result.stdout || `wrangler exited ${result.status}`);
+    const [output] = JSON.parse(result.stdout);
+    if (!output?.success) throw new Error(`D1 error: ${JSON.stringify(output?.error ?? output?.errors)}`);
+    return output;
+  }
+
   const body = JSON.stringify({ sql, params });
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -194,6 +214,7 @@ async function uploadToR2(bucket, key, body) {
 async function writeManifest(manifest) {
   const manifestPath = path.join(REPO_ROOT, 'scripts', 'snapshot', 'latest.json');
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+  return manifestPath;
 }
 
 function writeLocalSnapshot(snapshot) {
@@ -356,9 +377,13 @@ async function main() {
     compressed_length: compressed.length,
     cluster_count: snapshot.clusters.length,
   };
-  await writeManifest(manifest);
+  const manifestPath = await writeManifest(manifest);
   try {
-    await uploadToR2(R2_BUCKET, 'snapshot/latest.json', JSON.stringify(manifest, null, 2));
+    if (USE_API_TOKEN) {
+      await uploadToR2(R2_BUCKET, 'snapshot/latest.json', JSON.stringify(manifest, null, 2));
+    } else {
+      uploadSnapshotToR2(R2_BUCKET, 'snapshot/latest.json', manifestPath);
+    }
     console.log('Manifest uploaded to R2: snapshot/latest.json');
   } catch (err) {
     console.warn('Warning: Could not upload manifest to R2:', err.message);

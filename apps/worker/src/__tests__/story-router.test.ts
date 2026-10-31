@@ -10,6 +10,15 @@ function bucket() {
 }
 
 describe('handleStoryRequest', () => {
+  it('uses a freshly deployed static story before an older R2 copy', async () => {
+    const response = await handleStoryRequest(new Request('https://example.test/story/example/'), {
+      R2: bucket(),
+      ASSETS: { fetch: async () => new Response('<h1>Fresh story</h1>') },
+    } as never);
+
+    expect(await response.text()).toContain('Fresh story');
+  });
+
   it('serves the trailing-slash URL from the uploader key', async () => {
     const response = await handleStoryRequest(new Request('https://example.test/story/example/'), { R2: bucket() } as never);
 
