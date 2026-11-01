@@ -43,7 +43,7 @@ export function buildRssFeed(
         .filter((ec) => ec.edition_id === editionId)
         .map((ec) => ec.cluster_id),
     );
-    const sourcesMap = new Map(snapshot.sources?.map((s) => [s.slug ?? s.source_id, s]) ?? []);
+    const sourcesMap = new Map(snapshot.sources?.map((s) => [s.slug, s]) ?? []);
     clusters = clusters.filter((c) => {
       if (!clusterIds.has(c.id)) return false;
       if (sourcesMap.size === 0) return true;
