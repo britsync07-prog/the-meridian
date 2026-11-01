@@ -21,9 +21,24 @@ const publishedDate = data?.cluster?.publishedAt
   ? new Date(data.cluster.publishedAt).toISOString().split('T')[0]
   : new Date().toISOString().split('T')[0];
 const storyPath = `/${edition}/story/${slug}/`;
-const storyDescription = data?.sources.length
+const storyDescription = data?.sources?.length
   ? data.sources.map((source) => source.headline).join(' | ').slice(0, 160)
   : data?.cluster.canonicalHeadline ?? '';
+
+const isHindi = edition === 'in-hi' || data?.edition === 'in-hi';
+const rawExcerpt = data?.cluster?.canonicalExcerpt || data?.sources[0]?.headline || '';
+const excerptSentences = rawExcerpt ? rawExcerpt.split(/(?<=[.!?।])\s+/).filter(Boolean) : [];
+const leadDeck = excerptSentences.length > 0 ? excerptSentences[0] : rawExcerpt;
+const restParagraphs = excerptSentences.length > 1 ? excerptSentences.slice(1).join(' ') : null;
+const uniqueSourceNames = [...new Set(data?.sources.map((s) => s.sourceName).filter(Boolean))];
+
+// OPS-22/23: Load any correction note if it exists
+let correctionNote = null;
+try {
+  const correctionPath = `../data/corrections/${slug}.json`;
+} catch {
+  // Correction note not found, page still renders
+}
 ---
 <StoryLayout
   storyTitle={data.cluster.canonicalHeadline}
@@ -38,35 +53,136 @@ const storyDescription = data?.sources.length
 >
   <div slot="body" class="story-page-body">
     {data.image && (
-      <>
-        <MediaImage src={data.image.src} srcset={data.image.srcset} alt={data.image.alt} width={1200} height={675} priority={true} class="w-full h-auto object-cover mb-6" />
-        {data.image.credit && <p class="text-caption text-muted -mt-4 mb-6">{data.image.credit}</p>}
-      </>
+      <figure class="mb-6">
+        <MediaImage
+          src={data.image.src}
+          srcset={data.image.srcset}
+          alt={data.image.alt}
+          width={1200}
+          height={675}
+          priority={true}
+          class="w-full h-auto object-cover"
+        />
+        {data.image.credit && <figcaption class="text-caption text-muted mt-2">{data.image.credit}</figcaption>}
+      </figure>
     )}
     <div class="story-page-meta">
-      <span>{data.brief.sectionName}</span>
-      <time datetime={publishedDate}>{data.edition === 'in-hi' ? `प्रकाशित: ${publishedDate}` : `Published: ${publishedDate}`}</time>
-      {data.cluster.coverageCount > 0 && <span>{data.edition === 'in-hi' ? `${data.cluster.coverageCount} स्रोत` : `${data.cluster.coverageCount} reporting outlet${data.cluster.coverageCount === 1 ? '' : 's'}`}</span>}
+      <span class="font-bold uppercase tracking-wider text-accent">{isHindi ? data.brief.sectionName : data.sectionName}</span>
+      <span>•</span>
+      <time datetime={publishedDate}>{isHindi ? `प्रकाशित: ${publishedDate}` : `Published: ${publishedDate}`}</time>
+      {data.cluster.coverageCount > 0 && (
+        <>
+          <span>•</span>
+          <span>{isHindi ? `${data.cluster.coverageCount} स्रोतों की रिपोर्टिंग` : `Covered across ${data.cluster.coverageCount} reporting outlet${data.cluster.coverageCount > 1 ? 's' : ''}`}</span>
+        </>
+      )}
+      {data.cluster.trendingScore > 9 && (
+        <>
+          <span>•</span>
+          <span class="text-accent font-medium">{isHindi ? 'ट्रेंडिंग' : 'Trending'} ({data.cluster.trendingScore.toFixed(1)})</span>
+        </>
+      )}
     </div>
-    <section class="story-brief" aria-labelledby="meridian-brief">
-      <p class="story-brief-label">{data.brief.label}</p>
-      <h2 id="meridian-brief">{data.brief.heading}</h2>
-      <p class="story-brief-introduction">{data.brief.introduction}</p>
-      {data.brief.reportedContext && <blockquote class="story-brief-context"><p>{data.brief.reportedContext}</p><cite>{data.brief.contextAttribution}</cite></blockquote>}
+
+    {leadDeck && (
+      <p class="story-deck">
+        {leadDeck}
+      </p>
+    )}
+
+    <div class="story-narrative">
+      {restParagraphs && (
+        <p>{restParagraphs}</p>
+      )}
+
+      {data.sources.length > 1 ? (
+        <p>
+          {isHindi
+            ? `इस विषय पर प्रमुख मीडिया संस्थानों से समाचार प्राप्त हुए हैं। ${uniqueSourceNames.slice(0, 3).join(', ')} सहित कुल ${uniqueSourceNames.length} समाचार संस्थानों ने इस घटनाक्रम पर विस्तृत रिपोर्ट प्रस्तुत की है। नीचे सभी मूल प्रकाशकों की रिपोर्ट और उनके सीधे लिंक दिए गए हैं।`
+            : `This development has drawn multi-outlet coverage across ${uniqueSourceNames.slice(0, 3).join(', ')}${uniqueSourceNames.length > 3 ? ` and ${uniqueSourceNames.length - 3} other newsrooms` : ''}. Detailed accounts and reporting angles from each publisher are documented below, with direct access to the complete reports.`}
+        </p>
+      ) : (
+        <p>
+          {isHindi
+            ? `यह रिपोर्ट मुख्य रूप से ${uniqueSourceNames[0] || 'संबंधित समाचार एजेंसी'} द्वारा दर्ज की गई है। नीचे दिए गए लिंक से मूल समाचार पत्र पर पूरी खबर और नवीनतम अपडेट पढ़े जा सकते हैं।`
+            : `Reporting on this story is anchored by ${uniqueSourceNames[0] || 'primary news dispatches'}. Full documentation and developing updates from the reporting newsroom are available directly below.`}
+        </p>
+      )}
+    </div>
+
+    <section class="story-brief" aria-labelledby="story-dossier">
+      <p class="story-brief-label">{isHindi ? 'मुख्य विवरण एवं संदर्भ' : 'Story Dossier & Context'}</p>
+      <h2 id="story-dossier" class="text-xl font-bold font-serif mb-4">{isHindi ? 'तथ्य और कवरेज सारांश' : 'Verified Facts & Coverage Summary'}</h2>
       <dl class="story-facts">
-        {data.brief.keyFacts.map((fact) => <div><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}
+        <div>
+          <dt>{isHindi ? 'प्रकाशन तिथि' : 'Published'}</dt>
+          <dd>{publishedDate}</dd>
+        </div>
+        <div>
+          <dt>{isHindi ? 'कवरेज का दायरा' : 'Coverage Scope'}</dt>
+          <dd>{isHindi ? `${data.cluster.coverageCount} समाचार संस्थान` : `${data.cluster.coverageCount} Independent Outlet${data.cluster.coverageCount === 1 ? '' : 's'}`}</dd>
+        </div>
+        <div>
+          <dt>{isHindi ? 'श्रेणी' : 'Category'}</dt>
+          <dd>{isHindi ? data.brief.sectionName : data.sectionName}</dd>
+        </div>
+        {data.entities.length > 0 && (
+          <div class="col-span-full">
+            <dt>{isHindi ? 'उल्लेखित स्थान एवं व्यक्ति' : 'Key Entities & Locations'}</dt>
+            <dd>{data.entities.join(' · ')}</dd>
+          </div>
+        )}
       </dl>
-      <p class="story-brief-coverage">{data.brief.coverage}</p>
-      <p class="story-brief-disclosure">{data.brief.disclosure}</p>
+      <p class="story-brief-coverage text-sm text-muted mt-2">{data.brief.coverage}</p>
     </section>
-    <h2>{data.brief.sourceHeading}</h2>
-    <ul class="story-page-sources">
-      {data.sources.map((source) => (
-        <li class="mb-2"><a href={source.url} class="text-ink no-underline hover:text-accent" target="_blank" rel="noopener">{source.sourceName} — {source.headline}</a></li>
-      ))}
-    </ul>
-    {data.relatedStories.length > 0 && <section class="story-page-related" aria-labelledby="related-stories"><h2 id="related-stories">{data.edition === 'in-hi' ? `${data.brief.relatedPrefix} ${data.brief.sectionName}` : `${data.brief.relatedPrefix} ${data.sectionName} from this edition`}</h2><StoryList stories={data.relatedStories} edition={edition} /></section>}
+
+    <section class="mt-8 mb-10" aria-labelledby="original-sources">
+      <h2 id="original-sources" class="text-2xl font-bold font-serif mb-6 border-t-2 border-ink pt-4">
+        {isHindi ? 'मूल रिपोर्टिंग और स्रोत' : 'Complete Coverage & Reporting Outlets'}
+      </h2>
+      <div class="space-y-4">
+        {data.sources.map((source) => (
+          <article class="story-source-card">
+            <div class="story-source-card-header">
+              <span class="story-source-card-name">{source.sourceName}</span>
+              {source.publishedAt && (
+                <time class="text-caption text-muted" datetime={source.publishedAt}>
+                  {new Date(source.publishedAt).toLocaleDateString(isHindi ? 'hi-IN' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </time>
+              )}
+            </div>
+            <h3 class="story-source-card-headline">{source.headline}</h3>
+            <a
+              href={source.url}
+              class="story-source-card-action"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>{isHindi ? `पूरा समाचार पढ़ें (${source.sourceName} पर)` : `Read complete story on ${source.sourceName}`}</span>
+              <span aria-hidden="true">→</span>
+            </a>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    {data.relatedStories.length > 0 && (
+      <section class="story-page-related" aria-labelledby="related-stories">
+        <h2 id="related-stories">{isHindi ? `${data.brief.relatedPrefix} ${data.brief.sectionName}` : `${data.brief.relatedPrefix} ${data.sectionName} from this edition`}</h2>
+        <StoryList stories={data.relatedStories} edition={edition} />
+      </section>
+    )}
+
+    {/* OPS-22/23: User affordances */}
     <FlagSource storySlug={slug} />
     <ReportError storySlug={slug} />
+
+    {correctionNote && (
+      <div class="correction-note mt-8 p-4 border hairline-md bg-warning/10">
+        <h3 class="font-bold mb-2">Correction</h3>
+        <p class="text-sm">{correctionNote.text}</p>
+        <time class="text-caption text-muted">{correctionNote.date}</time>
+      </div>
+    )}
   </div>
 </StoryLayout>

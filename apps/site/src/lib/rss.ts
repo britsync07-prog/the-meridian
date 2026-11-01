@@ -35,14 +35,26 @@ export function buildRssFeed(
   // Filter clusters
   let clusters = snapshot.clusters;
   if (edition) {
-    const editionId = snapshot.editions.find((e) => e.slug === edition)?.id;
-    if (!editionId) return '';
+    const editionObj = snapshot.editions.find((e) => e.slug === edition || e.id === edition);
+    if (!editionObj) return '';
+    const editionId = editionObj.id;
     const clusterIds = new Set(
       snapshot.edition_clusters
         .filter((ec) => ec.edition_id === editionId)
         .map((ec) => ec.cluster_id),
     );
-    clusters = clusters.filter((c) => clusterIds.has(c.id));
+    const sourcesMap = new Map(snapshot.sources?.map((s) => [s.slug ?? s.source_id, s]) ?? []);
+    clusters = clusters.filter((c) => {
+      if (!clusterIds.has(c.id)) return false;
+      if (sourcesMap.size === 0) return true;
+      const storySources = snapshot.story_sources.filter((ss) => ss.cluster_id === c.id);
+      if (storySources.length === 0) return true;
+      return storySources.some((ss) => {
+        const src = sourcesMap.get(ss.source_id);
+        if (!src) return false;
+        return src.country_code === editionObj.country_code && src.language === editionObj.language;
+      });
+    });
   }
 
   if (section) {

@@ -421,21 +421,55 @@ async function main() {
       return true;
     });
 
-  // Ensure every cluster has at least one edition mapping
-  const clustersWithEditions = new Set(snapshot.edition_clusters.map((ec) => ec.cluster_id));
+  // Strict edition matching: enforce geographic isolation so stories only appear in editions where their sources originate
+  const countryToEdition = {
+    'gb': 'uk',
+    'uk': 'uk',
+    'us': 'us',
+    'au': 'au',
+    'ca': 'ca',
+    'ie': 'ie',
+    'nz': 'nz',
+    'in': 'in',
+  };
   const sourceEditionMap = new Map();
   for (const s of snapshot.sources) {
     const country = s.country_code ? s.country_code.toLowerCase() : null;
-    if (country) {
-      sourceEditionMap.set(s.slug, country === 'hi' ? 'in-hi' : country);
+    let ed = null;
+    if (s.language === 'hi') {
+      ed = 'in-hi';
+    } else if (country && countryToEdition[country]) {
+      ed = countryToEdition[country];
+    }
+    if (ed) {
+      if (s.slug) sourceEditionMap.set(s.slug, ed);
+      if (s.source_id) sourceEditionMap.set(s.source_id, ed);
     }
   }
 
+  // Filter out cross-edition leakage (e.g. gazetteer/wire flags linking Indian stories to UK/US/AU/CA/IE/NZ)
+  const editionsMap = new Map(snapshot.editions.map((e) => [e.slug ?? e.id, e]));
+  const sourcesMap = new Map(snapshot.sources.map((s) => [s.slug ?? s.source_id, s]));
+
+  snapshot.edition_clusters = snapshot.edition_clusters.filter((ec) => {
+    const ed = editionsMap.get(ec.edition_id);
+    if (!ed) return false;
+    const sources = snapshot.story_sources.filter((ss) => ss.cluster_id === ec.cluster_id);
+    if (sources.length === 0) return true;
+    return sources.some((ss) => {
+      const src = sourcesMap.get(ss.source_id);
+      if (!src) return false;
+      return src.country_code === ed.country_code && src.language === ed.language;
+    });
+  });
+
+  // Ensure every cluster has at least one edition mapping
+  const clustersWithEditions = new Set(snapshot.edition_clusters.map((ec) => ec.cluster_id));
   for (const c of snapshot.clusters) {
     if (!clustersWithEditions.has(c.id)) {
       const sourcesForCluster = snapshot.story_sources.filter((s) => s.cluster_id === c.id);
       const firstSource = sourcesForCluster[0];
-      const fallbackEdition = (firstSource && sourceEditionMap.get(firstSource.source_id)) || 'uk';
+      const fallbackEdition = (firstSource && (sourceEditionMap.get(firstSource.source_id) || sourceEditionMap.get(firstSource.source_name))) || 'uk';
       snapshot.edition_clusters.push({
         edition_id: fallbackEdition,
         cluster_id: c.id,

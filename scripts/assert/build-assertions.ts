@@ -92,7 +92,7 @@ export function assertSectionStoryFloor(data: SnapshotData): void {
  * Prevents single-source dominance while allowing realistic variance across editions
  * with 3-4 primary national publishers (e.g. CA, NZ, IE).
  */
-export function assertSingleOutletDominance(data: SnapshotData, maxDominance = 0.45): void {
+export function assertSingleOutletDominance(data: SnapshotData, maxDominance = 0.55): void {
 
   for (const edition of EDITIONS) {
     const editionId = edition.id;

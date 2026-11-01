@@ -182,15 +182,10 @@ function matchesEdition(snapshot: SnapshotData, story: PageStory, edition: Editi
   const config = EDITIONS.find((item) => item.id === edition);
   if (!config) return false;
   const sources = new Map(snapshot.sources.map((source: any) => [source.slug ?? source.source_id, source]));
-  const matches = story.sources.some((source) => {
+  return story.sources.some((source) => {
     const configured = sources.get(source.sourceId);
     return configured?.country_code === config.countryCode && configured.language === config.language;
   });
-  if (matches) return true;
-  if (snapshot.edition_clusters.some((ec) => ec.edition_id === edition && ec.cluster_id === story.cluster.id)) {
-    return true;
-  }
-  return false;
 }
 
 function getStoryMap(snapshot: SnapshotData): Map<string, PageStory> {
